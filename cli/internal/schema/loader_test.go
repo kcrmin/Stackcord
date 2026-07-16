@@ -80,3 +80,10 @@ func TestValidateDiscoveryCheckpointRequiresNormalizedSections(t *testing.T) {
 	delete(valid, "open_questions")
 	require.NotEmpty(t, schema.Validate("discovery", valid))
 }
+
+func TestValidateFocusedProjectProfile(t *testing.T) {
+	valid := map[string]any{"schema_version": 1, "tdd": "default", "git": map[string]any{"collaboration": "strongly_recommended", "release": "required"}, "task_source": "git-local", "release": "core"}
+	require.Empty(t, schema.Validate("profile", valid))
+	valid["release"] = "enterprise-everywhere"
+	require.NotEmpty(t, schema.Validate("profile", valid))
+}

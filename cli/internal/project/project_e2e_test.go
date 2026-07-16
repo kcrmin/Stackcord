@@ -16,7 +16,7 @@ import (
 
 func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 	parent := t.TempDir()
-	draftPlan, err := project.CreateDraft(project.DraftRequest{Parent: parent, DraftID: "01JPROJECT", Locale: "ko", Summary: "팀이 승인한 제품 요약", Decisions: []string{"Git collaboration is strongly recommended."}, OpenQuestions: []string{"Public product name"}})
+	draftPlan, err := project.PlanCheckpoint(project.CheckpointRequest{Parent: parent, DraftID: "01JPROJECT", Locale: "ko", Checkpoint: validCheckpoint("팀이 승인한 제품 요약", "공개 제품 이름")})
 	require.NoError(t, err)
 	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), draftPlan).Status)
 
@@ -27,8 +27,9 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 
 	for _, path := range []string{
 		"AGENTS.md", ".agents/skills/use-project-harness/SKILL.md", ".agents/skills/use-project-harness/references/fallback.md",
-		".harness/manifest.yaml", ".harness/entry.md", ".harness/state/context-index.json", ".harness/state/impact-graph.json",
-		"specs/index.md", "contracts/registry.yaml", "docs/index.md",
+		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/state/context-index.json", ".harness/state/impact-graph.json",
+		"specs/index.md", "specs/product/summary.md", "specs/policies/policy.account.recovery-proof.md", "specs/scenarios/scenario.account.recovery-success.md",
+		"contracts/registry.yaml", "docs/index.md",
 	} {
 		require.FileExists(t, filepath.Join(root, filepath.FromSlash(path)))
 	}
@@ -36,11 +37,21 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 		_, statErr := os.Stat(filepath.Join(root, path))
 		require.ErrorIs(t, statErr, os.ErrNotExist)
 	}
+	for _, path := range []string{
+		".harness/policies", ".harness/templates", ".harness/integrations", ".harness/state/lifecycle.yaml", ".harness/state/baselines.yaml",
+		".harness/state/release-candidate.yaml", ".harness/work/links.yaml", "contracts/errors.yaml",
+	} {
+		require.NoDirExists(t, filepath.Join(root, filepath.FromSlash(path)))
+		require.NoFileExists(t, filepath.Join(root, filepath.FromSlash(path)))
+	}
 	manifest, err := os.ReadFile(filepath.Join(root, ".harness", "manifest.yaml"))
 	require.NoError(t, err)
 	require.Contains(t, string(manifest), "project.service-product")
 	_, issues := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
 	require.Empty(t, issues, "a newly generated project must be immediately resumable")
+	snapshot, _ := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
+	require.Contains(t, snapshot.Index, "policy.account.recovery-proof")
+	require.Contains(t, snapshot.Index, "scenario.account.recovery-success")
 }
 
 func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {

@@ -23,7 +23,11 @@ func PlanInit(request InitRequest) (operation.Plan, error) {
 	} else if err != nil && !os.IsNotExist(err) {
 		return operation.Plan{}, err
 	}
-	plan := operation.Plan{ID: "init-" + request.ProjectID, Root: request.Root, Files: render(request)}
+	files, err := render(request)
+	if err != nil {
+		return operation.Plan{}, err
+	}
+	plan := operation.Plan{ID: "init-" + request.ProjectID, Root: request.Root, Files: files}
 	fingerprint, err := operation.StateFingerprint(plan)
 	plan.InitialStateFingerprint = fingerprint
 	return plan, err

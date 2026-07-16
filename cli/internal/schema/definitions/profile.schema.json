@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/profile.schema.json",
+  "type": "object",
+  "required": ["schema_version", "tdd", "git", "task_source", "release"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "tdd": {"enum": ["default"]},
+    "git": {
+      "type": "object",
+      "required": ["collaboration", "release"],
+      "properties": {
+        "collaboration": {"enum": ["strongly_recommended"]},
+        "release": {"enum": ["required"]}
+      },
+      "additionalProperties": false
+    },
+    "task_source": {"type": "string", "minLength": 1},
+    "release": {"enum": ["core", "strict-release"]}
+  },
+  "additionalProperties": false
+}
+

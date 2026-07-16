@@ -194,6 +194,8 @@ func TestWorkNextSkipsUnknownAndActivelyClaimedItems(t *testing.T) {
 		"work.B.yaml": "schema_version: 1\nid: work.B\ntitle: Already claimed\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n",
 		"work.C.yaml": "schema_version: 1\nid: work.C\ntitle: Safe next work\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n",
 	}
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness", "work", "items"), 0o700))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness", "work", "claims"), 0o700))
 	for name, value := range items {
 		require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "items", name), []byte(value), 0o600))
 	}
@@ -216,6 +218,7 @@ func TestWorkNextDoesNotUseLocalItemsWhenExternalProviderIsCanonical(t *testing.
 	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
 	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.external-work", "--locale", "en", "--apply", "--json"})
 	require.NoError(t, init.Execute())
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness", "work", "items"), 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: github\nlive_status_source: github\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "items", "work.local.yaml"), []byte("schema_version: 1\nid: work.local\ntitle: Stale local copy\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n"), 0o600))
 

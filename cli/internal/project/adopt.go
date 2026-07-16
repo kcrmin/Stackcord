@@ -18,7 +18,10 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 	if !projectIDPattern.MatchString(request.ProjectID) {
 		return operation.Plan{}, fmt.Errorf("project ID must be a lowercase dot-separated stable ID")
 	}
-	generated := render(request)
+	generated, err := render(request)
+	if err != nil {
+		return operation.Plan{}, err
+	}
 	plan := operation.Plan{ID: "adopt-" + request.ProjectID, Root: request.Root}
 	for _, file := range generated {
 		path := filepath.Join(request.Root, filepath.FromSlash(file.Path))

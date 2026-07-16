@@ -7,12 +7,14 @@ import (
 	"strings"
 
 	"fullstack-orchestrator/cli/internal/operation"
+	"fullstack-orchestrator/cli/internal/schema"
+	"go.yaml.in/yaml/v3"
 )
 
 const managedBegin = "<!-- orchestrator:begin -->"
 const managedEnd = "<!-- orchestrator:end -->"
 
-func render(request InitRequest) []operation.FileChange {
+func render(request InitRequest) ([]operation.FileChange, error) {
 	name := request.Name
 	if name == "" {
 		name = request.ProjectID
@@ -27,39 +29,25 @@ func render(request InitRequest) []operation.FileChange {
 		".agents/skills/use-project-harness/references/fallback.md": fallbackReference,
 		".harness/manifest.yaml":                                    fmt.Sprintf("schema_version: 1\nid: %s\nlocale: %s\ngenerated_by: orchestrator\npaths:\n  specs: specs\n  contracts: contracts\n  docs: docs\n", request.ProjectID, request.Locale),
 		".harness/entry.md":                                         harnessEntry,
+		".harness/profile.yaml":                                     projectProfile,
 		".harness/sources.yaml":                                     "schema_version: 1\nsources:\n  - id: source.git.local\n    kind: git\n    authority: actual_state\n    access: read\n",
 		".harness/workspaces.yaml":                                  "schema_version: 1\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n",
-		".harness/state/lifecycle.yaml":                             "schema_version: 1\ncurrent_stage: entry_diagnosis\nstages: []\n",
-		".harness/state/baselines.yaml":                             "schema_version: 1\nbaselines: []\n",
 		".harness/state/context-index.json":                         "{\n  \"schema_version\": 1,\n  \"index\": {}\n}\n",
 		".harness/state/impact-graph.json":                          "{\n  \"schema_version\": 1,\n  \"impact\": {}\n}\n",
-		".harness/state/release-candidate.yaml":                     "schema_version: 1\nstatus: absent\n",
-		".harness/policies/development.yaml":                        developmentPolicy,
-		".harness/policies/tdd.yaml":                                tddPolicy,
-		".harness/policies/conflicts.yaml":                          conflictPolicy,
-		".harness/policies/approvals.yaml":                          approvalPolicy,
-		".harness/policies/security.yaml":                           securityPolicy,
-		".harness/policies/release.yaml":                            releasePolicy,
 		".harness/work/provider.yaml":                               "schema_version: 1\nprovider: git-local\nlive_status_source: git-local\n",
-		".harness/work/links.yaml":                                  "schema_version: 1\nlinks: []\n",
-		".harness/integrations/dbdiagram.yaml":                      "schema_version: 1\nenabled: false\ncanonical: contracts/data\nsecret_environment: DBDIAGRAM_TOKEN\n",
-		".harness/integrations/git-host.yaml":                       "schema_version: 1\nprovider: auto\n",
-		".harness/integrations/tasks.yaml":                          "schema_version: 1\nprovider: git-local\n",
-		".harness/templates/work-item.yaml":                         "schema_version: 1\nid: work.<ulid>\nstatus: proposed\nrefs: []\ndependencies: []\n",
-		".harness/templates/scope-claim.yaml":                       "schema_version: 1\nid: claim.<ulid>\npaths: []\ncontract_ids: []\nexpires_at: <rfc3339>\n",
-		".harness/templates/change-proposal.yaml":                   "schema_version: 1\nid: change.<ulid>\nstatus: proposed\nrefs: []\nworkspace_order: []\nverification: []\nrollback: []\n",
-		".harness/templates/handoff.yaml":                           "schema_version: 1\nwork_id: work.<ulid>\ncurrent_state: ''\nnext_action: ''\nevidence: []\n",
-		".harness/templates/adr.md":                                 "---\nschema_version: 1\nid: decision.<id>\nkind: decision\nstatus: proposed\nrevision: 1\nrefs: []\n---\n\n# Decision\n",
 		"specs/index.md":                                            "# Product specifications\n\nApproved intent, roles, capabilities, journeys, policies, scenarios, quality, architecture, and UI baselines live here.\n",
 		"contracts/registry.yaml":                                   "schema_version: 1\ncontracts: []\n",
-		"contracts/errors.yaml":                                     "schema_version: 1\nerrors: []\n",
 		"docs/index.md":                                             "# Project documentation\n\nGuides, runbooks, troubleshooting, and generated summaries live here.\n",
 	}
-	for _, directory := range trackedDirectories {
-		files[filepath.ToSlash(filepath.Join(directory, ".gitkeep"))] = ""
-	}
 	if request.DraftRoot != "" {
-		files["specs/product/discovery-source.md"] = "---\nschema_version: 1\nid: decision.product.discovery-baseline\nkind: decision\nstatus: approved\nrevision: 1\nrefs: []\n---\n\n# Discovery migration\n\nNormalized discovery was approved and migrated from the draft at `" + filepath.ToSlash(request.DraftRoot) + "`.\n"
+		checkpoint, err := schema.LoadYAML[DiscoveryCheckpoint](filepath.Join(request.DraftRoot, "checkpoint.yaml"))
+		if err != nil {
+			return nil, fmt.Errorf("load approved discovery checkpoint: %w", err)
+		}
+		if err := validateCheckpoint(checkpoint); err != nil {
+			return nil, err
+		}
+		addDiscoveryFiles(files, checkpoint)
 	}
 	paths := make([]string, 0, len(files))
 	for path := range files {
@@ -70,14 +58,7 @@ func render(request InitRequest) []operation.FileChange {
 	for _, path := range paths {
 		result = append(result, operation.FileChange{Path: path, Content: []byte(strings.ReplaceAll(files[path], "\r\n", "\n")), Mode: 0o644})
 	}
-	return result
-}
-
-var trackedDirectories = []string{
-	".harness/state/gates", ".harness/work/items", ".harness/work/claims", ".harness/work/changes", ".harness/work/branches", ".harness/evidence/receipts", ".harness/evidence/gates",
-	"specs/product/journeys", "specs/policies", "specs/scenarios", "specs/quality", "specs/architecture", "specs/ui",
-	"contracts/services", "contracts/api", "contracts/events", "contracts/data", "contracts/schemas", "contracts/auth",
-	"docs/guides", "docs/runbooks", "docs/troubleshooting", "docs/generated",
+	return result, nil
 }
 
 func managedSection(body string) string {
@@ -123,9 +104,54 @@ const harnessEntry = `# Project harness entry
 6. If context was compacted or appears forgotten, run a full context audit before mutation.
 `
 
-const developmentPolicy = "schema_version: 1\nmain_protected: true\nbranch_pattern: '<type>/<description>'\ncommit_convention: conventional-commits\ndefault_merge: squash\npermanent_develop: false\n"
-const tddPolicy = "schema_version: 1\nrequired: true\nsequence: [red, green, refactor]\nexceptions: [documentation, pure-design-assets, deterministic-generated-files, non-merged-spikes, formatting]\nevidence_required: true\n"
-const conflictPolicy = "schema_version: 1\nscopes: [path, module, policy, scenario, contract, database-entity, migration-slot, ui-flow, dependency, workspace, root-pointer]\nlevels: [clear, coordinate, block, unknown]\nclaims_are_locks: false\n"
-const approvalPolicy = "schema_version: 1\nclasses:\n  A: read-only\n  B: requested-local-write\n  C: shared-or-external-write\n  D: destructive-production-or-secret\nclass_d_always_exact: true\n"
-const securityPolicy = "schema_version: 1\nsecrets_in_repository: false\nuntrusted_hooks: false\nexternal_import_quarantine: true\npath_escape: block\n"
-const releasePolicy = "schema_version: 1\nimmutable_rc: true\nsame_artifact_user_validation: true\nrequired: [tests, security, licenses, sbom, signatures, rollback, user-confirmation]\n"
+const projectProfile = "schema_version: 1\ntdd: default\ngit:\n  collaboration: strongly_recommended\n  release: required\ntask_source: git-local\nrelease: core\n"
+
+type generatedMetadata struct {
+	SchemaVersion int      `yaml:"schema_version"`
+	ID            string   `yaml:"id"`
+	Kind          string   `yaml:"kind"`
+	Status        string   `yaml:"status"`
+	Revision      int      `yaml:"revision"`
+	Refs          []string `yaml:"refs"`
+}
+
+func addDiscoveryFiles(files map[string]string, checkpoint DiscoveryCheckpoint) {
+	files["specs/product/summary.md"] = discoveryDocument("decision.product.summary", "decision", "approved", nil, "# Product summary\n\n"+checkpoint.Summary)
+	addFacts := func(directory, kind, status string, facts []DiscoveryFact) {
+		for _, fact := range facts {
+			files[filepath.ToSlash(filepath.Join(directory, fact.ID+".md"))] = discoveryDocument(fact.ID, kind, status, nil, "# "+fact.ID+"\n\n"+fact.Summary)
+		}
+	}
+	addFacts("specs/product/roles", "role", "approved", checkpoint.Roles)
+	addFacts("specs/product/journeys", "journey", "approved", checkpoint.Journeys)
+	addFacts("specs/product/capabilities", "capability", "approved", checkpoint.Capabilities)
+	addFacts("specs/policies", "policy", "approved", checkpoint.Policies)
+	addFacts("specs/quality", "quality", "approved", checkpoint.Quality)
+	addFacts("specs/architecture", "architecture", "proposed", checkpoint.TechnologyNeeds)
+	addFacts("specs/product/assumptions", "decision", "proposed", checkpoint.Assumptions)
+	addFacts("specs/product/open-questions", "decision", "unknown", checkpoint.OpenQuestions)
+	for _, scenario := range checkpoint.Scenarios {
+		body := fmt.Sprintf("# %s\n\nActor: %s\n\nTrigger: %s\n\nOutcome: %s\n\nFailure: %s", scenario.ID, scenario.Actor, scenario.Trigger, scenario.Outcome, scenario.Failure)
+		files["specs/scenarios/"+scenario.ID+".md"] = discoveryDocument(scenario.ID, "scenario", "approved", []string{scenario.Actor}, body)
+	}
+	for _, coverage := range checkpoint.UICoverage {
+		body := fmt.Sprintf("# %s\n\nRequired states: %s", coverage.ID, strings.Join(coverage.States, ", "))
+		files["specs/ui/"+coverage.ID+".md"] = discoveryDocument(coverage.ID, "ui", "approved", []string{coverage.RoleID, coverage.JourneyID}, body)
+	}
+	for _, decision := range checkpoint.Decisions {
+		body := fmt.Sprintf("# %s\n\nChoice: %s\n\nRationale: %s", decision.ID, decision.Choice, decision.Rationale)
+		files["specs/product/decisions/"+decision.ID+".md"] = discoveryDocument(decision.ID, "decision", "approved", nil, body)
+	}
+}
+
+func discoveryDocument(id, kind, status string, refs []string, body string) string {
+	metadata, _ := yaml.Marshal(generatedMetadata{SchemaVersion: 1, ID: id, Kind: kind, Status: status, Revision: 1, Refs: emptyStrings(refs)})
+	return "---\n" + string(metadata) + "---\n\n" + strings.TrimSpace(body) + "\n"
+}
+
+func emptyStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
+}
