@@ -29,8 +29,13 @@ func FindRoot(start string) (string, error) {
 			break
 		}
 		manifest := filepath.Join(current, ".harness", "manifest.yaml")
-		if stat, statErr := os.Stat(manifest); statErr == nil && !stat.IsDir() {
-			return current, nil
+		if stat, statErr := os.Lstat(manifest); statErr == nil {
+			if stat.Mode()&os.ModeSymlink != 0 {
+				return "", fmt.Errorf("project manifest must not be a symlink: %s", manifest)
+			}
+			if stat.Mode().IsRegular() {
+				return current, nil
+			}
 		}
 		parent := filepath.Dir(current)
 		if parent == current {

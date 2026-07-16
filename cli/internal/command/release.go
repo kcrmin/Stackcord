@@ -8,6 +8,7 @@ import (
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/release"
+	"fullstack-orchestrator/cli/internal/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -133,8 +134,5 @@ func readJSON[T any](path string) (T, error) {
 	if err != nil {
 		return value, err
 	}
-	if err := json.Unmarshal(data, &value); err != nil {
-		return value, err
-	}
-	return value, nil
+	return schema.DecodeJSON[T](data)
 }

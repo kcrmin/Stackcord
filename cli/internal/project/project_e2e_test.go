@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
@@ -46,8 +47,10 @@ func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {
 	root := t.TempDir()
 	customReadme := "# Existing Product\n\nCustom instructions.\n"
 	customAgents := "# Existing agent rules\n\nKeep this.\n"
+	customGitignore := "*.log\n!important.log\n*.log\n"
 	require.NoError(t, os.WriteFile(filepath.Join(root, "README.md"), []byte(customReadme), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte(customAgents), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".gitignore"), []byte(customGitignore), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, "user-dirty.txt"), []byte("do not touch\n"), 0o600))
 
 	plan, err := project.PlanAdopt(project.InitRequest{Root: root, ProjectID: "project.existing", Name: "Existing Product", Locale: "en"})
@@ -57,6 +60,7 @@ func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {
 	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), customReadme)
 	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), "orchestrator:begin")
 	require.Contains(t, mustRead(t, filepath.Join(root, "AGENTS.md")), customAgents)
+	require.True(t, strings.HasPrefix(mustRead(t, filepath.Join(root, ".gitignore")), customGitignore), "ordered ignore rules must remain byte-for-byte at the start")
 	require.Equal(t, "do not touch\n", mustRead(t, filepath.Join(root, "user-dirty.txt")))
 }
 
@@ -67,6 +71,14 @@ func TestAdoptBlocksSemanticToolingConflict(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, plan.Blockers)
 	require.Empty(t, plan.Files)
+}
+
+func TestProjectAndDraftRejectPathLikeStableIDs(t *testing.T) {
+	_, err := project.CreateDraft(project.DraftRequest{Parent: t.TempDir(), DraftID: "../../escape", Locale: "en"})
+	require.ErrorContains(t, err, "draft ID")
+
+	_, err = project.PlanInit(project.InitRequest{Root: filepath.Join(t.TempDir(), "product"), ProjectID: "../project", Locale: "en"})
+	require.ErrorContains(t, err, "project ID")
 }
 
 func mustRead(t *testing.T, path string) string {

@@ -16,7 +16,7 @@ func TestExportOmitsPrivateContentAndRedactsPathsAndSecrets(t *testing.T) {
 		Root:     "/Users/alex/private/product", Home: "/Users/alex",
 		Errors:   []string{"provider unavailable at /Users/alex/private/product"},
 		State:    map[string]string{"branch": "feature/recovery", "remote": "https://alice:password@github.com/private/repo.git", "provider": "token=super-secret-token"},
-		Receipts: []string{"operation-01"}, ProviderOutput: "prompt=private product source; api_token=another-secret-value",
+		Receipts: []string{"operation-01", "/Users/alex/private/product/.harness/local/receipt-token=receipt-secret-value"}, ProviderOutput: "prompt=private product source; api_token=another-secret-value",
 	}
 	var archive bytes.Buffer
 	require.NoError(t, diagnostic.Export(&archive, input))
@@ -29,7 +29,7 @@ func TestExportOmitsPrivateContentAndRedactsPathsAndSecrets(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, entry.Close())
 	text := string(data)
-	for _, private := range []string{"/Users/alex", "private product source", "password@", "super-secret-token", "another-secret-value", "alice:"} {
+	for _, private := range []string{"/Users/alex", "private product source", "password@", "super-secret-token", "another-secret-value", "receipt-secret-value", "alice:"} {
 		require.NotContains(t, text, private)
 	}
 	require.Contains(t, text, "<PROJECT_ROOT>")

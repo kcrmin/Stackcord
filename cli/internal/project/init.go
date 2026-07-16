@@ -15,6 +15,9 @@ func PlanInit(request InitRequest) (operation.Plan, error) {
 	if request.Root == "" || request.ProjectID == "" || (request.Locale != "en" && request.Locale != "ko") {
 		return operation.Plan{}, fmt.Errorf("root, stable project ID, and locale en|ko are required")
 	}
+	if !projectIDPattern.MatchString(request.ProjectID) {
+		return operation.Plan{}, fmt.Errorf("project ID must be a lowercase dot-separated stable ID")
+	}
 	if entries, err := os.ReadDir(request.Root); err == nil && len(entries) > 0 {
 		return operation.Plan{}, fmt.Errorf("target is not empty; use adopt")
 	} else if err != nil && !os.IsNotExist(err) {

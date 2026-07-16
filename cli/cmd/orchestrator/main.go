@@ -15,4 +15,5 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(8)
 	}
+	os.Exit(command.ExitCode(cmd))
 }

@@ -41,6 +41,44 @@ func TestCandidateDetectsEveryImmutableInputChange(t *testing.T) {
 	}
 }
 
+func TestCandidateRejectsTamperedManifestDigest(t *testing.T) {
+	input := validInput()
+	candidate, created := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusPassed, created.Status)
+
+	candidate.Digest = "sha256:tampered"
+	result := release.VerifyCandidate(candidate, input)
+
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Equal(t, domain.ExitVerification, result.ExitCode)
+	require.Equal(t, "digest", result.Blockers[0].Refs[0])
+}
+
+func TestCandidateDetectsVersionAndSchemaChanges(t *testing.T) {
+	input := validInput()
+	candidate, _ := release.CreateCandidate(input)
+
+	changedVersion := input
+	changedVersion.Version = "1.0.1"
+	require.Equal(t, "version", release.VerifyCandidate(candidate, changedVersion).Blockers[0].Refs[0])
+
+	candidate.SchemaVersion = 2
+	result := release.VerifyCandidate(candidate, input)
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Equal(t, "schema_version", result.Blockers[0].Refs[0])
+}
+
+func TestCandidateRequiresReleaseEvidenceIdentities(t *testing.T) {
+	input := validInput()
+	input.UserValidationDigest = ""
+
+	_, result := release.CreateCandidate(input)
+
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Equal(t, domain.ExitVerification, result.ExitCode)
+	require.Equal(t, "user_validation_digest", result.Blockers[0].Refs[0])
+}
+
 func TestEveryProductionGapBlocksRelease(t *testing.T) {
 	cases := map[string]func(*release.Gates){
 		"flaky required check":    func(g *release.Gates) { g.RequiredChecksStable = false },
@@ -75,6 +113,29 @@ func TestPublishAlwaysRequiresExactProductionApproval(t *testing.T) {
 	plan, result = release.PlanPublish(candidate, consent)
 	require.Equal(t, domain.StatusPassed, result.Status)
 	require.NotEmpty(t, plan.Commands)
+}
+
+func TestPublishRejectsCandidateWhoseManifestWasTampered(t *testing.T) {
+	candidate, _ := release.CreateCandidate(validInput())
+	candidate.Digest = "sha256:tampered"
+	consent := policy.Consent{Approved: true, ExactDReceipt: true, Action: policy.PublishProduction, Objective: "publish 1.0.0", Repository: "product", Target: candidate.Digest, ExpiresAt: time.Now().Add(time.Hour)}
+
+	plan, result := release.PlanPublish(candidate, consent)
+
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Empty(t, plan.Commands)
+}
+
+func TestPublishRejectsDigestValidCandidateWithMissingEvidence(t *testing.T) {
+	forged, _ := release.CreateCandidate(validInput())
+	forged.Input.UserValidationDigest = ""
+	consent := policy.Consent{Approved: true, ExactDReceipt: true, Action: policy.PublishProduction, Objective: "publish 1.0.0", Repository: "product", Target: forged.Digest, ExpiresAt: time.Now().Add(time.Hour)}
+
+	plan, result := release.PlanPublish(forged, consent)
+
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Empty(t, plan.Commands)
+	require.Contains(t, result.Blockers, domain.Item{Code: "release.evidence-required", Message: "Release evidence identity is required.", Refs: []string{"user_validation_digest"}})
 }
 
 func validInput() release.Input {

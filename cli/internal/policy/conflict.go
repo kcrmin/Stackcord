@@ -39,7 +39,9 @@ type Candidate struct {
 
 // Claim declares a collaborator's intended scope. It is not a distributed lock.
 type Claim struct {
+	SchemaVersion    int       `json:"schema_version" yaml:"schema_version"`
 	ID               string    `json:"id" yaml:"id"`
+	WorkID           string    `json:"work_id" yaml:"work_id"`
 	Repository       string    `json:"repository" yaml:"repository"`
 	Workspace        string    `json:"workspace,omitempty" yaml:"workspace,omitempty"`
 	Owner            string    `json:"owner" yaml:"owner"`
@@ -55,7 +57,7 @@ type Claim struct {
 	RootPointer      bool      `json:"root_pointer" yaml:"root_pointer"`
 	StartsAt         time.Time `json:"starts_at" yaml:"starts_at"`
 	ExpiresAt        time.Time `json:"expires_at" yaml:"expires_at"`
-	Observable       bool      `json:"observable" yaml:"observable"`
+	Observable       bool      `json:"observable,omitempty" yaml:"observable,omitempty"`
 }
 
 // ConflictReport contains stable reasons and one concrete safe next action.

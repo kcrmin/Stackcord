@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Authenticated, Offline, RateLimited bool
 	Execute                             func(context.Context, provider.Request) error
+	ReceiptStore                        provider.ReceiptStore
 }
 
 // New returns a GitHub Issues/Projects/PR adapter.
@@ -23,5 +24,5 @@ func New(config Config) provider.Adapter {
 	if config.RateLimited {
 		health = provider.Health{Status: "rate_limited", Message: "GitHub rate limit prevents current-state verification."}
 	}
-	return provider.NewGuarded(provider.GuardedConfig{Descriptor: provider.Descriptor{ID: "github", Name: "GitHub", Version: "1"}, Capabilities: []provider.Capability{provider.CapabilityRead, provider.CapabilityWrite, provider.CapabilityHierarchy, provider.CapabilityDependency, provider.CapabilityDraftReview, provider.CapabilityRelease}, Health: health, Execute: config.Execute})
+	return provider.NewGuarded(provider.GuardedConfig{Descriptor: provider.Descriptor{ID: "github", Name: "GitHub", Version: "1"}, Capabilities: []provider.Capability{provider.CapabilityRead, provider.CapabilityWrite, provider.CapabilityHierarchy, provider.CapabilityDependency, provider.CapabilityDraftReview, provider.CapabilityRelease}, Health: health, Execute: config.Execute, ReceiptStore: config.ReceiptStore})
 }

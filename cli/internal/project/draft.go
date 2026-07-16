@@ -25,6 +25,9 @@ func CreateDraft(request DraftRequest) (operation.Plan, error) {
 	if request.Parent == "" || request.DraftID == "" || (request.Locale != "en" && request.Locale != "ko") {
 		return operation.Plan{}, fmt.Errorf("parent, draft ID, and locale en|ko are required")
 	}
+	if !draftIDPattern.MatchString(request.DraftID) {
+		return operation.Plan{}, fmt.Errorf("draft ID must contain only letters, digits, underscores, or hyphens")
+	}
 	root := filepath.Join(request.Parent, ".harness-drafts", request.DraftID)
 	now := time.Now().UTC().Format(time.RFC3339)
 	manifest, _ := yaml.Marshal(map[string]any{"schema_version": 1, "id": "draft." + request.DraftID, "created_at": now, "locale": request.Locale, "parent": request.Parent})

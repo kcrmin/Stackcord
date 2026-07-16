@@ -36,6 +36,18 @@ func TestStartWorkBlocksSharedContractConflict(t *testing.T) {
 	require.Equal(t, "conflict.contract", plan.Blockers[0].Code)
 }
 
+func TestStartWorkRejectsInvalidIdentityBranchAndLease(t *testing.T) {
+	now := time.Now().UTC()
+	plan := project.StartWork(project.StartWorkRequest{
+		Root: t.TempDir(), WorkID: "../work", ClaimID: "claim.bad", Owner: "alex", Branch: "agent/generated-work", ExpiresAt: now,
+		Candidate: policy.Candidate{Repository: "root", Now: now},
+	})
+
+	require.Empty(t, plan.Files)
+	require.NotEmpty(t, plan.Blockers)
+	require.Equal(t, "work.request-invalid", plan.Blockers[0].Code)
+}
+
 func TestFinishWorkRequiresVerificationEvidence(t *testing.T) {
 	result := project.FinishWork(project.FinishWorkRequest{WorkID: "work.example"})
 	require.Equal(t, domain.StatusBlocked, result.Status)

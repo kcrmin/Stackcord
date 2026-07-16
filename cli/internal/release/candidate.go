@@ -39,15 +39,19 @@ func CreateCandidate(input Input) (Candidate, domain.Result) {
 	if verification.Status != domain.StatusPassed {
 		return Candidate{}, verification
 	}
+	if blockers := validateInput(input); len(blockers) > 0 {
+		verification.Status, verification.ExitCode, verification.Summary = domain.StatusBlocked, domain.ExitVerification, "Release evidence identities are incomplete."
+		verification.Blockers = blockers
+		return Candidate{}, verification
+	}
 	candidate := Candidate{SchemaVersion: 1, Input: cloneInput(input)}
 	candidate.Input.Gates = Gates{}
-	data, err := json.Marshal(candidate)
+	digest, err := candidateDigest(candidate)
 	if err != nil {
 		verification.Status, verification.ExitCode, verification.Summary = domain.StatusFailed, domain.ExitInternal, "Release candidate could not be encoded."
 		return Candidate{}, verification
 	}
-	digest := sha256.Sum256(data)
-	candidate.Digest = "sha256:" + hex.EncodeToString(digest[:])
+	candidate.Digest = digest
 	verification.Command, verification.OperationID, verification.Summary = "rc.create", "rc-"+input.Version, "Immutable release candidate created from verified inputs."
 	verification.Evidence = []domain.Item{{Code: "release.candidate-digest", Message: candidate.Digest}}
 	return candidate, verification
@@ -56,10 +60,19 @@ func CreateCandidate(input Input) (Candidate, domain.Result) {
 // VerifyCandidate compares every immutable field and digest.
 func VerifyCandidate(candidate Candidate, current Input) domain.Result {
 	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "rc.verify", OperationID: "rc-verify", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Release candidate inputs are unchanged."}
+	result.Blockers = append(result.Blockers, validateInput(candidate.Input)...)
+	if candidate.SchemaVersion != 1 {
+		result.Blockers = append(result.Blockers, domain.Item{Code: "release.candidate-changed", Message: "Release candidate schema version is unsupported.", Refs: []string{"schema_version"}})
+	}
+	expectedDigest, err := candidateDigest(candidate)
+	if err != nil || candidate.Digest != expectedDigest {
+		result.Blockers = append(result.Blockers, domain.Item{Code: "release.candidate-changed", Message: "Release candidate manifest digest does not match its contents.", Refs: []string{"digest"}})
+	}
 	fields := []struct {
 		name string
 		same bool
 	}{
+		{"version", candidate.Input.Version == current.Version},
 		{"root_commit", candidate.Input.RootCommit == current.RootCommit},
 		{"workspace_commits", reflect.DeepEqual(candidate.Input.WorkspaceCommits, current.WorkspaceCommits)},
 		{"artifact_digests", reflect.DeepEqual(candidate.Input.ArtifactDigests, current.ArtifactDigests)},
@@ -81,6 +94,55 @@ func VerifyCandidate(candidate Candidate, current Input) domain.Result {
 		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitVerification, "Release candidate is no longer immutable; create a new candidate."
 	}
 	return result
+}
+
+func validateInput(input Input) []domain.Item {
+	checks := []struct {
+		name string
+		ok   bool
+	}{
+		{"version", input.Version != ""},
+		{"root_commit", input.RootCommit != ""},
+		{"workspace_commits", nonEmptyMap(input.WorkspaceCommits)},
+		{"artifact_digests", nonEmptyMap(input.ArtifactDigests)},
+		{"schema_versions", nonEmptyMap(input.SchemaVersions)},
+		{"adapter_versions", nonEmptyMap(input.AdapterVersions)},
+		{"sbom_digest", input.SBOMDigest != ""},
+		{"provenance_digest", input.ProvenanceDigest != ""},
+		{"signature_digests", nonEmptyMap(input.SignatureDigests)},
+		{"gate_receipts", nonEmptyMap(input.GateReceipts)},
+		{"docs_fingerprint", input.DocsFingerprint != ""},
+		{"user_validation_digest", input.UserValidationDigest != ""},
+	}
+	var blockers []domain.Item
+	for _, check := range checks {
+		if !check.ok {
+			blockers = append(blockers, domain.Item{Code: "release.evidence-required", Message: "Release evidence identity is required.", Refs: []string{check.name}})
+		}
+	}
+	return blockers
+}
+
+func nonEmptyMap(values map[string]string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	for key, value := range values {
+		if key == "" || value == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func candidateDigest(candidate Candidate) (string, error) {
+	candidate.Digest = ""
+	data, err := json.Marshal(candidate)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(digest[:]), nil
 }
 
 func cloneInput(input Input) Input {

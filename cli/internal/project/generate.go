@@ -1,7 +1,6 @@
 package project
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -93,11 +92,6 @@ func mergeManaged(existing, generated string) string {
 		}
 	}
 	return strings.TrimRight(existing, "\r\n") + "\n\n" + generatedBlock
-}
-
-func marshalJSON(value any) []byte {
-	data, _ := json.MarshalIndent(value, "", "  ")
-	return append(data, '\n')
 }
 
 const repoSkill = `---

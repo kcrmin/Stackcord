@@ -1,11 +1,8 @@
 package command
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/contract"
@@ -14,7 +11,6 @@ import (
 	"fullstack-orchestrator/cli/internal/operation"
 	uiimport "fullstack-orchestrator/cli/internal/ui"
 	"github.com/spf13/cobra"
-	"go.yaml.in/yaml/v3"
 )
 
 func newChangeCommand(version string, jsonOutput *bool) *cobra.Command {
@@ -110,8 +106,13 @@ func newDatabaseCommand(version string, jsonOutput *bool) *cobra.Command {
 		addDBFacts("db.table-removed", diff.RemovedTables)
 		addDBFacts("db.column-added", diff.AddedColumns)
 		addDBFacts("db.column-removed", diff.RemovedColumns)
+		addDBFacts("db.column-changed", diff.ChangedColumns)
 		addDBFacts("db.relation-added", diff.AddedRelations)
 		addDBFacts("db.relation-removed", diff.RemovedRelations)
+		addDBFacts("db.index-added", diff.AddedIndexes)
+		addDBFacts("db.index-removed", diff.RemovedIndexes)
+		addDBFacts("db.note-added", diff.AddedNotes)
+		addDBFacts("db.note-removed", diff.RemovedNotes)
 		return writeResult(cmd, *jsonOutput, result)
 	}}
 	diffCommand.Flags().StringVar(&before, "before", "", "canonical DBML file")
@@ -166,21 +167,3 @@ func newUICommand(version string, jsonOutput *bool) *cobra.Command {
 	parent.AddCommand(importCommand)
 	return parent
 }
-
-func decodeContract(data []byte) (contract.Definition, error) {
-	var definition contract.Definition
-	if err := yaml.Unmarshal(data, &definition); err != nil {
-		return definition, fmt.Errorf("decode contract: %w", err)
-	}
-	return definition, nil
-}
-
-func safeRelative(root, target string) string {
-	relative, err := filepath.Rel(root, target)
-	if err != nil {
-		return target
-	}
-	return filepath.ToSlash(relative)
-}
-
-func joined(values []string) string { return strings.Join(values, ",") }

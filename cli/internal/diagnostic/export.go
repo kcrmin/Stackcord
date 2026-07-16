@@ -42,7 +42,10 @@ func Export(writer io.Writer, input Input) error {
 	for index, value := range input.Errors {
 		errors[index] = sanitize(value, input)
 	}
-	receipts := append([]string(nil), input.Receipts...)
+	receipts := make([]string, len(input.Receipts))
+	for index, value := range input.Receipts {
+		receipts[index] = sanitize(value, input)
+	}
 	sort.Strings(receipts)
 	payload := map[string]any{"schema_version": 1, "versions": input.Versions, "errors": errors, "state": state, "receipts": receipts, "provider_status": sanitizeProvider(input.ProviderOutput)}
 	encoder := json.NewEncoder(entry)

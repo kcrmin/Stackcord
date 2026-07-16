@@ -44,6 +44,46 @@ func TestRefreshReadOnlyDoesNotWriteCheckpoint(t *testing.T) {
 	require.Equal(t, before, after)
 }
 
+func TestRefreshRefusesSymlinkTemporaryCheckpoint(t *testing.T) {
+	root := contextFixture(t, false)
+	victim := filepath.Join(t.TempDir(), "victim.txt")
+	require.NoError(t, os.WriteFile(victim, []byte("keep\n"), 0o600))
+	temporary := filepath.Join(root, ".harness", "state", "context-index.json.tmp")
+	if err := os.Symlink(victim, temporary); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, issues := contextpkg.Refresh(stdcontext.Background(), root, contextpkg.WriteCheckpoint)
+
+	require.NotEmpty(t, errorsOnly(issues))
+	data, err := os.ReadFile(victim)
+	require.NoError(t, err)
+	require.Equal(t, "keep\n", string(data))
+}
+
+func TestRefreshRejectsInvalidManifestBeforeIndexing(t *testing.T) {
+	root := contextFixture(t, false)
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "manifest.yaml"), []byte("schema_version: 1\nid: INVALID\nlocale: xx\n"), 0o600))
+
+	_, issues := contextpkg.Refresh(stdcontext.Background(), root, contextpkg.ReadOnly)
+
+	require.NotEmpty(t, errorsOnly(issues))
+	require.Equal(t, "context.error.manifest", errorsOnly(issues)[0].Code)
+}
+
+func TestFindRootRejectsSymlinkManifest(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness"), 0o700))
+	target := filepath.Join(t.TempDir(), "manifest.yaml")
+	require.NoError(t, os.WriteFile(target, []byte("schema_version: 1\nid: project.link\nlocale: en\n"), 0o600))
+	if err := os.Symlink(target, filepath.Join(root, ".harness", "manifest.yaml")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, err := contextpkg.FindRoot(root)
+	require.ErrorContains(t, err, "symlink")
+}
+
 func contextFixture(t *testing.T, semanticConflict bool) string {
 	t.Helper()
 	root := t.TempDir()

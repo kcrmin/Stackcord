@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Authenticated, Offline bool
 	Execute                func(context.Context, provider.Request) error
+	ReceiptStore           provider.ReceiptStore
 }
 
 // New returns an isolated diagram-sync adapter.
@@ -20,5 +21,5 @@ func New(config Config) provider.Adapter {
 	if config.Offline {
 		health = provider.Health{Status: "offline", Message: "dbdiagram is offline."}
 	}
-	return provider.NewGuarded(provider.GuardedConfig{Descriptor: provider.Descriptor{ID: "dbdiagram", Name: "dbdiagram", Version: "1"}, Capabilities: []provider.Capability{provider.CapabilityRead, provider.CapabilityWrite, provider.CapabilityDiagramSync}, Health: health, Execute: config.Execute})
+	return provider.NewGuarded(provider.GuardedConfig{Descriptor: provider.Descriptor{ID: "dbdiagram", Name: "dbdiagram", Version: "1"}, Capabilities: []provider.Capability{provider.CapabilityRead, provider.CapabilityWrite, provider.CapabilityDiagramSync}, Health: health, Execute: config.Execute, ReceiptStore: config.ReceiptStore})
 }

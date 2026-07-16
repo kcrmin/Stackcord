@@ -35,7 +35,7 @@ func validateReadArgs(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("git command is required")
 	}
-	allowed := map[string]bool{"rev-parse": true, "status": true, "rev-list": true, "ls-tree": true}
+	allowed := map[string]bool{"rev-parse": true, "status": true, "rev-list": true, "ls-tree": true, "for-each-ref": true, "cat-file": true}
 	if !allowed[args[0]] {
 		return fmt.Errorf("git command %q is outside the read-only allowlist", args[0])
 	}

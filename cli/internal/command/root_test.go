@@ -55,6 +55,16 @@ func TestContextAuditInspectsProjectWithoutWriting(t *testing.T) {
 	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
+func TestCommandExposesRenderedDomainExitCode(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := command.New("1.0.0", &stdout, &bytes.Buffer{})
+	cmd.SetArgs([]string{"context", "audit", "--root", filepath.Join(t.TempDir(), "missing"), "--json"})
+
+	require.NoError(t, cmd.Execute(), "domain outcomes are rendered, not returned as Cobra errors")
+	require.Equal(t, 4, command.ExitCode(cmd))
+	require.Contains(t, stdout.String(), `"exit_code":4`)
+}
+
 func TestProjectInitPlansThenAppliesNeutralHarness(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "product")
 	var stdout bytes.Buffer
@@ -122,4 +132,99 @@ func TestDoctorExportsPrivacySafeDiagnostics(t *testing.T) {
 	require.NoError(t, cmd.Execute())
 	require.FileExists(t, exportPath)
 	require.Contains(t, stdout.String(), "diagnostic.export")
+}
+
+func TestDoctorExportNeverOverwritesExistingPath(t *testing.T) {
+	exportPath := filepath.Join(t.TempDir(), "diagnostic.zip")
+	require.NoError(t, os.WriteFile(exportPath, []byte("keep\n"), 0o600))
+	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	cmd.SetArgs([]string{"doctor", "--root", t.TempDir(), "--export", exportPath, "--json"})
+
+	require.Error(t, cmd.Execute())
+	data, err := os.ReadFile(exportPath)
+	require.NoError(t, err)
+	require.Equal(t, "keep\n", string(data))
+}
+
+func TestWorkStartCreatesClaimReadableByNextConflictCheck(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "product")
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.claim-test", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+
+	var startOutput bytes.Buffer
+	start := command.New("1.0.0", &startOutput, &bytes.Buffer{})
+	start.SetArgs([]string{"work", "start", "--root", root, "--work-id", "work.GH-1", "--claim-id", "claim.GH-1", "--owner", "alex", "--branch", "feature/account-recovery", "--path", "services/identity/**", "--apply", "--json"})
+	require.NoError(t, start.Execute())
+	require.Equal(t, 0, command.ExitCode(start), startOutput.String())
+	_, err := os.ReadFile(filepath.Join(root, ".harness", "work", "claims", "claim.GH-1.yaml"))
+	require.NoError(t, err)
+
+	candidatePath := filepath.Join(root, "candidate.yaml")
+	require.NoError(t, os.WriteFile(candidatePath, []byte("repository: root\npaths: [services/identity/handler/**]\npolicy_ids: []\nscenario_ids: []\ncontract_ids: []\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nstable_ids: []\nroot_pointer: false\nnow: 2026-07-16T00:00:00Z\n"), 0o600))
+	var output bytes.Buffer
+	conflict := command.New("1.0.0", &output, &bytes.Buffer{})
+	conflict.SetArgs([]string{"work", "conflict", "--root", root, "--candidate", candidatePath, "--json"})
+
+	require.NoError(t, conflict.Execute())
+	require.Equal(t, 0, command.ExitCode(conflict), "coordinate is a successful warning that requires an agreed merge order")
+	require.Contains(t, output.String(), `"status":"warning"`)
+	require.Contains(t, output.String(), "conflict.path-overlap")
+}
+
+func TestWorkNextUsesUnavailableExitWhenNothingIsReady(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "product")
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.empty-work", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+
+	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	cmd.SetArgs([]string{"work", "next", "--root", root, "--json"})
+	require.NoError(t, cmd.Execute())
+	require.Equal(t, 6, command.ExitCode(cmd))
+}
+
+func TestWorkNextSkipsUnknownAndActivelyClaimedItems(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "product")
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.work-selection", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+	items := map[string]string{
+		"work.A.yaml": "schema_version: 1\nid: work.A\ntitle: Unknown meaning\nstatus: ready\nrefs: [policy.missing]\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n",
+		"work.B.yaml": "schema_version: 1\nid: work.B\ntitle: Already claimed\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n",
+		"work.C.yaml": "schema_version: 1\nid: work.C\ntitle: Safe next work\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n",
+	}
+	for name, value := range items {
+		require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "items", name), []byte(value), 0o600))
+	}
+	claim := "schema_version: 1\nid: claim.B\nwork_id: work.B\nowner: alex\nbranch: feature/claimed\nrepository: root\npaths: []\npolicy_ids: []\nscenario_ids: []\ncontract_ids: []\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nroot_pointer: false\nstarts_at: 2026-07-16T00:00:00Z\nexpires_at: 2099-07-17T00:00:00Z\n"
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "claims", "claim.B.yaml"), []byte(claim), 0o600))
+
+	var output bytes.Buffer
+	cmd := command.New("1.0.0", &output, &bytes.Buffer{})
+	cmd.SetArgs([]string{"work", "next", "--root", root, "--json"})
+	require.NoError(t, cmd.Execute())
+
+	require.Equal(t, 0, command.ExitCode(cmd))
+	require.Contains(t, output.String(), "Safe next work")
+	require.NotContains(t, output.String(), "Unknown meaning")
+	require.NotContains(t, output.String(), "Already claimed")
+}
+
+func TestWorkNextDoesNotUseLocalItemsWhenExternalProviderIsCanonical(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "product")
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.external-work", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: github\nlive_status_source: github\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "items", "work.local.yaml"), []byte("schema_version: 1\nid: work.local\ntitle: Stale local copy\nstatus: ready\nrefs: []\ndependencies: []\nupdated_at: 2026-07-16T00:00:00Z\n"), 0o600))
+
+	var output bytes.Buffer
+	cmd := command.New("1.0.0", &output, &bytes.Buffer{})
+	cmd.SetArgs([]string{"work", "next", "--root", root, "--json"})
+	require.NoError(t, cmd.Execute())
+
+	require.Equal(t, 6, command.ExitCode(cmd))
+	require.Contains(t, output.String(), `"status":"unknown"`)
+	require.NotContains(t, output.String(), "Stale local copy")
 }

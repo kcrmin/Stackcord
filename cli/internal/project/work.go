@@ -8,6 +8,7 @@ import (
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/gitx"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/policy"
 	"go.yaml.in/yaml/v3"
@@ -35,6 +36,10 @@ type FinishWorkRequest struct {
 // StartWork creates a reviewable claim and branch checkpoint plan after conflict preflight.
 func StartWork(request StartWorkRequest) operation.Plan {
 	plan := operation.Plan{ID: "start-" + request.WorkID, Root: request.Root}
+	if request.Root == "" || !ValidWorkID(request.WorkID) || !validClaimID(request.ClaimID) || request.Owner == "" || request.Candidate.Repository == "" || !request.ExpiresAt.After(request.Candidate.Now) || gitx.ValidateBranch(request.Branch) != nil {
+		plan.Blockers = []domain.Item{{Code: "work.request-invalid", Message: "Work and claim IDs, owner, repository, conventional branch, and a future lease are required."}}
+		return plan
+	}
 	report := policy.CheckConflict(request.Candidate, request.ActiveClaims, request.Snapshot)
 	if report.Level != policy.ConflictClear {
 		plan.Blockers = append(plan.Blockers, report.Reasons...)

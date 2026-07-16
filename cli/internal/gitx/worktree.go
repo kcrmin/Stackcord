@@ -19,7 +19,7 @@ type WorktreeChange struct {
 
 // PlanWorktree validates conventions and places the worktree outside the repository.
 func PlanWorktree(change WorktreeChange) (operation.Plan, error) {
-	if !branchPattern.MatchString(change.Branch) || containsAIMarker(change.Branch) {
+	if err := ValidateBranch(change.Branch); err != nil {
 		return operation.Plan{}, fmt.Errorf("branch must match <type>/<description> or <type>/<work-id>-<description> without AI markers")
 	}
 	root, err := filepath.Abs(change.Root)
@@ -30,6 +30,14 @@ func PlanWorktree(change WorktreeChange) (operation.Plan, error) {
 	branchKey := strings.ReplaceAll(change.Branch, "/", "-")
 	target := filepath.Join(filepath.Dir(root), ".orchestrator-worktrees", repositoryName, branchKey)
 	return operation.Plan{ID: "worktree-" + branchKey, Root: root, Commands: []operation.CommandStep{{Program: "git", Args: []string{"worktree", "add", target, "-b", change.Branch}, Directory: root, ApprovalClass: "B"}}}, nil
+}
+
+// ValidateBranch enforces the repository-neutral collaboration convention.
+func ValidateBranch(branch string) error {
+	if !branchPattern.MatchString(branch) || containsAIMarker(branch) {
+		return fmt.Errorf("invalid conventional branch")
+	}
+	return nil
 }
 
 func containsAIMarker(branch string) bool {

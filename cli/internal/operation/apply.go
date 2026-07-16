@@ -14,10 +14,18 @@ import (
 // Apply executes or resumes a local plan using atomic file replacements and an idempotency receipt.
 func Apply(ctx context.Context, plan Plan) domain.Result {
 	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "operation.apply", OperationID: plan.ID, Status: domain.StatusFailed, ExitCode: domain.ExitInternal, Summary: "Operation failed."}
-	if plan.ID == "" {
-		result.ExitCode, result.Summary = domain.ExitInvalid, "Operation ID is required."
+	if err := validatePlanIdentity(plan); err != nil {
+		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitInvalid, "Operation plan identity is invalid."
+		result.Blockers = []domain.Item{{Code: "operation.plan-invalid", Message: err.Error()}}
 		return result
 	}
+	releaseLock, err := acquireApplyLock(plan)
+	if err != nil {
+		result.Status, result.ExitCode, result.Summary = domain.StatusUnknown, domain.ExitUnavailable, "Another process may be applying this operation; no mutation was attempted."
+		result.Blockers = []domain.Item{{Code: "operation.concurrent", Message: err.Error(), Refs: []string{plan.ID}}}
+		return result
+	}
+	defer releaseLock()
 	directory := operationDirectory(plan)
 	alreadyCompleted, err := initializeOrResume(plan)
 	if err != nil {
@@ -25,6 +33,18 @@ func Apply(ctx context.Context, plan Plan) domain.Result {
 		return result
 	}
 	if alreadyCompleted {
+		for _, change := range plan.Files {
+			target, targetErr := safeTarget(plan.Root, change.Path)
+			if targetErr != nil || !sameFile(target, change.Content) {
+				message := "completed operation target no longer matches its receipt"
+				if targetErr != nil {
+					message = targetErr.Error()
+				}
+				result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitBlocked, "Completed operation state changed after its receipt was recorded."
+				result.Blockers = []domain.Item{{Code: "operation.completed-state-changed", Message: message, Refs: []string{change.Path}}}
+				return result
+			}
+		}
 		result.Status, result.ExitCode, result.Summary = domain.StatusPassed, domain.ExitSuccess, "Operation already completed; existing receipt was reused."
 		result.Evidence = []domain.Item{{Code: "operation.receipt", Message: filepath.Join(directory, "receipt.json")}}
 		return result

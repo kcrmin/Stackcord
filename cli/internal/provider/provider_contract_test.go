@@ -2,6 +2,9 @@ package provider_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -49,6 +52,41 @@ func TestProviderContract(t *testing.T) {
 	}
 }
 
+func TestProviderReceiptSurvivesAdapterRestart(t *testing.T) {
+	store, err := provider.NewFileReceiptStore(t.TempDir())
+	require.NoError(t, err)
+	var executions int32
+	config := provider.GuardedConfig{
+		Descriptor: provider.Descriptor{ID: "fixture", Name: "Fixture", Version: "1"}, Capabilities: []provider.Capability{provider.CapabilityWrite},
+		Health: provider.Health{Status: "ready"}, ReceiptStore: store,
+		Execute: func(context.Context, provider.Request) error { atomic.AddInt32(&executions, 1); return nil },
+	}
+	request := provider.Request{OperationID: "01JPERSIST", Objective: "update issue", Repository: "/project", Target: "GH-12", Capability: provider.CapabilityWrite, Payload: map[string]any{"title": "safe"}}
+	consent := policy.Consent{Approved: true, Action: policy.PushBranch, Objective: request.Objective, Repository: request.Repository, Target: request.Target, ExpiresAt: time.Now().UTC().Add(time.Hour)}
+
+	require.Equal(t, domain.StatusPassed, provider.NewGuarded(config).Execute(context.Background(), request, consent).Status)
+	restarted := provider.NewGuarded(config).Execute(context.Background(), request, consent)
+
+	require.Equal(t, domain.StatusPassed, restarted.Status)
+	require.Contains(t, restarted.Summary, "already")
+	require.Equal(t, int32(1), atomic.LoadInt32(&executions))
+}
+
+func TestFileReceiptStoreRejectsSymlinkReceipt(t *testing.T) {
+	root := t.TempDir()
+	store, err := provider.NewFileReceiptStore(root)
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "fixture"), 0o700))
+	target := filepath.Join(t.TempDir(), "outside.json")
+	require.NoError(t, os.WriteFile(target, []byte(`{"operation_id":"01JLINK","provider":"fixture","target":"x","fingerprint":"sha256:abc","completed_at":"2026-07-16T00:00:00Z"}`), 0o600))
+	if err := os.Symlink(target, filepath.Join(root, "fixture", "01JLINK.json")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, _, err = store.Load("fixture", "01JLINK")
+	require.ErrorContains(t, err, "symlink")
+}
+
 func TestProviderExecutionIsIdempotentAndScoped(t *testing.T) {
 	adapter := ghadapter.New(ghadapter.Config{Authenticated: true, Execute: func(context.Context, provider.Request) error { return nil }})
 	request := provider.Request{OperationID: "01JWRITE", Objective: "update issue", Repository: "/project", Target: "GH-12", Capability: provider.CapabilityWrite}
@@ -65,6 +103,20 @@ func TestProviderExecutionIsIdempotentAndScoped(t *testing.T) {
 
 	request.Target = "GH-13"
 	require.Equal(t, domain.StatusApprovalRequired, adapter.Execute(context.Background(), request, consent).Status)
+}
+
+func TestProviderRejectsOperationIDReuseForDifferentPayload(t *testing.T) {
+	adapter := ghadapter.New(ghadapter.Config{Authenticated: true, Execute: func(context.Context, provider.Request) error { return nil }})
+	request := provider.Request{OperationID: "01JREUSE", Objective: "update issue", Repository: "/project", Target: "GH-12", Capability: provider.CapabilityWrite, Payload: map[string]any{"title": "first"}}
+	consent := policy.Consent{Approved: true, Action: policy.PushBranch, Objective: request.Objective, Repository: request.Repository, Target: request.Target, ExpiresAt: time.Now().UTC().Add(time.Hour)}
+	require.Equal(t, domain.StatusPassed, adapter.Execute(context.Background(), request, consent).Status)
+
+	request.Payload["title"] = "different"
+	result := adapter.Execute(context.Background(), request, consent)
+
+	require.Equal(t, domain.StatusBlocked, result.Status)
+	require.Equal(t, domain.ExitBlocked, result.ExitCode)
+	require.Equal(t, "provider.operation-id-reused", result.Blockers[0].Code)
 }
 
 func TestRegistryUsesExplicitThenDetectedThenLocal(t *testing.T) {

@@ -8,8 +8,8 @@ func Check(definition Definition) []domain.Item {
 	if definition.ID == "" {
 		issues = append(issues, domain.Item{Code: "contract.id-required", Message: "Contract stable ID is required."})
 	}
-	if definition.Retry == "" || definition.Idempotency == "" {
-		issues = append(issues, domain.Item{Code: "contract.behavior-required", Message: "Retry and idempotency obligations must be explicit."})
+	if definition.Retry == "" || definition.Idempotency == "" || definition.Timeout == "" || definition.PartialFailure == "" || definition.Compensation == "" {
+		issues = append(issues, domain.Item{Code: "contract.behavior-required", Message: "Retry, idempotency, timeout, partial-failure, and compensation obligations must be explicit."})
 	}
 	return issues
 }

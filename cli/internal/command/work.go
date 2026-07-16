@@ -1,6 +1,8 @@
 package command
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,9 +12,11 @@ import (
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/gitx"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/project"
+	"fullstack-orchestrator/cli/internal/schema"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
@@ -26,10 +30,23 @@ func newWorkCommand(version string, jsonOutput *bool) *cobra.Command {
 func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 	var root string
 	command := &cobra.Command{Use: "next", Short: "Recommend the next dependency-ready work item", RunE: func(cmd *cobra.Command, _ []string) error {
+		providerConfig, err := loadTaskProvider(root)
+		if err != nil {
+			return err
+		}
+		if providerConfig.LiveStatusSource != "git-local" {
+			result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: "The configured external task provider must be queried before recommending work.", Facts: []domain.Item{{Code: "work.provider", Message: providerConfig.LiveStatusSource}}, NextActions: []domain.Item{{Code: "work.provider-check", Message: "Use the configured provider adapter and rerun after live status is observable."}}}
+			return writeResult(cmd, *jsonOutput, result)
+		}
 		items, err := loadWorkItems(root)
 		if err != nil {
 			return err
 		}
+		claims, err := loadClaims(cmd.Context(), root)
+		if err != nil {
+			return err
+		}
+		snapshot, issues := contextpkg.Refresh(cmd.Context(), root, contextpkg.ReadOnly)
 		done := map[string]bool{}
 		for _, item := range items {
 			done[item.ID] = item.Status == domain.WorkDone
@@ -37,6 +54,9 @@ func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 		var ready []domain.WorkItem
 		for _, item := range items {
 			if item.Status != domain.WorkReady && item.Status != domain.WorkProposed {
+				continue
+			}
+			if workClaimed(item.ID, claims, time.Now().UTC()) || refsUncertain(item.Refs, snapshot) {
 				continue
 			}
 			unblocked := true
@@ -51,8 +71,17 @@ func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 		}
 		sort.Slice(ready, func(i, j int) bool { return ready[i].ID < ready[j].ID })
 		result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Dependency-ready work was evaluated from the selected local provider."}
+		for _, issue := range issues {
+			if strings.HasPrefix(issue.Code, "context.error") {
+				result.Blockers = append(result.Blockers, issue)
+			}
+		}
+		if len(result.Blockers) > 0 {
+			result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitBlocked, "Work cannot be selected until project context is valid."
+			return writeResult(cmd, *jsonOutput, result)
+		}
 		if len(ready) == 0 {
-			result.Status, result.Summary = domain.StatusUnknown, "No dependency-ready local work item was found; inspect the configured live provider."
+			result.Status, result.ExitCode, result.Summary = domain.StatusUnknown, domain.ExitUnavailable, "No dependency-ready local work item was found; inspect the configured live provider."
 			result.NextActions = []domain.Item{{Code: "work.provider-check", Message: "Restore live provider visibility or create an approved local work item."}}
 		} else {
 			item := ready[0]
@@ -72,7 +101,7 @@ func newWorkConflict(version string, jsonOutput *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		claims, err := loadClaims(root)
+		claims, err := loadClaims(cmd.Context(), root)
 		if err != nil {
 			return err
 		}
@@ -99,11 +128,12 @@ func newWorkConflict(version string, jsonOutput *bool) *cobra.Command {
 
 func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 	var request project.StartWorkRequest
-	var paths, policies, scenarios, contracts, entities, migrations, flows, dependencies []string
+	var paths, policies, scenarios, contracts, entities, migrations, flows, dependencies, stableIDs []string
+	var lease time.Duration
 	var apply bool
 	command := &cobra.Command{Use: "start", Short: "Create a time-bounded semantic claim and branch checkpoint", RunE: func(cmd *cobra.Command, _ []string) error {
-		request.Candidate = policy.Candidate{Repository: "root", Paths: paths, PolicyIDs: policies, ScenarioIDs: scenarios, ContractIDs: contracts, DBEntities: entities, MigrationSlots: migrations, UIFlows: flows, DependencyMajors: dependencies, Now: time.Now().UTC()}
-		claims, err := loadClaims(request.Root)
+		request.Candidate = policy.Candidate{Repository: "root", Paths: paths, PolicyIDs: policies, ScenarioIDs: scenarios, ContractIDs: contracts, DBEntities: entities, MigrationSlots: migrations, UIFlows: flows, DependencyMajors: dependencies, StableIDs: stableIDs, Now: time.Now().UTC()}
+		claims, err := loadClaims(cmd.Context(), request.Root)
 		if err != nil {
 			return err
 		}
@@ -122,8 +152,8 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 	command.Flags().StringVar(&request.ClaimID, "claim-id", "", "claim stable instance ID")
 	command.Flags().StringVar(&request.Owner, "owner", "", "claim owner")
 	command.Flags().StringVar(&request.Branch, "branch", "", "conventional branch name")
-	command.Flags().DurationVar(&claimDuration, "lease", 24*time.Hour, "claim lease duration")
-	command.PreRun = func(_ *cobra.Command, _ []string) { request.ExpiresAt = time.Now().UTC().Add(claimDuration) }
+	command.Flags().DurationVar(&lease, "lease", 24*time.Hour, "claim lease duration")
+	command.PreRun = func(_ *cobra.Command, _ []string) { request.ExpiresAt = time.Now().UTC().Add(lease) }
 	command.Flags().StringSliceVar(&paths, "path", nil, "path scope")
 	command.Flags().StringSliceVar(&policies, "policy", nil, "policy stable ID")
 	command.Flags().StringSliceVar(&scenarios, "scenario", nil, "scenario stable ID")
@@ -132,6 +162,7 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 	command.Flags().StringSliceVar(&migrations, "migration-slot", nil, "migration slot")
 	command.Flags().StringSliceVar(&flows, "ui-flow", nil, "UI flow")
 	command.Flags().StringSliceVar(&dependencies, "dependency-major", nil, "dependency major transition")
+	command.Flags().StringSliceVar(&stableIDs, "ref", nil, "related stable product or contract ID")
 	command.Flags().BoolVar(&apply, "apply", false, "write the reviewed claim plan")
 	for _, flag := range []string{"work-id", "claim-id", "owner", "branch"} {
 		_ = command.MarkFlagRequired(flag)
@@ -139,7 +170,28 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 	return command
 }
 
-var claimDuration time.Duration
+func workClaimed(workID string, claims []policy.Claim, now time.Time) bool {
+	for _, claim := range claims {
+		if claim.WorkID == workID && (claim.ExpiresAt.IsZero() || claim.ExpiresAt.After(now)) {
+			return true
+		}
+	}
+	return false
+}
+
+func refsUncertain(refs []string, snapshot contextpkg.Snapshot) bool {
+	for _, ref := range refs {
+		if _, exists := snapshot.Index[ref]; !exists {
+			return true
+		}
+		for _, uncertain := range append(append([]string(nil), snapshot.Stale...), snapshot.Unknown...) {
+			if uncertain == ref || strings.HasPrefix(uncertain, ref+".") {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func newWorkFinish(version string, jsonOutput *bool) *cobra.Command {
 	var workID string
@@ -201,21 +253,31 @@ func loadWorkItems(root string) ([]domain.WorkItem, error) {
 		if loadErr != nil {
 			return nil, loadErr
 		}
+		if issues := schema.Validate("work-item", item); len(issues) > 0 {
+			return nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
+		}
 		items = append(items, item)
 	}
 	return items, nil
 }
 
-func loadClaims(root string) ([]policy.Claim, error) {
-	directory := filepath.Join(root, ".harness", "work", "claims")
-	entries, err := os.ReadDir(directory)
-	if os.IsNotExist(err) {
-		return []policy.Claim{}, nil
-	}
+func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
+	providerConfig, err := loadTaskProvider(root)
 	if err != nil {
 		return nil, err
 	}
+	directory := filepath.Join(root, ".harness", "work", "claims")
+	entries, err := os.ReadDir(directory)
+	if os.IsNotExist(err) {
+		entries = nil
+	} else if err != nil {
+		return nil, err
+	}
 	claims := []policy.Claim{}
+	if providerConfig.LiveStatusSource != "git-local" {
+		claims = append(claims, policy.Claim{ID: "claim.external-provider-unobservable", Observable: false})
+	}
+	byID := map[string]int{}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
@@ -224,20 +286,68 @@ func loadClaims(root string) ([]policy.Claim, error) {
 		if loadErr != nil {
 			return nil, loadErr
 		}
+		if issues := schema.Validate("claim", claim); len(issues) > 0 {
+			return nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
+		}
 		claim.Observable = true
+		byID[claim.ID] = len(claims)
 		claims = append(claims, claim)
+	}
+	if _, err := os.Lstat(filepath.Join(root, ".git")); err == nil {
+		remoteFiles, readErr := gitx.ReadRemoteFiles(ctx, root, ".harness/work/claims", ".yaml")
+		if readErr != nil {
+			return nil, readErr
+		}
+		for _, remoteFile := range remoteFiles {
+			claim, decodeErr := schema.DecodeYAML[policy.Claim](remoteFile.Data)
+			if decodeErr != nil {
+				return nil, fmt.Errorf("decode %s:%s: %w", remoteFile.Ref, remoteFile.Path, decodeErr)
+			}
+			if issues := schema.Validate("claim", claim); len(issues) > 0 {
+				return nil, fmt.Errorf("validate %s:%s: %s", remoteFile.Ref, remoteFile.Path, issues[0].Message)
+			}
+			claim.Observable = true
+			if index, exists := byID[claim.ID]; exists {
+				if !sameClaim(claims[index], claim) {
+					claims[index].Observable = false
+				}
+				continue
+			}
+			byID[claim.ID] = len(claims)
+			claims = append(claims, claim)
+		}
 	}
 	return claims, nil
 }
 
-func loadYAML[T any](path string) (T, error) {
-	var value T
-	data, err := os.ReadFile(path)
+type taskProviderConfig struct {
+	SchemaVersion    int    `yaml:"schema_version"`
+	Provider         string `yaml:"provider"`
+	LiveStatusSource string `yaml:"live_status_source"`
+}
+
+func loadTaskProvider(root string) (taskProviderConfig, error) {
+	path := filepath.Join(root, ".harness", "work", "provider.yaml")
+	config, err := schema.LoadYAML[taskProviderConfig](path)
+	if errors.Is(err, os.ErrNotExist) {
+		return taskProviderConfig{SchemaVersion: 1, Provider: "git-local", LiveStatusSource: "git-local"}, nil
+	}
 	if err != nil {
-		return value, err
+		return taskProviderConfig{}, err
 	}
-	if err := yaml.Unmarshal(data, &value); err != nil {
-		return value, fmt.Errorf("decode %s: %w", path, err)
+	if config.SchemaVersion != 1 || config.Provider == "" || config.LiveStatusSource == "" {
+		return taskProviderConfig{}, fmt.Errorf("task provider configuration is incomplete")
 	}
-	return value, nil
+	return config, nil
+}
+
+func sameClaim(left, right policy.Claim) bool {
+	left.Observable, right.Observable = true, true
+	leftData, leftErr := yaml.Marshal(left)
+	rightData, rightErr := yaml.Marshal(right)
+	return leftErr == nil && rightErr == nil && string(leftData) == string(rightData)
+}
+
+func loadYAML[T any](path string) (T, error) {
+	return schema.LoadYAML[T](path)
 }

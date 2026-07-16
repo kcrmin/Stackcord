@@ -15,6 +15,9 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 	if request.Root == "" || request.ProjectID == "" || (request.Locale != "en" && request.Locale != "ko") {
 		return operation.Plan{}, fmt.Errorf("root, stable project ID, and locale en|ko are required")
 	}
+	if !projectIDPattern.MatchString(request.ProjectID) {
+		return operation.Plan{}, fmt.Errorf("project ID must be a lowercase dot-separated stable ID")
+	}
 	generated := render(request)
 	plan := operation.Plan{ID: "adopt-" + request.ProjectID, Root: request.Root}
 	for _, file := range generated {
@@ -42,9 +45,10 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 				plan.Blockers = append(plan.Blockers, domain.Item{Code: "project.tooling-conflict", Message: "Existing .editorconfig uses a different line-ending policy.", Refs: []string{file.Path}})
 			}
 		case ".gitignore":
-			merged := strings.TrimRight(string(existing), "\r\n") + "\n" + string(file.Content)
-			file.Content = []byte(uniqueLines(merged))
-			plan.Files = append(plan.Files, file)
+			file.Content = []byte(mergeGitignore(string(existing), string(file.Content)))
+			if string(file.Content) != string(existing) {
+				plan.Files = append(plan.Files, file)
+			}
 		default:
 			// Existing authored project files always win. Adoption does not replace them.
 		}
@@ -58,14 +62,29 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 	return plan, err
 }
 
-func uniqueLines(value string) string {
+func mergeGitignore(existing, generated string) string {
+	normalizedExisting := strings.ReplaceAll(strings.ReplaceAll(existing, "\r\n", "\n"), "\r", "\n")
 	seen := map[string]bool{}
-	result := []string{}
-	for _, line := range strings.Split(strings.ReplaceAll(value, "\r\n", "\n"), "\n") {
-		if !seen[line] {
+	for _, line := range strings.Split(normalizedExisting, "\n") {
+		seen[line] = true
+	}
+	missing := []string{}
+	for _, line := range strings.Split(strings.ReplaceAll(generated, "\r\n", "\n"), "\n") {
+		if line != "" && !seen[line] {
 			seen[line] = true
-			result = append(result, line)
+			missing = append(missing, line)
 		}
 	}
-	return strings.TrimRight(strings.Join(result, "\n"), "\n") + "\n"
+	if len(missing) == 0 {
+		return existing
+	}
+	lineEnding := "\n"
+	if strings.Contains(existing, "\r\n") {
+		lineEnding = "\r\n"
+	}
+	result := existing
+	if result != "" && !strings.HasSuffix(result, "\n") && !strings.HasSuffix(result, "\r") {
+		result += lineEnding
+	}
+	return result + strings.Join(missing, lineEnding) + lineEnding
 }

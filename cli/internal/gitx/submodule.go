@@ -125,7 +125,7 @@ func PlanWorkspaceSync(state State) operation.Plan {
 			continue
 		}
 		if !submodule.Initialized {
-			plan.Commands = append(plan.Commands, operation.CommandStep{Program: "git", Args: []string{"submodule", "update", "--init", "--recursive", "--", submodule.Path}, Directory: state.Root, ApprovalClass: "C"})
+			plan.Commands = append(plan.Commands, operation.CommandStep{Program: "git", Args: []string{"submodule", "update", "--init", "--", submodule.Path}, Directory: state.Root, ApprovalClass: "C"})
 		}
 	}
 	return plan

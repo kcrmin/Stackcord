@@ -1,5 +1,7 @@
 package ui
 
+import "sort"
+
 import contextpkg "fullstack-orchestrator/cli/internal/context"
 
 // CoverageReport records journeys without a linked UI baseline.
@@ -15,5 +17,6 @@ func CheckCoverage(snapshot contextpkg.Snapshot) CoverageReport {
 			report.MissingJourneys = append(report.MissingJourneys, id)
 		}
 	}
+	sort.Strings(report.MissingJourneys)
 	return report
 }

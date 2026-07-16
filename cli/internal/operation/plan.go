@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
 	"fullstack-orchestrator/cli/internal/domain"
 )
+
+var operationIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 
 // FileChange is one exact file replacement relative to Plan.Root.
 type FileChange struct {
@@ -80,6 +83,16 @@ func StateFingerprint(plan Plan) (string, error) {
 	return digest(data), nil
 }
 
+func validatePlanIdentity(plan Plan) error {
+	if plan.Root == "" {
+		return fmt.Errorf("operation root is required")
+	}
+	if !operationIDPattern.MatchString(plan.ID) {
+		return fmt.Errorf("operation ID must contain only 1-128 letters, digits, dots, underscores, or hyphens")
+	}
+	return nil
+}
+
 func planFingerprint(plan Plan) string {
 	type file struct {
 		Path string `json:"path"`
@@ -112,12 +125,55 @@ func safeTarget(root, relative string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	rootAbsolute, err = resolveExistingAncestor(rootAbsolute)
+	if err != nil {
+		return "", err
+	}
 	target := filepath.Join(rootAbsolute, clean)
 	rel, err := filepath.Rel(rootAbsolute, target)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("target path %q escapes project root", relative)
 	}
+	current := rootAbsolute
+	for _, component := range strings.Split(rel, string(filepath.Separator)) {
+		current = filepath.Join(current, component)
+		info, statErr := os.Lstat(current)
+		if os.IsNotExist(statErr) {
+			continue
+		}
+		if statErr != nil {
+			return "", statErr
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("target path %q crosses symlink %s", relative, current)
+		}
+	}
 	return target, nil
+}
+
+func resolveExistingAncestor(value string) (string, error) {
+	current := filepath.Clean(value)
+	missing := []string{}
+	for {
+		if _, err := os.Lstat(current); err == nil {
+			resolved, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return "", err
+			}
+			for index := len(missing) - 1; index >= 0; index-- {
+				resolved = filepath.Join(resolved, missing[index])
+			}
+			return resolved, nil
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", fmt.Errorf("no existing ancestor for %s", value)
+		}
+		missing = append(missing, filepath.Base(current))
+		current = parent
+	}
 }
 
 func digest(data []byte) string {

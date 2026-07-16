@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -35,7 +36,21 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 		return snapshot, []domain.Item{{Code: "context.error.root", Message: err.Error()}}
 	}
 	root = resolved
-	for _, authoredRoot := range []string{"specs", "contracts", filepath.Join("docs", "generated")} {
+	manifest, err := schema.LoadYAML[map[string]any](filepath.Join(root, ".harness", "manifest.yaml"))
+	if err != nil {
+		return snapshot, []domain.Item{{Code: "context.error.manifest", Message: err.Error(), Refs: []string{".harness/manifest.yaml"}}}
+	}
+	if schemaIssues := schema.Validate("manifest", manifest); len(schemaIssues) > 0 {
+		for _, issue := range schemaIssues {
+			issues = append(issues, domain.Item{Code: "context.error.manifest", Message: issue.Message, Refs: append([]string{".harness/manifest.yaml"}, issue.Refs...)})
+		}
+		return snapshot, issues
+	}
+	authoredRoots, err := manifestAuthoredRoots(manifest)
+	if err != nil {
+		return snapshot, []domain.Item{{Code: "context.error.manifest", Message: err.Error(), Refs: []string{".harness/manifest.yaml"}}}
+	}
+	for _, authoredRoot := range authoredRoots {
 		base := filepath.Join(root, authoredRoot)
 		if _, err := os.Stat(base); os.IsNotExist(err) {
 			continue
@@ -102,6 +117,29 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 	return snapshot, issues
 }
 
+func manifestAuthoredRoots(manifest map[string]any) ([]string, error) {
+	paths := map[string]string{"specs": "specs", "contracts": "contracts", "docs": "docs"}
+	if configured, ok := manifest["paths"].(map[string]any); ok {
+		for _, name := range []string{"specs", "contracts", "docs"} {
+			if value, exists := configured[name]; exists {
+				pathValue, ok := value.(string)
+				if !ok {
+					return nil, fmt.Errorf("manifest path %s must be a string", name)
+				}
+				paths[name] = pathValue
+			}
+		}
+	}
+	result := []string{paths["specs"], paths["contracts"], filepath.Join(paths["docs"], "generated")}
+	for _, value := range result {
+		clean := filepath.Clean(value)
+		if value == "" || filepath.IsAbs(value) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("manifest authored path %q escapes project root", value)
+		}
+	}
+	return result, nil
+}
+
 func parseDocument(path string) (documentMetadata, string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -130,11 +168,11 @@ func parseDocument(path string) (documentMetadata, string, error) {
 func frontmatter(data []byte) ([]byte, error) {
 	normalized := bytes.ReplaceAll(bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n")), []byte("\r"), []byte("\n"))
 	if !bytes.HasPrefix(normalized, []byte("---\n")) {
-		return nil, fmt.Errorf("Markdown document has no YAML frontmatter")
+		return nil, fmt.Errorf("markdown document has no YAML frontmatter")
 	}
 	end := bytes.Index(normalized[4:], []byte("\n---\n"))
 	if end < 0 {
-		return nil, fmt.Errorf("Markdown frontmatter is not closed")
+		return nil, fmt.Errorf("markdown frontmatter is not closed")
 	}
 	return normalized[4 : 4+end], nil
 }
@@ -190,13 +228,42 @@ func writeSnapshot(root string, snapshot Snapshot) error {
 			return err
 		}
 		path := filepath.Join(stateDir, name)
-		temporary := path + ".tmp"
-		if err := os.WriteFile(temporary, append(data, '\n'), 0o600); err != nil {
+		if err := replaceCheckpoint(path, append(data, '\n')); err != nil {
 			return err
 		}
-		if err := os.Rename(temporary, path); err != nil {
-			return err
+	}
+	return nil
+}
+
+func replaceCheckpoint(path string, data []byte) error {
+	temporary := path + ".tmp"
+	file, err := os.OpenFile(temporary, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("create checkpoint temporary file: %w", err)
+	}
+	cleanup := true
+	defer func() {
+		_ = file.Close()
+		if cleanup {
+			_ = os.Remove(temporary)
 		}
+	}()
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(temporary, path); err != nil {
+		return err
+	}
+	cleanup = false
+	if directory, err := os.Open(filepath.Dir(path)); err == nil {
+		_ = directory.Sync()
+		_ = directory.Close()
 	}
 	return nil
 }

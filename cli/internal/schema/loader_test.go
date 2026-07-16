@@ -61,3 +61,11 @@ func TestValidateRejectsUnknownSchemaKind(t *testing.T) {
 	require.Len(t, issues, 1)
 	require.Equal(t, "schema.unknown-kind", issues[0].Code)
 }
+
+func TestDecodeJSONRejectsDuplicateAndUnknownFields(t *testing.T) {
+	_, err := schema.DecodeJSON[sampleDocument]([]byte(`{"schema_version":1,"id":"policy.account","id":"policy.other","status":"approved","revision":1,"refs":[]}`))
+	require.ErrorContains(t, err, "duplicate key")
+
+	_, err = schema.DecodeJSON[sampleDocument]([]byte(`{"schema_version":1,"id":"policy.account","status":"approved","revision":1,"refs":[],"unexpected":true}`))
+	require.ErrorContains(t, err, "unknown field")
+}

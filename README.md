@@ -17,7 +17,7 @@ This repository contains:
 - Git, submodule, conflict, approval, adapter, security, and release policies;
 - a cross-platform Go CLI with stable JSON results and lifecycle commands;
 - project generation/adoption, context recovery, Git/submodule/worktree inspection, claims and semantic conflict checks;
-- contract, DBML/dbdiagram, external UI quarantine, provider adapters, immutable RC and release gates;
+- contract, DBML/dbdiagram, external UI quarantine, provider capability boundaries, immutable RC and release gates;
 - twelve validated Agent Skills, a Codex Plugin marketplace manifest, repo-local fallback Skill, and read-only Hook definitions;
 - English/Korean guides, executable examples, tests, and the full design record.
 
@@ -92,7 +92,7 @@ This is not a waterfall schedule. Each stage is a dependency gate. Work is integ
 | Workspace orchestration | Root, directory, submodule, and external workspace boundaries without forcing a framework |
 | Git collaboration | Protected `main`, short-lived branches, Conventional Commits, Draft PRs, worktrees, exact submodule pointers, and cross-repository change bundles |
 | Conflict prevention | Path, module, policy, scenario, contract, migration, UI-flow, dependency, and pointer conflict preflight |
-| Task management | Git fallback plus optional GitHub Issues/Projects, Jira, Linear, or Beads adapters |
+| Task management | Executable Git-local fallback, one-live-provider enforcement, and adapter contracts for optional external tools |
 | External UI input | Isolated import of mockups, designs, code, images, and prototypes with provenance and authority tracking |
 | Database collaboration | Canonical Git DBML, validation, semantic diff, migration impact, and isolated dbdiagram push/pull |
 | Test-driven delivery | Test-first behavior changes with narrow documented exceptions and reproducible evidence |
@@ -144,8 +144,8 @@ Read the [Git and collaboration policy](./docs/design/04-git-collaboration-and-s
 External tools are optional adapters rather than mandatory dependencies.
 
 - GitHub Issues/Projects is the recommended default for GitHub-hosted collaboration.
-- Existing Jira or Linear installations remain the live task-status source when selected.
-- Beads can provide a local/offline task graph.
+- Existing Jira or Linear installations can remain the single live task-status source when selected; a concrete connector must be installed or implemented before live reads and writes are available.
+- Beads can be recommended as a local/offline task graph, but is not bundled or installed automatically.
 - Superpowers and BMAD can complement the workflow but do not own project truth.
 - Git DBML remains canonical; dbdiagram provides collaborative visualization and isolated synchronization.
 - External UI tools and files can be registered as `reference`, `seed`, or `canonical` sources.

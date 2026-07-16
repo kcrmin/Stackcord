@@ -63,7 +63,7 @@ func TestInspectAndPlanMissingSubmoduleAtPinnedCommit(t *testing.T) {
 
 	plan := gitx.PlanWorkspaceSync(state)
 	require.Len(t, plan.Commands, 1)
-	require.Equal(t, []string{"submodule", "update", "--init", "--recursive", "--", "services/identity"}, plan.Commands[0].Args)
+	require.Equal(t, []string{"submodule", "update", "--init", "--", "services/identity"}, plan.Commands[0].Args, "nested submodules require a separate inspected plan")
 }
 
 func TestPlanWorktreeUsesConventionalBranchAndOutsidePath(t *testing.T) {
@@ -87,6 +87,31 @@ func TestPlanWorkspaceSyncBlocksUnsafeOrLocallyChangedSubmodules(t *testing.T) {
 	require.Empty(t, plan.Commands)
 	require.Len(t, plan.Blockers, 3)
 	require.Equal(t, "git.submodule.unsafe-url", plan.Blockers[0].Code)
+}
+
+func TestReadRemoteFilesFindsFetchedClaimWithoutCheckout(t *testing.T) {
+	root, remote := repositoryFixture(t)
+	other := filepath.Join(t.TempDir(), "other")
+	runGit(t, "", "clone", remote, other)
+	configureGit(t, other)
+	runGit(t, other, "switch", "-c", "feature/remote-claim")
+	require.NoError(t, os.MkdirAll(filepath.Join(other, ".harness", "work", "claims"), 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(other, ".harness", "work", "claims", "claim.remote.yaml"), []byte("id: claim.remote\nwork_id: work.remote\n"), 0o600))
+	runGit(t, other, "add", ".harness/work/claims/claim.remote.yaml")
+	runGit(t, other, "commit", "-m", "chore: publish work claim")
+	runGit(t, other, "push", "-u", "origin", "feature/remote-claim")
+	runGit(t, root, "fetch", "origin")
+	beforeHead := runGit(t, root, "rev-parse", "HEAD")
+	beforeStatus := runGit(t, root, "status", "--porcelain=v2", "--untracked-files=all")
+
+	files, err := gitx.ReadRemoteFiles(context.Background(), root, ".harness/work/claims", ".yaml")
+
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	require.Equal(t, ".harness/work/claims/claim.remote.yaml", files[0].Path)
+	require.Contains(t, string(files[0].Data), "work.remote")
+	require.Equal(t, beforeHead, runGit(t, root, "rev-parse", "HEAD"))
+	require.Equal(t, beforeStatus, runGit(t, root, "status", "--porcelain=v2", "--untracked-files=all"))
 }
 
 func repositoryFixture(t *testing.T) (string, string) {

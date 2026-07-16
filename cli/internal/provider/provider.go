@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -49,8 +50,11 @@ type Discovery struct{ Facts, Warnings, Unknown []domain.Item }
 
 // ExecutionReceipt prevents duplicate external mutation.
 type ExecutionReceipt struct {
-	OperationID, Provider, Target, Fingerprint string
-	CompletedAt                                time.Time
+	OperationID string    `json:"operation_id"`
+	Provider    string    `json:"provider"`
+	Target      string    `json:"target"`
+	Fingerprint string    `json:"fingerprint"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // Adapter is implemented by every optional external integration.
@@ -74,6 +78,7 @@ type GuardedConfig struct {
 	Capabilities []Capability
 	Health       Health
 	Execute      Executor
+	ReceiptStore ReceiptStore
 }
 
 // Guarded is a capability-negotiated, approval-checked adapter base.
@@ -124,6 +129,11 @@ func (adapter *Guarded) Execute(ctx context.Context, request Request, consent po
 		result.Warnings = []domain.Item{{Code: "provider.capability-unsupported", Message: string(request.Capability)}}
 		return result
 	}
+	if !receiptComponent.MatchString(request.OperationID) {
+		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitInvalid, "Provider operation ID is invalid."
+		result.Blockers = []domain.Item{{Code: "provider.operation-id-invalid", Message: "Use a stable letters, digits, dots, underscores, or hyphens operation ID."}}
+		return result
+	}
 	if request.Capability != CapabilityRead {
 		decision := policy.Classify(policy.PushBranch, consent, policy.Scope{Objective: request.Objective, Repository: request.Repository, Target: request.Target, Now: time.Now().UTC()})
 		if decision.Required {
@@ -132,14 +142,25 @@ func (adapter *Guarded) Execute(ctx context.Context, request Request, consent po
 			return result
 		}
 	}
-	adapter.mu.Lock()
-	if receipt, exists := adapter.receipts[request.OperationID]; exists {
-		adapter.mu.Unlock()
-		result.Status, result.ExitCode, result.Summary = domain.StatusPassed, domain.ExitSuccess, "Provider operation already completed; existing receipt was reused."
-		result.Evidence = []domain.Item{{Code: "provider.receipt", Message: receipt.Fingerprint}}
-		return result
+	if receipt, exists, err := adapter.existingReceipt(request.OperationID); err != nil {
+		return unavailableReceiptResult(result, err)
+	} else if exists {
+		return receiptResult(result, request, receipt)
 	}
-	adapter.mu.Unlock()
+	var unlock func()
+	if adapter.config.ReceiptStore != nil {
+		var err error
+		unlock, err = adapter.config.ReceiptStore.Acquire(adapter.config.Descriptor.ID, request.OperationID)
+		if err != nil {
+			return unavailableReceiptResult(result, err)
+		}
+		defer unlock()
+		if receipt, exists, err := adapter.existingReceipt(request.OperationID); err != nil {
+			return unavailableReceiptResult(result, err)
+		} else if exists {
+			return receiptResult(result, request, receipt)
+		}
+	}
 	if adapter.config.Health.Status != "ready" || adapter.config.Execute == nil {
 		result.Blockers = []domain.Item{{Code: "provider.unavailable", Message: adapter.config.Health.Message}}
 		return result
@@ -150,6 +171,13 @@ func (adapter *Guarded) Execute(ctx context.Context, request Request, consent po
 		return result
 	}
 	receipt := ExecutionReceipt{OperationID: request.OperationID, Provider: adapter.config.Descriptor.ID, Target: request.Target, Fingerprint: requestFingerprint(request), CompletedAt: time.Now().UTC()}
+	if adapter.config.ReceiptStore != nil {
+		if err := adapter.config.ReceiptStore.Save(receipt); err != nil {
+			result.Status, result.ExitCode, result.Summary = domain.StatusPartial, domain.ExitPartial, "Provider write may have completed but its durable receipt could not be saved; do not retry automatically."
+			result.Blockers = []domain.Item{{Code: "provider.receipt-save-failed", Message: redact(err.Error())}}
+			return result
+		}
+	}
 	adapter.mu.Lock()
 	adapter.receipts[request.OperationID] = receipt
 	adapter.mu.Unlock()
@@ -171,7 +199,38 @@ func (adapter *Guarded) Receipt(id string) (ExecutionReceipt, bool) {
 	adapter.mu.Lock()
 	defer adapter.mu.Unlock()
 	receipt, ok := adapter.receipts[id]
-	return receipt, ok
+	if ok || adapter.config.ReceiptStore == nil {
+		return receipt, ok
+	}
+	receipt, ok, err := adapter.config.ReceiptStore.Load(adapter.config.Descriptor.ID, id)
+	return receipt, ok && err == nil
+}
+
+func (adapter *Guarded) existingReceipt(id string) (ExecutionReceipt, bool, error) {
+	adapter.mu.Lock()
+	receipt, exists := adapter.receipts[id]
+	adapter.mu.Unlock()
+	if exists || adapter.config.ReceiptStore == nil {
+		return receipt, exists, nil
+	}
+	return adapter.config.ReceiptStore.Load(adapter.config.Descriptor.ID, id)
+}
+
+func receiptResult(result domain.Result, request Request, receipt ExecutionReceipt) domain.Result {
+	if receipt.Fingerprint != requestFingerprint(request) {
+		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitBlocked, "Operation ID was already used for a different provider request."
+		result.Blockers = []domain.Item{{Code: "provider.operation-id-reused", Message: "Use a new operation ID after changing provider request content.", Refs: []string{request.OperationID}}}
+		return result
+	}
+	result.Status, result.ExitCode, result.Summary = domain.StatusPassed, domain.ExitSuccess, "Provider operation already completed; existing receipt was reused."
+	result.Evidence = []domain.Item{{Code: "provider.receipt", Message: receipt.Fingerprint}}
+	return result
+}
+
+func unavailableReceiptResult(result domain.Result, err error) domain.Result {
+	result.Status, result.ExitCode, result.Summary = domain.StatusUnknown, domain.ExitUnavailable, "Provider receipt state cannot be verified; no external write was attempted."
+	result.Blockers = []domain.Item{{Code: "provider.receipt-unavailable", Message: redact(err.Error())}}
+	return result
 }
 
 // HasCapability tests exact declared support.
@@ -204,5 +263,6 @@ func redact(value string) string {
 
 func requestFingerprint(request Request) string {
 	data, _ := json.Marshal(request)
-	return fmt.Sprintf("provider:%x", len(data)*131+len(request.OperationID))
+	digest := sha256.Sum256(data)
+	return fmt.Sprintf("sha256:%x", digest[:])
 }
