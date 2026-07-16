@@ -1,0 +1,14 @@
+[
+  {"utterance":"Start a new full-stack service","skill":"start-project","command":"project draft","question":"one-material-question"},
+  {"utterance":"Continue this cloned project","skill":"resume-project","command":"context audit","question":"none-unless-blocked"},
+  {"utterance":"What should I work on now?","skill":"find-next-work","command":"work next","question":"none-unless-choice"},
+  {"utterance":"Add account recovery","skill":"plan-project-change","command":"change plan","question":"one-material-question"},
+  {"utterance":"Start GH-142","skill":"start-project-work","command":"work start","question":"none-unless-conflict"},
+  {"utterance":"Change the recovery API policy","skill":"manage-contract-change","command":"contract impact","question":"one-material-question"},
+  {"utterance":"Design the database and show it in dbdiagram","skill":"design-project-database","command":"db diagram","question":"one-material-question"},
+  {"utterance":"Use this external mockup","skill":"import-project-ui","command":"ui import","question":"one-material-question"},
+  {"utterance":"Integrate the workspace changes","skill":"integrate-project-work","command":"integrate plan","question":"none-unless-blocked"},
+  {"utterance":"Prepare a production release","skill":"prepare-project-release","command":"release prepare","question":"none-unless-gate"},
+  {"utterance":"Let another developer take over this task","skill":"handoff-project-work","command":"work handoff","question":"one-material-question"},
+  {"utterance":"You seem to have forgotten the project context","skill":"audit-project-context","command":"context audit","question":"none-unless-conflict"}
+]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "resume-project"
+  short_description: "Coordinate durable full-stack project work"
+  default_prompt: "Use $resume-project to help with this project."

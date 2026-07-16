@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "trusted_repository_only": true,
+      "read_only": true,
+      "message": "Find the nearest .harness/manifest.yaml and run a context audit before mutation when context is stale."
+    },
+    {
+      "event": "PostCompact",
+      "trusted_repository_only": true,
+      "read_only": true,
+      "message": "Conversation context was compacted. Run context audit before mutation; repository sources override memory."
+    }
+  ]
+}

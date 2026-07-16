@@ -1,0 +1,22 @@
+{
+  "name": "fullstack-orchestrator",
+  "version": "1.0.0",
+  "description": "Local-first full-stack product discovery, context continuity, collaboration, and release orchestration.",
+  "author": { "name": "Full-stack Orchestrator contributors" },
+  "license": "Apache-2.0",
+  "keywords": ["full-stack", "harness", "git", "submodule", "contracts", "dbml", "tdd"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Full-stack Orchestrator",
+    "shortDescription": "Keep full-stack product work coherent through release.",
+    "longDescription": "Discover a service, create or adopt its durable project harness, coordinate Git workspaces and contracts, preserve context, and verify one release candidate.",
+    "developerName": "Full-stack Orchestrator contributors",
+    "category": "Productivity",
+    "capabilities": ["Project planning", "Local file coordination", "Git diagnostics"],
+    "defaultPrompt": [
+      "Start a new full-stack service with me.",
+      "Continue this cloned project safely.",
+      "Audit the project context and tell me what is next."
+    ]
+  }
+}

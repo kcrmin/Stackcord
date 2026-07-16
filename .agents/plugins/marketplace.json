@@ -1,0 +1,12 @@
+{
+  "name": "fullstack-orchestrator",
+  "interface": { "displayName": "Full-stack Orchestrator" },
+  "plugins": [
+    {
+      "name": "fullstack-orchestrator",
+      "source": { "source": "local", "path": "../../.." },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Productivity"
+    }
+  ]
+}
