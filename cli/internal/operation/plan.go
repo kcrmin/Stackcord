@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"fullstack-orchestrator/cli/internal/domain"
 )
 
 // FileChange is one exact file replacement relative to Plan.Root.
@@ -18,12 +20,22 @@ type FileChange struct {
 	Mode    os.FileMode `json:"mode"`
 }
 
+// CommandStep is an explicit, reviewable external command. Apply never executes it implicitly.
+type CommandStep struct {
+	Program       string   `json:"program"`
+	Args          []string `json:"args"`
+	Directory     string   `json:"directory"`
+	ApprovalClass string   `json:"approval_class"`
+}
+
 // Plan is a deterministic set of local mutations with a preflight fingerprint.
 type Plan struct {
-	ID                      string       `json:"id"`
-	Root                    string       `json:"root"`
-	InitialStateFingerprint string       `json:"initial_state_fingerprint"`
-	Files                   []FileChange `json:"files"`
+	ID                      string        `json:"id"`
+	Root                    string        `json:"root"`
+	InitialStateFingerprint string        `json:"initial_state_fingerprint"`
+	Files                   []FileChange  `json:"files"`
+	Commands                []CommandStep `json:"commands,omitempty"`
+	Blockers                []domain.Item `json:"blockers,omitempty"`
 }
 
 // StateFingerprint captures the target paths before mutation.
@@ -80,9 +92,11 @@ func planFingerprint(plan Plan) string {
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 	data, _ := json.Marshal(struct {
-		ID    string `json:"id"`
-		Files []file `json:"files"`
-	}{plan.ID, files})
+		ID       string        `json:"id"`
+		Files    []file        `json:"files"`
+		Commands []CommandStep `json:"commands,omitempty"`
+		Blockers []domain.Item `json:"blockers,omitempty"`
+	}{plan.ID, files, plan.Commands, plan.Blockers})
 	return digest(data)
 }
 
