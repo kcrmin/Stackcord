@@ -1,0 +1,74 @@
+package project_test
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/operation"
+	"fullstack-orchestrator/cli/internal/project"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewProjectCreatesNeutralHarness(t *testing.T) {
+	parent := t.TempDir()
+	draftPlan, err := project.CreateDraft(project.DraftRequest{Parent: parent, DraftID: "01JPROJECT", Locale: "ko", Summary: "팀이 승인한 제품 요약", Decisions: []string{"Git collaboration is strongly recommended."}, OpenQuestions: []string{"Public product name"}})
+	require.NoError(t, err)
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), draftPlan).Status)
+
+	root := filepath.Join(parent, "service-product")
+	plan, err := project.PlanInit(project.InitRequest{Root: root, ProjectID: "project.service-product", Name: "Service Product", Locale: "ko", DraftRoot: filepath.Join(parent, ".harness-drafts", "01JPROJECT")})
+	require.NoError(t, err)
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
+
+	for _, path := range []string{
+		"AGENTS.md", ".agents/skills/use-project-harness/SKILL.md", ".agents/skills/use-project-harness/references/fallback.md",
+		".harness/manifest.yaml", ".harness/entry.md", ".harness/state/context-index.json", ".harness/state/impact-graph.json",
+		"specs/index.md", "contracts/registry.yaml", "docs/index.md",
+	} {
+		require.FileExists(t, filepath.Join(root, filepath.FromSlash(path)))
+	}
+	for _, path := range []string{"frontend", "backend", "src", "app"} {
+		_, statErr := os.Stat(filepath.Join(root, path))
+		require.ErrorIs(t, statErr, os.ErrNotExist)
+	}
+	manifest, err := os.ReadFile(filepath.Join(root, ".harness", "manifest.yaml"))
+	require.NoError(t, err)
+	require.Contains(t, string(manifest), "project.service-product")
+}
+
+func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {
+	root := t.TempDir()
+	customReadme := "# Existing Product\n\nCustom instructions.\n"
+	customAgents := "# Existing agent rules\n\nKeep this.\n"
+	require.NoError(t, os.WriteFile(filepath.Join(root, "README.md"), []byte(customReadme), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte(customAgents), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "user-dirty.txt"), []byte("do not touch\n"), 0o600))
+
+	plan, err := project.PlanAdopt(project.InitRequest{Root: root, ProjectID: "project.existing", Name: "Existing Product", Locale: "en"})
+	require.NoError(t, err)
+	require.Equal(t, customReadme, mustRead(t, filepath.Join(root, "README.md")), "planning is read-only")
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
+	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), customReadme)
+	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), "orchestrator:begin")
+	require.Contains(t, mustRead(t, filepath.Join(root, "AGENTS.md")), customAgents)
+	require.Equal(t, "do not touch\n", mustRead(t, filepath.Join(root, "user-dirty.txt")))
+}
+
+func TestAdoptBlocksSemanticToolingConflict(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".gitattributes"), []byte("* -text\n"), 0o600))
+	plan, err := project.PlanAdopt(project.InitRequest{Root: root, ProjectID: "project.conflict", Name: "Conflict", Locale: "en"})
+	require.NoError(t, err)
+	require.NotEmpty(t, plan.Blockers)
+	require.Empty(t, plan.Files)
+}
+
+func mustRead(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	return string(data)
+}

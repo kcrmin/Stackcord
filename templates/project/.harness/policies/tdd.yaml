@@ -1,0 +1,4 @@
+schema_version: 1
+required: true
+sequence: [red, green, refactor]
+evidence_required: true

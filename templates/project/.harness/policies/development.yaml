@@ -1,0 +1,6 @@
+schema_version: 1
+main_protected: true
+branch_pattern: <type>/<description>
+commit_convention: conventional-commits
+default_merge: squash
+permanent_develop: false
