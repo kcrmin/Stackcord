@@ -23,7 +23,7 @@ type Input struct {
 	GateReceipts         map[string]string `json:"gate_receipts"`
 	DocsFingerprint      string            `json:"docs_fingerprint"`
 	UserValidationDigest string            `json:"user_validation_digest"`
-	Gates                Gates             `json:"-"`
+	Gates                Gates             `json:"gates"`
 }
 
 // Candidate is immutable by digest and contains no credentials.

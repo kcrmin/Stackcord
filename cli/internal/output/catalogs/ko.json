@@ -1,0 +1,12 @@
+{
+  "context.audit.complete": {"text":"문서 {count}개의 컨텍스트 점검을 완료했습니다.","severity":"info","doc_section":"context"},
+  "context.stale": {"text":"연관 항목 {count}개가 오래된 상태입니다.","severity":"warning","doc_section":"context"},
+  "git.dirty": {"text":"현재 작업공간에 커밋되지 않은 변경 {count}개가 있습니다.","severity":"warning","doc_section":"git"},
+  "operation.approval": {"text":"{target} 작업에는 승인 등급 {class}가 필요합니다.","severity":"warning","doc_section":"approval"},
+  "project.initialized": {"text":"{root}에 프로젝트 하네스를 만들었습니다.","severity":"info","doc_section":"project"},
+  "project.adopted": {"text":"기존 사용자 내용을 교체하지 않고 프로젝트를 도입했습니다.","severity":"info","doc_section":"project"},
+  "conflict.blocked": {"text":"의미 충돌 {count}개로 작업이 차단되었습니다.","severity":"error","doc_section":"collaboration"},
+  "contract.breaking": {"text":"계약 {id}에 호환성을 깨는 변경이 있습니다.","severity":"error","doc_section":"contracts"},
+  "release.blocked": {"text":"충족하지 못한 게이트 {count}개로 출시가 차단되었습니다.","severity":"error","doc_section":"release"},
+  "release.ready": {"text":"릴리스 후보 {digest}를 사용자가 검증할 준비가 되었습니다.","severity":"info","doc_section":"release"}
+}

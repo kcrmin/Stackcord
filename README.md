@@ -8,17 +8,20 @@ Full-stack Orchestrator is a local-first product for helping people and AI agent
 
 ## Project status
 
-**The production product design and implementation plan are complete. The product itself is not implemented or released yet.**
+**The local product implementation is complete through the release-planning boundary. Public distribution is intentionally not performed yet.**
 
-This repository currently contains:
+This repository contains:
 
 - the confirmed product and collaboration design;
 - the generated-project and source-of-truth specification;
 - Git, submodule, conflict, approval, adapter, security, and release policies;
-- a detailed user walkthrough;
-- a test-driven production implementation plan.
+- a cross-platform Go CLI with stable JSON results and lifecycle commands;
+- project generation/adoption, context recovery, Git/submodule/worktree inspection, claims and semantic conflict checks;
+- contract, DBML/dbdiagram, external UI quarantine, provider adapters, immutable RC and release gates;
+- twelve validated Agent Skills, a Codex Plugin marketplace manifest, repo-local fallback Skill, and read-only Hook definitions;
+- English/Korean guides, executable examples, tests, and the full design record.
 
-It does not yet contain an installable CLI, Codex Plugin, signed binaries, package-manager releases, or a public `1.0.0` release. Start with the [design index](./docs/design/index.md) if you are reviewing the product, or the [production implementation plan](./docs/superpowers/plans/2026-07-16-fullstack-orchestrator-production.md) if you are building it.
+Local source builds and Plugin validation are supported now; see [Getting started](./docs/getting-started/en.md). Public-name clearance, native macOS/Windows CI receipts, signed artifacts, public repositories/package channels, and exact same-RC user confirmation remain release gates—not unfinished core behavior.
 
 ## What problem does it solve?
 
@@ -151,11 +154,17 @@ External tools are optional adapters rather than mandatory dependencies.
 
 ```text
 fullstack-orchestrator/
-├── README.md
-├── README.ko.md
-└── docs/
-    ├── design/               # confirmed product and technical design
-    └── superpowers/plans/    # production TDD implementation plan
+├── cli/                      # cross-platform Go CLI and tests
+├── skills/                   # twelve focused Agent Skills
+├── .codex-plugin/            # Codex Plugin manifest
+├── .agents/plugins/          # repository marketplace catalog
+├── hooks/                    # trusted read-only lifecycle reminders
+├── schemas/                  # project, operation, and RC contracts
+├── templates/project/        # framework-neutral generated harness
+├── examples/                 # starter and multi-repository fixtures
+├── locales/                  # English/Korean catalogs
+├── docs/                     # guides, security, design, implementation plan
+└── scripts/                  # Plugin and release validation
 ```
 
 Important documents:
@@ -174,27 +183,24 @@ Important documents:
 - [Complete user walkthrough](./docs/design/12-user-experience-walkthrough.md)
 - [Production implementation plan](./docs/superpowers/plans/2026-07-16-fullstack-orchestrator-production.md)
 
-## Building the product
+## Build and verify
 
-There is no supported installation command yet. Do not present this repository as an installable end-user release.
+```sh
+cd cli
+go test ./...
+go vet ./...
+go build -trimpath -o ../bin/orchestrator ./cmd/orchestrator
+cd ..
+sh scripts/validate-plugin.sh
+```
 
-Implementation proceeds through the test-driven tasks in the production plan:
-
-1. stable result schema and Go CLI shell;
-2. project schemas, fingerprints, and context graph;
-3. approval-safe, recoverable operations;
-4. Git, submodule, worktree, work, claim, and conflict coordination;
-5. contracts, DBML, dbdiagram, and external UI workflows;
-6. new-project generation and existing-project adoption;
-7. Agent Skills, Codex Plugin, Hooks, and provider adapters;
-8. immutable RC and production release verification;
-9. English/Korean parity, examples, signed packages, and macOS/Windows release channels.
+The CLI exposes project draft/init/adopt, context audit/refresh/pack, Git inspect/sync/worktree plans, work selection/claims/conflicts/handoff, change and contract impact, DBML/dbdiagram, UI import, integration planning, release verification, RC creation/verification, and exact-approval publish planning. Mutating commands plan by default and require an explicit apply or approval receipt.
 
 The working command name is `orchestrator`. The public product, repository, Plugin, package, and command names are frozen once—after name and namespace clearance and before any public package is created.
 
-## Planned distribution
+## Distribution gate
 
-After the production gates pass:
+The repository already contains CI and package metadata. Actual publication occurs only after:
 
 - source and Issues: public GitHub repository;
 - Codex Plugin: GitHub-backed Codex marketplace;
@@ -228,5 +234,4 @@ Its focus is preserving and verifying the relationships between product intent, 
 
 ## License
 
-Apache License 2.0 is the confirmed release license. The actual `LICENSE` file will be added with the product source before the public repository is published.
-
+This project is licensed under Apache License 2.0. See [LICENSE](./LICENSE).

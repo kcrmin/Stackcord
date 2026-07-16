@@ -17,13 +17,13 @@ const (
 
 // Consent is a time-bounded authorization for one objective, repository, action, and target.
 type Consent struct {
-	Objective     string
-	Repository    string
-	Action        Action
-	Target        string
-	ExpiresAt     time.Time
-	Approved      bool
-	ExactDReceipt bool
+	Objective     string    `json:"objective" yaml:"objective"`
+	Repository    string    `json:"repository" yaml:"repository"`
+	Action        Action    `json:"action" yaml:"action"`
+	Target        string    `json:"target" yaml:"target"`
+	ExpiresAt     time.Time `json:"expires_at" yaml:"expires_at"`
+	Approved      bool      `json:"approved" yaml:"approved"`
+	ExactDReceipt bool      `json:"exact_d_receipt" yaml:"exact_d_receipt"`
 }
 
 // Scope is the operation being evaluated now.

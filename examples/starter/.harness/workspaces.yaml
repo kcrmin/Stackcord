@@ -1,0 +1,7 @@
+schema_version: 1
+workspaces:
+  - id: workspace.root
+    kind: root
+    path: .
+    responsibilities: [orchestration]
+    dependencies: []

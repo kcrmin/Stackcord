@@ -1,0 +1,19 @@
+schema_version: 1
+workspaces:
+  - id: workspace.root
+    kind: root
+    path: .
+    responsibilities: [orchestration, integration]
+    dependencies: [workspace.identity, workspace.web]
+  - id: workspace.identity
+    kind: submodule
+    path: services/identity
+    repository: https://example.invalid/identity.git
+    responsibilities: [identity-provider]
+    dependencies: []
+  - id: workspace.web
+    kind: submodule
+    path: apps/web
+    repository: https://example.invalid/web.git
+    responsibilities: [web-experience]
+    dependencies: [workspace.identity]

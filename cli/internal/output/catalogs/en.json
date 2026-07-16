@@ -1,0 +1,12 @@
+{
+  "context.audit.complete": {"text":"Context audit completed with {count} documents.","severity":"info","doc_section":"context"},
+  "context.stale": {"text":"{count} dependent items are stale.","severity":"warning","doc_section":"context"},
+  "git.dirty": {"text":"The current workspace has {count} uncommitted changes.","severity":"warning","doc_section":"git"},
+  "operation.approval": {"text":"Approval class {class} is required for {target}.","severity":"warning","doc_section":"approval"},
+  "project.initialized": {"text":"Project harness created at {root}.","severity":"info","doc_section":"project"},
+  "project.adopted": {"text":"Existing project adopted without replacing custom content.","severity":"info","doc_section":"project"},
+  "conflict.blocked": {"text":"Work is blocked by {count} semantic conflicts.","severity":"error","doc_section":"collaboration"},
+  "contract.breaking": {"text":"Contract {id} has a breaking change.","severity":"error","doc_section":"contracts"},
+  "release.blocked": {"text":"Release is blocked by {count} unmet gates.","severity":"error","doc_section":"release"},
+  "release.ready": {"text":"Release candidate {digest} is ready for user validation.","severity":"info","doc_section":"release"}
+}

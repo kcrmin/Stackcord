@@ -2,10 +2,13 @@ package command
 
 import (
 	"io"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
+	"fullstack-orchestrator/cli/internal/diagnostic"
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/output"
 	"github.com/spf13/cobra"
@@ -14,6 +17,7 @@ import (
 // New creates the command tree with explicit output streams for testability.
 func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	var jsonOutput bool
+	var doctorRoot, diagnosticPath string
 
 	root := &cobra.Command{
 		Use:           "orchestrator",
@@ -37,6 +41,27 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 				Status:        domain.StatusPassed,
 				ExitCode:      domain.ExitSuccess,
 				Summary:       "Environment inspection completed.",
+				Facts: []domain.Item{
+					{Code: "environment.os", Message: runtime.GOOS},
+					{Code: "environment.arch", Message: runtime.GOARCH},
+					{Code: "environment.go", Message: runtime.Version()},
+				},
+			}
+			if diagnosticPath != "" {
+				home, _ := os.UserHomeDir()
+				file, err := os.OpenFile(diagnosticPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+				if err != nil {
+					return err
+				}
+				exportErr := diagnostic.Export(file, diagnostic.Input{Versions: map[string]string{"cli": version, "go": runtime.Version(), "os": runtime.GOOS + "-" + runtime.GOARCH}, Root: doctorRoot, Home: home, State: map[string]string{"root": doctorRoot}, Receipts: []string{}})
+				closeErr := file.Close()
+				if exportErr != nil {
+					return exportErr
+				}
+				if closeErr != nil {
+					return closeErr
+				}
+				result.Evidence = append(result.Evidence, domain.Item{Code: "diagnostic.export", Message: diagnosticPath})
 			}
 			if jsonOutput {
 				return output.WriteJSON(cmd.OutOrStdout(), result)
@@ -44,9 +69,29 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 			return output.WriteHuman(cmd.OutOrStdout(), result)
 		},
 	}
+	doctor.Flags().StringVar(&doctorRoot, "root", ".", "project path for redacted diagnostics")
+	doctor.Flags().StringVar(&diagnosticPath, "export", "", "write a privacy-safe diagnostic ZIP")
 	root.AddCommand(doctor)
 	root.AddCommand(newContextCommand(version, &jsonOutput))
+	root.AddCommand(newProjectCommand(version, &jsonOutput))
+	root.AddCommand(newGitCommand(version, &jsonOutput))
+	root.AddCommand(newWorkCommand(version, &jsonOutput))
+	root.AddCommand(newChangeCommand(version, &jsonOutput))
+	root.AddCommand(newContractCommand(version, &jsonOutput))
+	root.AddCommand(newDatabaseCommand(version, &jsonOutput))
+	root.AddCommand(newUICommand(version, &jsonOutput))
+	root.AddCommand(newIntegrateCommand(version, &jsonOutput))
+	root.AddCommand(newVerifyCommand(version, &jsonOutput))
+	root.AddCommand(newRCCommand(version, &jsonOutput))
+	root.AddCommand(newReleaseCommand(version, &jsonOutput))
 	return root
+}
+
+func writeResult(cmd *cobra.Command, jsonOutput bool, result domain.Result) error {
+	if jsonOutput {
+		return output.WriteJSON(cmd.OutOrStdout(), result)
+	}
+	return output.WriteHuman(cmd.OutOrStdout(), result)
 }
 
 func newContextCommand(version string, jsonOutput *bool) *cobra.Command {

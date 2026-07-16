@@ -3,20 +3,24 @@ package release
 import "fullstack-orchestrator/cli/internal/domain"
 
 // Warning is publishable only when ownership and rationale are explicit.
-type Warning struct{ Code, Owner, Rationale string }
+type Warning struct {
+	Code      string `json:"code"`
+	Owner     string `json:"owner"`
+	Rationale string `json:"rationale"`
+}
 
 // Gates are production-critical outcomes, not check-box intentions.
 type Gates struct {
-	RequiredChecksStable      bool
-	CriticalChecksAutomated   bool
-	ArtifactsSigned           bool
-	MigrationRollbackVerified bool
-	HooksTrustedReadOnly      bool
-	MacOSJourneyVerified      bool
-	WindowsJourneyVerified    bool
-	PluginlessContinuation    bool
-	UserValidationMatches     bool
-	Warnings                  []Warning
+	RequiredChecksStable      bool      `json:"required_checks_stable"`
+	CriticalChecksAutomated   bool      `json:"critical_checks_automated"`
+	ArtifactsSigned           bool      `json:"artifacts_signed"`
+	MigrationRollbackVerified bool      `json:"migration_rollback_verified"`
+	HooksTrustedReadOnly      bool      `json:"hooks_trusted_read_only"`
+	MacOSJourneyVerified      bool      `json:"macos_journey_verified"`
+	WindowsJourneyVerified    bool      `json:"windows_journey_verified"`
+	PluginlessContinuation    bool      `json:"pluginless_continuation"`
+	UserValidationMatches     bool      `json:"user_validation_matches"`
+	Warnings                  []Warning `json:"warnings"`
 }
 
 // Verify aggregates production blockers and owned warnings.

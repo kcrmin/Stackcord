@@ -22,40 +22,40 @@ const (
 
 // Candidate is the normalized scope of proposed work.
 type Candidate struct {
-	Repository       string
-	Workspace        string
-	Paths            []string
-	PolicyIDs        []string
-	ScenarioIDs      []string
-	ContractIDs      []string
-	DBEntities       []string
-	MigrationSlots   []string
-	UIFlows          []string
-	DependencyMajors []string
-	StableIDs        []string
-	RootPointer      bool
-	Now              time.Time
+	Repository       string    `json:"repository" yaml:"repository"`
+	Workspace        string    `json:"workspace,omitempty" yaml:"workspace,omitempty"`
+	Paths            []string  `json:"paths" yaml:"paths"`
+	PolicyIDs        []string  `json:"policy_ids" yaml:"policy_ids"`
+	ScenarioIDs      []string  `json:"scenario_ids" yaml:"scenario_ids"`
+	ContractIDs      []string  `json:"contract_ids" yaml:"contract_ids"`
+	DBEntities       []string  `json:"db_entities" yaml:"db_entities"`
+	MigrationSlots   []string  `json:"migration_slots" yaml:"migration_slots"`
+	UIFlows          []string  `json:"ui_flows" yaml:"ui_flows"`
+	DependencyMajors []string  `json:"dependency_majors" yaml:"dependency_majors"`
+	StableIDs        []string  `json:"stable_ids" yaml:"stable_ids"`
+	RootPointer      bool      `json:"root_pointer" yaml:"root_pointer"`
+	Now              time.Time `json:"now" yaml:"now"`
 }
 
 // Claim declares a collaborator's intended scope. It is not a distributed lock.
 type Claim struct {
-	ID               string
-	Repository       string
-	Workspace        string
-	Owner            string
-	Branch           string
-	Paths            []string
-	PolicyIDs        []string
-	ScenarioIDs      []string
-	ContractIDs      []string
-	DBEntities       []string
-	MigrationSlots   []string
-	UIFlows          []string
-	DependencyMajors []string
-	RootPointer      bool
-	StartsAt         time.Time
-	ExpiresAt        time.Time
-	Observable       bool
+	ID               string    `json:"id" yaml:"id"`
+	Repository       string    `json:"repository" yaml:"repository"`
+	Workspace        string    `json:"workspace,omitempty" yaml:"workspace,omitempty"`
+	Owner            string    `json:"owner" yaml:"owner"`
+	Branch           string    `json:"branch" yaml:"branch"`
+	Paths            []string  `json:"paths" yaml:"paths"`
+	PolicyIDs        []string  `json:"policy_ids" yaml:"policy_ids"`
+	ScenarioIDs      []string  `json:"scenario_ids" yaml:"scenario_ids"`
+	ContractIDs      []string  `json:"contract_ids" yaml:"contract_ids"`
+	DBEntities       []string  `json:"db_entities" yaml:"db_entities"`
+	MigrationSlots   []string  `json:"migration_slots" yaml:"migration_slots"`
+	UIFlows          []string  `json:"ui_flows" yaml:"ui_flows"`
+	DependencyMajors []string  `json:"dependency_majors" yaml:"dependency_majors"`
+	RootPointer      bool      `json:"root_pointer" yaml:"root_pointer"`
+	StartsAt         time.Time `json:"starts_at" yaml:"starts_at"`
+	ExpiresAt        time.Time `json:"expires_at" yaml:"expires_at"`
+	Observable       bool      `json:"observable" yaml:"observable"`
 }
 
 // ConflictReport contains stable reasons and one concrete safe next action.
