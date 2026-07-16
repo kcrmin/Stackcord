@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/spec.schema.json",
+  "type": "object",
+  "required": ["schema_version", "id", "kind", "status", "revision", "refs"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
+    "kind": { "enum": ["role", "capability", "journey", "policy", "scenario", "decision", "quality", "architecture", "ui", "contract"] },
+    "status": { "enum": ["draft", "proposed", "approved", "deprecated", "rejected", "stale", "unknown"] },
+    "revision": { "type": "integer", "minimum": 1 },
+    "owners": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" }, "uniqueItems": true },
+    "refs": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" }, "uniqueItems": true },
+    "sources": { "type": "array", "items": { "type": "object", "required": ["source"], "properties": { "source": { "type": "string" }, "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } }, "additionalProperties": false } },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" }
+  },
+  "additionalProperties": false
+}

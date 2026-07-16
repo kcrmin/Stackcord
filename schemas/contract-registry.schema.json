@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/contract-registry.schema.json",
+  "type": "object",
+  "required": ["schema_version", "contracts"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contracts": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "status", "revision", "path", "providers", "consumers", "refs"], "properties": {
+      "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
+      "kind": { "enum": ["api", "event", "data", "service", "error", "authentication"] },
+      "status": { "enum": ["draft", "proposed", "approved", "deprecated", "stale", "unknown"] },
+      "revision": { "type": "integer", "minimum": 1 },
+      "path": { "type": "string", "minLength": 1 },
+      "providers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+      "consumers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+      "refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+    }, "additionalProperties": false } }
+  },
+  "additionalProperties": false
+}

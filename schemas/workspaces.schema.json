@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/workspaces.schema.json",
+  "type": "object",
+  "required": ["schema_version", "workspaces"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "workspaces": { "type": "array", "items": { "$ref": "#/$defs/workspace" } }
+  },
+  "$defs": {
+    "workspace": {
+      "type": "object",
+      "required": ["id", "kind", "path", "responsibilities", "dependencies"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
+        "kind": { "enum": ["root", "directory", "submodule", "external"] },
+        "path": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string" },
+        "remote": { "type": "string" },
+        "responsibilities": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "dependencies": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" }, "uniqueItems": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

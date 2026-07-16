@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/manifest.schema.json",
+  "type": "object",
+  "required": ["schema_version", "id", "locale"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
+    "locale": { "enum": ["en", "ko"] },
+    "generated_by": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "paths": { "type": "object", "additionalProperties": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
