@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/release-candidate.schema.json",
+  "type": "object",
+  "required": ["schema_version", "input", "digest"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "input": { "type": "object", "required": ["version", "root_commit", "workspace_commits", "artifact_digests", "schema_versions", "adapter_versions", "sbom_digest", "provenance_digest", "signature_digests", "gate_receipts", "docs_fingerprint", "user_validation_digest"] },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}
