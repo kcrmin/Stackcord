@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fullstack-orchestrator.local/schemas/result.schema.json",
+  "title": "Orchestrator command result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool_version",
+    "command",
+    "operation_id",
+    "status",
+    "exit_code",
+    "summary",
+    "facts",
+    "warnings",
+    "blockers",
+    "changes",
+    "evidence",
+    "next_actions",
+    "approval",
+    "timing_ms"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "tool_version": { "type": "string", "minLength": 1 },
+    "command": { "type": "string", "minLength": 1 },
+    "operation_id": { "type": "string", "minLength": 1 },
+    "status": {
+      "enum": ["passed", "warning", "blocked", "failed", "unknown", "partial", "approval_required"]
+    },
+    "exit_code": { "enum": [0, 2, 3, 4, 5, 6, 7, 8] },
+    "summary": { "type": "string" },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "root": { "type": "string" }
+      }
+    },
+    "facts": { "$ref": "#/$defs/items" },
+    "warnings": { "$ref": "#/$defs/items" },
+    "blockers": { "$ref": "#/$defs/items" },
+    "changes": { "$ref": "#/$defs/items" },
+    "evidence": { "$ref": "#/$defs/items" },
+    "next_actions": { "$ref": "#/$defs/items" },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "class", "reason"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "class": { "enum": ["A", "B", "C", "D"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "timing_ms": { "type": "integer", "minimum": 0 }
+  },
+  "$defs": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+        }
+      }
+    }
+  }
+}
