@@ -109,7 +109,7 @@ func TestGitInspectCommandReportsActualState(t *testing.T) {
 func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
 	paths := []string{
-		"project draft", "project init", "project adopt",
+		"project checkpoint", "project init", "project adopt",
 		"context audit", "context refresh", "context pack",
 		"git inspect", "git sync-plan", "git worktree-plan",
 		"work next", "work conflict", "work start", "work finish", "work handoff",

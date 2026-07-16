@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/discovery.schema.json",
+  "type": "object",
+  "required": ["schema_version", "summary", "current_focus", "roles", "journeys", "capabilities", "policies", "scenarios", "quality", "ui_coverage", "technology_needs", "decisions", "assumptions", "open_questions"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "summary": {"type": "string", "minLength": 1},
+    "current_focus": {"type": "string"},
+    "roles": {"$ref": "#/$defs/facts"},
+    "journeys": {"$ref": "#/$defs/facts"},
+    "capabilities": {"$ref": "#/$defs/facts"},
+    "policies": {"$ref": "#/$defs/facts"},
+    "scenarios": {"type": "array", "items": {"$ref": "#/$defs/scenario"}},
+    "quality": {"$ref": "#/$defs/facts"},
+    "ui_coverage": {"type": "array", "items": {"$ref": "#/$defs/ui"}},
+    "technology_needs": {"$ref": "#/$defs/facts"},
+    "decisions": {"type": "array", "items": {"$ref": "#/$defs/decision"}},
+    "assumptions": {"$ref": "#/$defs/facts"},
+    "open_questions": {"$ref": "#/$defs/facts"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$"},
+    "fact": {
+      "type": "object", "required": ["id", "summary"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "summary": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "facts": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
+    "scenario": {
+      "type": "object", "required": ["id", "actor", "trigger", "outcome", "failure"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "actor": {"$ref": "#/$defs/id"},
+        "trigger": {"type": "string", "minLength": 1}, "outcome": {"type": "string", "minLength": 1},
+        "failure": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object", "required": ["id", "role_id", "journey_id", "states"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "role_id": {"$ref": "#/$defs/id"}, "journey_id": {"$ref": "#/$defs/id"},
+        "states": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object", "required": ["id", "choice", "rationale"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "choice": {"type": "string", "minLength": 1}, "rationale": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

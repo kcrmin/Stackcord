@@ -69,3 +69,14 @@ func TestDecodeJSONRejectsDuplicateAndUnknownFields(t *testing.T) {
 	_, err = schema.DecodeJSON[sampleDocument]([]byte(`{"schema_version":1,"id":"policy.account","status":"approved","revision":1,"refs":[],"unexpected":true}`))
 	require.ErrorContains(t, err, "unknown field")
 }
+
+func TestValidateDiscoveryCheckpointRequiresNormalizedSections(t *testing.T) {
+	valid := map[string]any{
+		"schema_version": 1, "summary": "Account recovery", "current_focus": "Recovery proof",
+		"roles": []any{}, "journeys": []any{}, "capabilities": []any{}, "policies": []any{}, "scenarios": []any{},
+		"quality": []any{}, "ui_coverage": []any{}, "technology_needs": []any{}, "decisions": []any{}, "assumptions": []any{}, "open_questions": []any{},
+	}
+	require.Empty(t, schema.Validate("discovery", valid))
+	delete(valid, "open_questions")
+	require.NotEmpty(t, schema.Validate("discovery", valid))
+}

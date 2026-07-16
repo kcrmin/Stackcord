@@ -8,42 +8,48 @@ import (
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/project"
+	"fullstack-orchestrator/cli/internal/schema"
 	"github.com/spf13/cobra"
 )
 
 func newProjectCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent := &cobra.Command{Use: "project", Short: "Create or adopt a durable framework-neutral project harness"}
-	parent.AddCommand(newProjectDraft(version, jsonOutput))
+	parent.AddCommand(newProjectCheckpoint(version, jsonOutput))
 	parent.AddCommand(newProjectMutation("init", version, jsonOutput, false))
 	parent.AddCommand(newProjectMutation("adopt", version, jsonOutput, true))
 	return parent
 }
 
-func newProjectDraft(version string, jsonOutput *bool) *cobra.Command {
-	var request project.DraftRequest
+func newProjectCheckpoint(version string, jsonOutput *bool) *cobra.Command {
+	var request project.CheckpointRequest
+	var inputPath string
 	var apply bool
-	command := &cobra.Command{Use: "draft", Short: "Checkpoint normalized service discovery before naming the repository", RunE: func(cmd *cobra.Command, _ []string) error {
-		plan, err := project.CreateDraft(request)
+	command := &cobra.Command{Use: "checkpoint", Short: "Save the next normalized service-discovery revision", RunE: func(cmd *cobra.Command, _ []string) error {
+		checkpoint, err := schema.LoadYAML[project.DiscoveryCheckpoint](inputPath)
+		if err != nil {
+			return err
+		}
+		request.Checkpoint = checkpoint
+		plan, err := project.PlanCheckpoint(request)
 		if err != nil {
 			return err
 		}
 		if apply {
 			result := operation.Apply(cmd.Context(), plan)
-			result.ToolVersion, result.Command = version, "project.draft"
+			result.ToolVersion, result.Command = version, "project.checkpoint"
 			return writeResult(cmd, *jsonOutput, result)
 		}
-		result := planResult(version, "project.draft.plan", plan, "Discovery draft plan is ready; no files were changed.")
+		result := planResult(version, "project.checkpoint.plan", plan, "Normalized discovery checkpoint is ready; no files were changed.")
 		return writeResult(cmd, *jsonOutput, result)
 	}}
 	command.Flags().StringVar(&request.Parent, "parent", "", "parent directory for .harness-drafts")
 	command.Flags().StringVar(&request.DraftID, "id", "", "sortable draft ID")
 	command.Flags().StringVar(&request.Locale, "locale", "en", "discovery language: en or ko")
-	command.Flags().StringVar(&request.Summary, "summary", "", "normalized product summary, never raw conversation")
-	command.Flags().StringSliceVar(&request.Decisions, "decision", nil, "approved normalized decision (repeatable)")
-	command.Flags().StringSliceVar(&request.OpenQuestions, "open-question", nil, "material unresolved question (repeatable)")
+	command.Flags().StringVar(&inputPath, "input", "", "strict normalized discovery YAML or JSON")
 	command.Flags().BoolVar(&apply, "apply", false, "write the reviewed discovery checkpoint")
 	_ = command.MarkFlagRequired("parent")
 	_ = command.MarkFlagRequired("id")
+	_ = command.MarkFlagRequired("input")
 	return command
 }
 
