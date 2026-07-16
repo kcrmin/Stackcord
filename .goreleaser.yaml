@@ -1,0 +1,68 @@
+version: 2
+project_name: orchestrator
+
+before:
+  hooks:
+    - sh -c "cd cli && go mod verify && go test ./..."
+
+builds:
+  - id: orchestrator
+    dir: ./cli
+    main: ./cmd/orchestrator
+    binary: orchestrator
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -buildid= -X main.version={{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: orchestrator
+    ids: [orchestrator]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ title .Os }}_{{ if eq .Arch \"amd64\" }}x86_64{{ else }}{{ .Arch }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - README.ko.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: archive-sbom
+    artifacts: archive
+
+signs:
+  - id: checksum-keyless
+    cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  draft: true
+  replace_existing_draft: false
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"

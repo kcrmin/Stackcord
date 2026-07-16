@@ -202,6 +202,9 @@ func writeSnapshot(root string, snapshot Snapshot) error {
 }
 
 func isAuthoredDocument(path string) bool {
+	if strings.EqualFold(filepath.Base(path), "index.md") {
+		return false
+	}
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".md", ".yaml", ".yml":
 		return true

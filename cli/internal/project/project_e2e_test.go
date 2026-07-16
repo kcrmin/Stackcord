@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/project"
@@ -37,6 +38,8 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 	manifest, err := os.ReadFile(filepath.Join(root, ".harness", "manifest.yaml"))
 	require.NoError(t, err)
 	require.Contains(t, string(manifest), "project.service-product")
+	_, issues := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
+	require.Empty(t, issues, "a newly generated project must be immediately resumable")
 }
 
 func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {

@@ -1,0 +1,9 @@
+PackageIdentifier: FullstackOrchestrator.Orchestrator
+PackageVersion: "{{VERSION}}"
+PackageLocale: en-US
+Publisher: Full-stack Orchestrator contributors
+PackageName: Full-stack Orchestrator
+License: Apache-2.0
+ShortDescription: Coordinate durable full-stack product work from discovery through release.
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

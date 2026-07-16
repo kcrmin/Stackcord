@@ -60,7 +60,7 @@ func render(request InitRequest) []operation.FileChange {
 		files[filepath.ToSlash(filepath.Join(directory, ".gitkeep"))] = ""
 	}
 	if request.DraftRoot != "" {
-		files["specs/product/discovery-source.md"] = "# Discovery migration\n\nNormalized discovery was approved and migrated from the draft at `" + filepath.ToSlash(request.DraftRoot) + "`.\n"
+		files["specs/product/discovery-source.md"] = "---\nschema_version: 1\nid: decision.product.discovery-baseline\nkind: decision\nstatus: approved\nrevision: 1\nrefs: []\n---\n\n# Discovery migration\n\nNormalized discovery was approved and migrated from the draft at `" + filepath.ToSlash(request.DraftRoot) + "`.\n"
 	}
 	paths := make([]string, 0, len(files))
 	for path := range files {
