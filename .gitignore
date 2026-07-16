@@ -1,0 +1,13 @@
+.DS_Store
+.worktrees/
+.tools/
+dist/
+coverage/
+*.test
+*.out
+*.prof
+*.log
+.env
+.env.*
+!.env.example
+
