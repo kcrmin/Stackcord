@@ -1,0 +1,3 @@
+schema_version: 1
+id: work.GH-12
+semantic_overrides: [policy.account.rate-limit]
