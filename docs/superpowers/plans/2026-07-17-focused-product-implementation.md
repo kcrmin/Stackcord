@@ -38,7 +38,7 @@
 - Produces `project.DiscoveryCheckpoint`, `project.PlanCheckpoint(request CheckpointRequest) (operation.Plan, error)`, and `orchestrator project checkpoint --parent --id --input [--apply]`.
 - The revision is read from the existing draft and incremented by the CLI; the user does not supply it.
 
-- [ ] **Step 1: Write a failing repeat-checkpoint test**
+- [x] **Step 1: Write a failing repeat-checkpoint test**
 
 ```go
 func TestCheckpointRevisesOneDiscoveryWithoutRawConversation(t *testing.T) {
@@ -57,13 +57,13 @@ func TestCheckpointRevisesOneDiscoveryWithoutRawConversation(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run `cd cli && go test ./internal/project -run Checkpoint -v` and verify failure because `PlanCheckpoint` does not exist.**
+- [x] **Step 2: Run `cd cli && go test ./internal/project -run Checkpoint -v` and verify failure because `PlanCheckpoint` does not exist.**
 
-- [ ] **Step 3: Implement strict checkpoint input and revisioned atomic plans** with fields `summary`, `current_focus`, `roles`, `journeys`, `capabilities`, `policies`, `scenarios`, `quality`, `ui_coverage`, `technology_needs`, `decisions`, `assumptions`, and `open_questions`. Write normalized YAML/Markdown under `.harness-drafts/<id>/`; derive operation ID `checkpoint-<id>-r<revision>`.
+- [x] **Step 3: Implement strict checkpoint input and revisioned atomic plans** with fields `summary`, `current_focus`, `roles`, `journeys`, `capabilities`, `policies`, `scenarios`, `quality`, `ui_coverage`, `technology_needs`, `decisions`, `assumptions`, and `open_questions`. Write normalized YAML/Markdown under `.harness-drafts/<id>/`; derive operation ID `checkpoint-<id>-r<revision>`.
 
-- [ ] **Step 4: Add the command and remove `project draft` from the command surface.** The command accepts a strict YAML or JSON input file, reports the new revision, and plans unless `--apply` is present.
+- [x] **Step 4: Add the command and remove `project draft` from the command surface.** The command accepts a strict YAML or JSON input file, reports the new revision, and plans unless `--apply` is present.
 
-- [ ] **Step 5: Run `cd cli && go test ./internal/project ./internal/command -v` and commit.**
+- [x] **Step 5: Run `cd cli && go test ./internal/project ./internal/command -v` and commit.**
 
 Commit: `feat(discovery): add repeatable normalized checkpoints`
 
@@ -82,15 +82,15 @@ Commit: `feat(discovery): add repeatable normalized checkpoints`
 - `project.PlanInit` and `project.PlanAdopt` retain their signatures.
 - Generated `.harness/profile.yaml` declares `tdd: default`, `git.collaboration: strongly_recommended`, `git.release: required`, `task_source: git-local`, and `release: core`.
 
-- [ ] **Step 1: Change the new-project E2E test to assert the exact generated file set.** Assert no `.harness/policies`, templates, integrations, lifecycle, baselines, gates, empty claims, release candidate, or placeholder directories exist.
+- [x] **Step 1: Change the new-project E2E test to assert the exact generated file set.** Assert no `.harness/policies`, templates, integrations, lifecycle, baselines, gates, empty claims, release candidate, or placeholder directories exist.
 
-- [ ] **Step 2: Run `cd cli && go test ./internal/project -run NewProject -v` and observe extra-file failure.**
+- [x] **Step 2: Run `cd cli && go test ./internal/project -run NewProject -v` and observe extra-file failure.**
 
-- [ ] **Step 3: Remove generated policy copies and empty directories; add `profile.yaml`.** Keep only README/AGENTS/tooling, repo-local Skill/fallback, manifest/entry/profile/sources/workspaces/context state/provider, specs index, contract registry, and docs index.
+- [x] **Step 3: Remove generated policy copies and empty directories; add `profile.yaml`.** Keep only README/AGENTS/tooling, repo-local Skill/fallback, manifest/entry/profile/sources/workspaces/context state/provider, specs index, contract registry, and docs index.
 
-- [ ] **Step 4: Ensure adoption remains non-destructive.** Existing README/AGENTS managed sections and ordered `.gitignore` rules remain preserved; existing authored harness files win unless schema-invalid.
+- [x] **Step 4: Ensure adoption remains non-destructive.** Existing README/AGENTS managed sections and ordered `.gitignore` rules remain preserved; existing authored harness files win unless schema-invalid.
 
-- [ ] **Step 5: Verify template parity with generated content and run `cd cli && go test ./internal/project ./internal/context -v`.**
+- [x] **Step 5: Verify template parity with generated content and run `cd cli && go test ./internal/project ./internal/context -v`.**
 
 Commit: `refactor(project): generate a minimal durable harness`
 
@@ -108,15 +108,15 @@ Commit: `refactor(project): generate a minimal durable harness`
 - Keep `context.Refresh`, `gitx.Inspect`, `gitx.ReadRemoteFiles`, semantic claims, and Git-local task files.
 - Remove `context pack` and the unused provider registry/adapters.
 
-- [ ] **Step 1: Add failing tests that reject invalid authored stable IDs, statuses, duplicate refs, and malformed contract metadata during context audit.**
+- [x] **Step 1: Add failing tests that reject invalid authored stable IDs, statuses, duplicate refs, and malformed contract metadata during context audit.**
 
-- [ ] **Step 2: Add a failing command-surface test requiring `context audit|refresh` and rejecting `context pack`.**
+- [x] **Step 2: Add a failing command-surface test requiring `context audit|refresh` and rejecting `context pack`.**
 
-- [ ] **Step 3: Validate every indexed authored document through the appropriate schema before accepting it into the context index.** Keep navigation indexes excluded and unknown external state explicit.
+- [x] **Step 3: Validate every indexed authored document through the appropriate schema before accepting it into the context index.** Keep navigation indexes excluded and unknown external state explicit.
 
-- [ ] **Step 4: Delete the unused provider packages and tests.** Keep task-source selection in the project profile/provider file: `git-local` is executable; any other configured source returns unavailable until a concrete connector is installed.
+- [x] **Step 4: Delete the unused provider packages and tests.** Keep task-source selection in the project profile/provider file: `git-local` is executable; any other configured source returns unavailable until a concrete connector is installed.
 
-- [ ] **Step 5: Run `cd cli && go test -race ./internal/context ./internal/gitx ./internal/policy ./internal/command -v`.**
+- [x] **Step 5: Run `cd cli && go test -race ./internal/context ./internal/gitx ./internal/policy ./internal/command -v`.**
 
 Commit: `refactor(core): keep deterministic project coordination only`
 
@@ -138,15 +138,15 @@ Commit: `refactor(core): keep deterministic project coordination only`
 - Exposes exactly `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, and `recover-and-release-project`.
 - Shared references become `workflow.md`, `safety.md`, and `context-recovery.md`.
 
-- [ ] **Step 1: Replace behavior fixtures first.** Cover new/adopt, resume/next, feature/bug/TDD/worktree, contract/DBML/dbdiagram/UI/conflict/handoff/integration, forgotten context, core release, and strict release. Run `python3 scripts/validate_plugin_test.py` and observe missing Skill failures.
+- [x] **Step 1: Replace behavior fixtures first.** Cover new/adopt, resume/next, feature/bug/TDD/worktree, contract/DBML/dbdiagram/UI/conflict/handoff/integration, forgotten context, core release, and strict release. Run `python3 scripts/validate_plugin_test.py` and observe missing Skill failures.
 
-- [ ] **Step 2: Write one Skill at a time.** Each description contains triggers only; each body starts with context audit, hides internal nouns in normal user output, asks one material question at a time, and routes deterministic checks to the CLI.
+- [x] **Step 2: Write one Skill at a time.** Each description contains triggers only; each body starts with context audit, hides internal nouns in normal user output, asks one material question at a time, and routes deterministic checks to the CLI.
 
-- [ ] **Step 3: Replace duplicated references.** `workflow.md` contains discovery/TDD/integration heuristics, `safety.md` contains no-hidden-mutation rules, and `context-recovery.md` contains source precedence and fallback. Do not repeat A-D tables or lifecycle prose in Skills.
+- [x] **Step 3: Replace duplicated references.** `workflow.md` contains discovery/TDD/integration heuristics, `safety.md` contains no-hidden-mutation rules, and `context-recovery.md` contains source precedence and fallback. Do not repeat A-D tables or lifecycle prose in Skills.
 
-- [ ] **Step 4: Update the repo-local Skill to a compact universal entry.** It must work without the Plugin or CLI and tell the AI how to state reduced verification.
+- [x] **Step 4: Update the repo-local Skill to a compact universal entry.** It must work without the Plugin or CLI and tell the AI how to state reduced verification.
 
-- [ ] **Step 5: Run the repository validator, official Skill validators, and official Plugin validator.**
+- [x] **Step 5: Run the repository validator, official Skill validators, and official Plugin validator.**
 
 Commit: `refactor(plugin): consolidate project workflows into five skills`
 
@@ -170,15 +170,15 @@ Commit: `refactor(plugin): consolidate project workflows into five skills`
 - `release.UserValidation` is created after preparation and binds explicit confirmation to the candidate digest; `release verify` combines it with the current technical identities.
 - CLI exposes only `release prepare|verify`.
 
-- [ ] **Step 1: Write failing tests showing a valid core candidate passes without SBOM/signature/provenance and a strict candidate fails without them.**
+- [x] **Step 1: Write failing tests showing a valid core candidate passes without SBOM/signature/provenance and a strict candidate fails without them.**
 
-- [ ] **Step 2: Write failing command-surface tests rejecting top-level `verify`, top-level `rc`, and `release publish`.**
+- [x] **Step 2: Write failing command-surface tests rejecting top-level `verify`, top-level `rc`, and `release publish`.**
 
-- [ ] **Step 3: Implement profile-aware candidate validation and deterministic digest.** Verify the candidate manifest itself before comparing current inputs; changing any core or enabled strict identity blocks verification.
+- [x] **Step 3: Implement profile-aware candidate validation and deterministic digest.** Verify the candidate manifest itself before comparing current inputs; changing any core or enabled strict identity blocks verification.
 
-- [ ] **Step 4: Consolidate commands.** `release prepare` plans/applies the candidate and `release verify` compares it with current input. Internal operation IDs are derived from version and candidate digest.
+- [x] **Step 4: Consolidate commands.** `release prepare` plans/applies the candidate and `release verify` compares it with current input. Internal operation IDs are derived from version and candidate digest.
 
-- [ ] **Step 5: Run `cd cli && go test -race ./internal/release ./internal/command -v`.**
+- [x] **Step 5: Run `cd cli && go test -race ./internal/release ./internal/command -v`.**
 
 Commit: `refactor(release): separate core and strict verification`
 
@@ -198,13 +198,13 @@ Commit: `refactor(release): separate core and strict verification`
 - Default generated projects contain no publication assets.
 - This product can still use the strict profile for its own public artifacts.
 
-- [ ] **Step 1: Update release-config tests to require strict assets only under `profiles/strict-release`.** Run them and observe missing-path failures.
+- [x] **Step 1: Update release-config tests to require strict assets only under `profiles/strict-release`.** Run them and observe missing-path failures.
 
-- [ ] **Step 2: Move files with history-preserving filesystem changes and update workflow paths.** Keep signing, SBOM, package-generation, and exact approval guards fail-closed.
+- [x] **Step 2: Move files with history-preserving filesystem changes and update workflow paths.** Keep signing, SBOM, package-generation, and exact approval guards fail-closed.
 
-- [ ] **Step 3: Update GoReleaser and validators to the new paths.** Ensure no default README text implies every project must publish all channels.
+- [x] **Step 3: Update GoReleaser and validators to the new paths.** Ensure no default README text implies every project must publish all channels.
 
-- [ ] **Step 4: Run all strict release script tests, `actionlint`, and `goreleaser check`.**
+- [x] **Step 4: Run all strict release script tests, `actionlint`, and `goreleaser check`.**
 
 Commit: `refactor(release): isolate strict publication tooling`
 
@@ -227,15 +227,15 @@ Commit: `refactor(release): isolate strict publication tooling`
 - Documentation leads with natural-language usage, not commands or internal file names.
 - E2E fixtures prove checkpoint, init/adopt, clone recovery, compaction recovery routing, multi-repo/submodule, contract, DBML, UI, conflict, integration, and RC flows.
 
-- [ ] **Step 1: Add executable focused E2E tests before changing docs.** Use real temporary Git repositories and archives; assert Plugin-less fallback contains enough information to resume.
+- [x] **Step 1: Add executable focused E2E tests before changing docs.** Use real temporary Git repositories and archives; assert Plugin-less fallback contains enough information to resume.
 
-- [ ] **Step 2: Run the E2E tests and fix any uncovered core behavior gaps with TDD.**
+- [x] **Step 2: Run the E2E tests and fix any uncovered core behavior gaps with TDD.**
 
-- [ ] **Step 3: Rewrite README and core guides around five natural-language journeys.** Include exact generated files, collaboration behavior, conflict outcomes, context recovery, core/strict differences, installation, testing, and external blockers.
+- [x] **Step 3: Rewrite README and core guides around five natural-language journeys.** Include exact generated files, collaboration behavior, conflict outcomes, context recovery, core/strict differences, installation, testing, and external blockers.
 
-- [ ] **Step 4: Add troubleshooting for forgotten context, dirty/diverged Git, submodule mismatch, unobservable task source, invalid imported UI, stale DBML, and RC mismatch.**
+- [x] **Step 4: Add troubleshooting for forgotten context, dirty/diverged Git, submodule mismatch, unobservable task source, invalid imported UI, stale DBML, and RC mismatch.**
 
-- [ ] **Step 5: Run documentation parity, example audits, and all commands embedded in core guides.**
+- [x] **Step 5: Run documentation parity, example audits, and all commands embedded in core guides.**
 
 Commit: `docs(product): document the focused user experience`
 
@@ -250,9 +250,9 @@ Commit: `docs(product): document the focused user experience`
 **Interfaces:**
 - Produces a clean independent Git repository ready to copy out of Soomgil after all local checks.
 
-- [ ] **Step 1: Ensure CI runs unit/integration tests, race where supported, fuzz smoke, real Git tests, Plugin validation, Plugin-less E2E, docs parity, and four cross-build targets.**
+- [x] **Step 1: Ensure CI runs unit/integration tests, race where supported, fuzz smoke, real Git tests, Plugin validation, Plugin-less E2E, docs parity, and four cross-build targets.**
 
-- [ ] **Step 2: Run fresh local verification:**
+- [x] **Step 2: Run fresh local verification:**
 
 ```sh
 cd cli
@@ -264,9 +264,9 @@ go test ./internal/context -run '^$' -fuzz FuzzFingerprint -fuzztime 15s
 go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 ```
 
-- [ ] **Step 3: Run repository verification:** Plugin validators, security scan, docs parity, strict release script tests, actionlint, GoReleaser check, snapshot release, and macOS/Windows amd64/arm64 cross-builds.
+- [x] **Step 3: Run repository verification:** Plugin validators, security scan, docs parity, strict release script tests, actionlint, GoReleaser check, snapshot release, and macOS/Windows amd64/arm64 cross-builds.
 
-- [ ] **Step 4: Smoke-test a native binary against new project, existing adoption, context audit, Git inspect, and core RC.** Verify no files outside temporary fixtures or the isolated product repository changed.
+- [x] **Step 4: Smoke-test a native binary against new project, existing adoption, context audit, Git inspect, and core RC.** Verify no files outside temporary fixtures or the isolated product repository changed.
 
 - [ ] **Step 5: Review `git diff main...HEAD`, run `git diff --check`, commit final verification metadata, and prepare the independent external repository path without publishing.**
 
