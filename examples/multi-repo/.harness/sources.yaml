@@ -1,0 +1,6 @@
+schema_version: 1
+sources:
+  - id: source.git.local
+    kind: git
+    authority: actual_state
+    access: read

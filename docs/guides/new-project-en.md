@@ -1,11 +1,23 @@
-# New project journey
+# New project
 
-1. Say “Start a new service.” Discovery is checkpointed under `.harness-drafts/<id>/` as a normalized summary, decisions, and open questions—never raw conversation.
-2. Answer one recommended multiple-choice question at a time or supply a free-form answer. The AI explores roles, value, complete journeys, success/failure policy, quality, security, operations, and important possibilities the user may not have considered.
-3. Approve the product summary and repository name. `project init` creates a framework-neutral root with the repo-local Skill, harness, specs, contracts, and docs.
-4. Choose technologies only after required capabilities and constraints are known. Verify current maintenance, security, and release status at selection time.
-5. Establish product-wide executable UI coverage. External mockups can be imported as reference, seed, or canonical sources.
-6. Define contracts, failure behavior, DBML, and shared implementation boundaries. Then build small vertical slices with red-green-refactor evidence and conflict claims.
-7. Integrate compatibility-first, harden production, freeze one RC, have the user validate that exact digest, and only then publish.
+## Begin with discovery
 
-The AI checkpoints after each material decision, so context compression or a new contributor does not restart discovery.
+Tell the AI what service you want to create. It first diagnoses the directory and available tools, then asks one question at a time only when the answer changes product behavior, architecture, risk, or scope. Questions normally offer two or three mutually exclusive options, the recommended option first, and free-form input.
+
+After every meaningful answer, the AI updates a normalized checkpoint containing current product facts—not a chat transcript. It also raises overlooked privacy, security, accessibility, failure, operations, observability, retention, and abuse cases when they matter.
+
+## Delay technology commitment
+
+Describe capabilities, quality targets, team constraints, deployment environment, data sensitivity, scale, and operational ownership before choosing frameworks or infrastructure. Record technology needs separately from technology choices. When a choice becomes necessary, compare viable candidates and verify their current official maintenance, security, and release status.
+
+## Establish coverage, then slice
+
+Define the service's roles, journeys, policies, failure outcomes, and UI states across the whole product. External mockups may be imported as reference, seed, or canonical input. This baseline is not a frozen waterfall specification: divide it into small role/domain/journey changes and integrate continuously as learning changes the baseline.
+
+## Initialize the harness
+
+When the service has enough identity to create a durable root, ask the AI to initialize the project. It previews the exact files and then creates the minimal framework-neutral harness. Initialize Git early for collaboration. Add child repositories as submodules as soon as an independent workspace is justified, not merely because frontend and backend names exist.
+
+## Implement with shared boundaries
+
+Before parallel work, define interfaces, contracts, DBML, and failure behavior that multiple changes depend on. Claim semantic scope, create a conventional feature branch or isolated worktree, write the failing test, implement the smallest behavior, and integrate frequently. Revise product checkpoints when implementation reveals a real product decision.

@@ -1,7 +1,21 @@
-# Adopt an existing project
+# Existing project adoption
 
-Say “Adopt and continue this repository.” Planning is read-only. The tool inventories Git history, dirty files, root/workspace boundaries, existing instructions, technologies, tests, CI, documents, contracts, and unknown product behavior.
+## Inspect before changing
 
-`project adopt` only adds missing harness files and explicit managed sections in README/AGENTS. It preserves custom content, Git history, topology, and dirty files. Conflicting `.editorconfig` or `.gitattributes` policies block rather than overwrite.
+Tell the AI to continue or adopt the repository. It reads the nearest trusted instructions, detects languages and existing tools, inspects Git and submodules, and inventories product documentation, contracts, schemas, tests, CI, deployment, and task tracking. Facts available from files or Git are not asked back to the user.
 
-The first baseline is characterization, not wishful redesign: map observable behavior to stable policies and scenarios, mark unknowns, write tests around critical existing behavior, then propose product changes separately. Run `context audit` after adoption and before every mutation until source relationships are coherent.
+## Preview a non-destructive plan
+
+Adoption adds only the minimal harness and managed sections. Existing files, settings, source code, branches, task systems, and repository history remain authoritative. If a target file already contains user content, the plan must show whether a delimited managed section can be merged; unsafe collisions block adoption instead of overwriting content.
+
+## Reconstruct product meaning
+
+The AI summarizes what the repository proves, separates facts from assumptions, and asks only material unresolved questions. It assigns stable IDs to existing policies, scenarios, contracts, DB entities, migrations, and UI flows and records their fingerprints. Existing technology stays unless product or operational evidence justifies a change.
+
+## Select one work-status source
+
+Git-local status is the safe default. If the repository already uses GitHub, Jira, Linear, Beads, or another system, the AI may recommend keeping it after confirming a real connector or usable local command exists. Only the selected tool becomes live task-status authority; unsupported adapters are never implied.
+
+## Start the first change
+
+Run context and Git audits, resolve stale or divergent state with the user, select dependency-ready work, and check semantic conflicts before writing code. Preserve existing branch and commit conventions unless they are ambiguous or unsafe. Use TDD and the repository's existing test/build interfaces.

@@ -1,240 +1,163 @@
-# Full-stack Orchestrator
+# 풀스택 프로젝트 하네스
 
-한국어 | [English](./README.md)
+> 현재 패키지용 작업 이름입니다. 공개 제품 이름은 실제 배포 전에 결정합니다.
 
-> 현재는 작업용 이름입니다. 공개 제품명은 첫 public package를 배포하기 전에 확정합니다.
+[English](./README.md)
 
-Full-stack Orchestrator는 사람과 AI가 서비스 발견부터 제품 정의, 풀스택 구현, 협업, 검증, release까지 이어가도록 돕는 local-first 오케스트레이션 제품입니다. 대화가 압축되거나 담당자·컴퓨터·repository·도구가 바뀌어도 제품 의도와 현재 작업 상태를 잃지 않는 것이 핵심입니다.
+사용자가 AI와 서비스를 자세히 정의하고, framework를 미리 강제하지 않은 채 풀스택 저장소를 만들거나 기존 저장소에 도입하며, 여러 사람·clone·submodule·worktree·AI context 압축을 거쳐서도 안전하게 개발을 이어가게 하는 제품입니다.
 
-## 현재 상태
+운영 원칙은 단순합니다. **대화와 판단은 Skill이, 실제 상태·동일성·안전·충돌 검증은 Go CLI가 담당합니다.** 사용자는 명령을 외우기보다 AI에게 자연어로 말합니다.
 
-**로컬 제품 구현은 release 계획 경계까지 완료했습니다. 공개 배포만 의도적으로 실행하지 않은 상태입니다.**
+## 실제 사용 모습
 
-현재 이 repository에 있는 것:
+AI에게 다음처럼 말하면 됩니다.
 
-- 확정된 제품·협업 설계
-- 생성 프로젝트와 source-of-truth 명세
-- Git, submodule, 충돌, AI 승인, adapter, 보안, release 정책
-- 안정된 JSON 결과와 전체 lifecycle 명령을 가진 cross-platform Go CLI
-- project 생성·도입, context 복구, Git/submodule/worktree 진단, claim·의미 충돌 검사
-- contract, DBML/dbdiagram, 외부 UI 격리, provider capability 경계, immutable RC·release gate
-- 검증된 12개 Agent Skill, Codex Plugin marketplace manifest, repo-local fallback Skill, read-only Hook
-- 영어·한국어 가이드, 실행 가능한 예제, test, 전체 설계 기록
+- “새 서비스를 같이 시작해줘.”
+- “이 프로젝트 이어서 해. 지금 뭐 해야 해?”
+- “계정 복구 기능 만들어줘.”
+- “DB 다이어그램이 바뀌었어. 이유를 확인하고 migration을 계획해줘.”
+- “프로젝트 context를 복구하고 production candidate를 준비해줘.”
 
-로컬 source build와 Plugin 검증은 지금 사용할 수 있습니다. [시작 가이드](./docs/getting-started/ko.md)를 보세요. 공개 이름 확인, native macOS/Windows CI 영수증, signed artifact, 공개 저장소·package channel, 같은 RC에 대한 사용자 확인은 core 구현 누락이 아니라 release gate로 남아 있습니다.
+AI는 알맞은 Skill을 읽고 저장소와 실제 상태를 검사합니다. 결과를 크게 바꾸는 질문만 하나씩 묻고, 중요한 답변 뒤에는 정규화한 제품 지식을 저장합니다. 원본 대화나 사용자의 말투는 저장하지 않습니다.
 
-## 어떤 문제를 해결하나
+## 제공 기능
 
-일반적인 AI 개발은 대화가 압축되거나 작업자가 바뀌면 이전 결정과 현재 상태를 잃기 쉽습니다. 작업관리 도구는 누가 무엇을 맡았는지 알지만 제품이 왜 그렇게 행동해야 하는지는 모를 수 있고, Git은 무엇이 바뀌었는지 알지만 변경 의도와 정책까지 보존하지는 않습니다.
+- 긴 서비스 발견과 revision checkpoint: 제품 요약, 역할, journey, 정책, scenario, 품질, UI coverage, 결정, 가정, 기술 요구, 미해결 질문을 계속 정리합니다.
+- Framework-neutral 신규 프로젝트 생성과 기존 저장소 비파괴 도입.
+- Repo-local 지침, stable ID, fingerprint, context index, stale 감지를 이용한 clone 후 복구. Plugin이 없어도 가능합니다.
+- 실제 Git 진단: branch, dirty, upstream, ahead/behind/diverged, worktree, 관례적인 branch 계획.
+- 정확한 submodule 진단: root가 기록한 pointer, checkout된 HEAD, 누락, dirty, 불일치, 안전한 초기화 계획.
+- 작업 전 충돌 검사: path뿐 아니라 정책, scenario, contract, DB entity, migration, UI flow, dependency major, root pointer의 의미 충돌까지 확인합니다.
+- 기한이 있는 작업 claim, 실제 소유권을 넘길 때의 handoff, 호환성 우선 통합 순서, TDD evidence.
+- 제품 정책·실패 동작·contract·DBML·migration·외부 UI mockup·dbdiagram 협업 흐름.
+- 기술 검증과 사용자 검증이 똑같은 digest를 가리켜야 하는 production candidate.
+- SBOM, provenance, signature, publication receipt가 필요한 조직을 위한 선택적 strict-release profile.
 
-이 제품은 다음을 하나의 검증 가능한 관계로 연결합니다.
+## 구조
 
-```text
-제품 의도와 서비스 정책
-→ 실행 가능한 전체 UI 기준선
-→ contract와 DBML
-→ workspace와 실제 Git 상태
-→ 작업·claim·dependency·PR
-→ test evidence·RC·release
-```
+| 계층 | 역할 |
+| --- | --- |
+| 사용자에게 보이는 5개 Skill | 자연어 의도 이해, 제품 발견, 적절한 시점의 외부 도구·기술 추천, 결과 설명 |
+| Cross-platform Go CLI | Git·submodule·fingerprint·충돌·contract·DBML·UI import·통합·release 동일성을 결정적으로 검증 |
+| 저장소가 소유하는 원본 | 다른 사람이나 AI가 clone 또는 context 압축 뒤에도 복구하도록 정규화된 결정과 상태를 보존 |
 
-stable ID와 fingerprint를 사용하므로 새 사람이나 새 AI가 대화 기록 없이 repository에서 현재 상태를 다시 계산할 수 있습니다.
+5개 Skill의 진입 역할은 겹치지 않습니다.
 
-## 사용자는 어떻게 사용하나
-
-사용자는 내부 명령을 외우지 않고 AI에게 자연어로 말합니다.
-
-```text
-“새 서비스 시작하자.”
-“이 프로젝트를 clone했어. 이어서 해줘.”
-“지금 뭐 해야 해?”
-“다른 작업과 충돌하는지 확인해줘.”
-“외부에서 만든 이 mockup으로 UI를 시작해줘.”
-“DB 구조 같이 정하고 dbdiagram에서 보여줘.”
-“너 프로젝트 내용을 잊은 것 같아. 다시 검사해.”
-“Production release 준비해.”
-```
-
-AI는 상황에 맞는 Skill을 선택하고, CLI는 실제 filesystem, Git, workspace, contract, task provider, 검증 상태를 확인합니다.
-
-[전체 사용자 walkthrough](./docs/design/12-user-experience-walkthrough.md)에는 실제 객관식 질문, 답변 뒤 갱신되는 파일, GitHub Issue, branch, Draft PR, submodule 통합, context 복구, RC 승인까지 자세히 적혀 있습니다.
-
-## 전체 개발 흐름
-
-```text
-진입 진단
-→ 서비스 발견
-→ 프로젝트 초기화
-→ 제품 전체 정의
-→ 아키텍처·기술 stack 선택
-→ 실행 가능한 전체 UI 기준선
-→ contract·DBML
-→ 안정적인 구현 경계·골격
-→ 수직 단위 풀스택 구현
-→ 통합
-→ 프로덕션 강화
-→ RC
-→ 사용자 검증
-→ Release
-→ 운영과 다음 변경
-```
-
-이 순서는 waterfall 일정이 아닙니다. 각 단계는 dependency gate이고 역할·domain·journey별 작은 변경을 계속 통합합니다. 뒤에서 새 사실이 발견되면 영향받은 이전 단계만 `stale`로 다시 엽니다.
-
-## 주요 기능
-
-| 기능 | 제공 내용 |
-|---|---|
-| 서비스 발견 | 한 번에 하나의 적응형 질문, 권장 객관식과 자유 입력, 확정·가설·미정 분리 |
-| Context 유지 | 정규화된 결정, open question, stable ID, fingerprint, impact graph, 압축 후 복구 |
-| 프로젝트 생성·도입 | 신규 프로젝트 생성과 기존 repository 비파괴 adoption |
-| 풀스택 하네스 | 제품 명세, 서비스 정책, contract, DBML, 작업 상태, evidence, 운영 문서 |
-| Workspace 관리 | framework를 강제하지 않는 root·directory·submodule·external workspace |
-| Git 협업 | protected `main`, 짧은 branch, Conventional Commits, Draft PR, worktree, exact submodule pointer |
-| 충돌 방지 | path뿐 아니라 module·policy·scenario·contract·migration·UI flow·dependency·pointer 사전 검사 |
-| 작업 관리 | 실제 동작하는 Git-local fallback, 단일 live provider 강제, 선택 외부 도구용 adapter contract |
-| 외부 UI 입력 | mockup·디자인·코드·이미지·prototype의 격리 import와 출처·권위 관리 |
-| Database 협업 | Git DBML 원본, validation, semantic diff, migration 영향, dbdiagram 격리 push/pull |
-| TDD 개발 | 동작 변경 test-first, 좁은 예외, 재현 가능한 evidence |
-| Production release | 기술 gate, immutable RC, 동일 artifact 사용자 검증, 서명·SBOM·provenance·rollback |
+1. 프로젝트 시작 또는 기존 프로젝트 도입
+2. 프로젝트 이어가기와 다음 작업 선택
+3. 변경 계획과 작업 시작
+4. Contract·DBML·UI·통합·충돌 조정
+5. Context 복구·production 강화·release 준비와 검증
 
 ## 생성되는 프로젝트 구조
 
-frontend, backend, framework, language, database, cloud directory 이름을 고정하지 않습니다. 실제 workspace 주위에 네 가지 책임 영역을 만듭니다.
-
 ```text
-project-root/
+project/
+├── README.md
 ├── AGENTS.md
 ├── .agents/skills/use-project-harness/
-├── .harness/        # lifecycle, baseline, work, gate, evidence
-├── specs/           # 제품 의도, 정책, scenario, 품질, architecture, UI
-├── contracts/       # service, API, event, auth, error, data, DBML 의무
-├── docs/            # guide, runbook, 문제 해결, 생성 요약
-└── <workspaces>/    # root, directory, submodule, external 구현 단위
+│   ├── SKILL.md
+│   └── references/fallback.md
+├── .harness/
+│   ├── entry.md
+│   ├── manifest.yaml
+│   ├── profile.yaml
+│   ├── sources.yaml
+│   ├── workspaces.yaml
+│   ├── state/
+│   │   ├── context-index.json
+│   │   └── impact-graph.json
+│   └── work/provider.yaml
+├── specs/index.md
+├── contracts/registry.yaml
+└── docs/index.md
 ```
 
-`workspace`와 `submodule`은 같은 말이 아닙니다.
+`specs/`는 제품 의미와 정책, `contracts/`는 component 사이 의무와 실패 동작을 소유합니다. `.harness/`는 작고 기계가 읽을 수 있는 조정 상태입니다. 사용자가 `.harness/`를 직접 다룰 일은 거의 없으며 AI가 필요한 의미만 요약합니다.
 
-- workspace: 독립적인 구현·검증·소유권·contract 경계
-- submodule: 별도 repository가 필요한 workspace의 exact commit을 root에서 연결하는 Git 방식
+## 개발 흐름
 
-## Harness, Skill, Plugin, CLI, Hook 차이
+Waterfall이 아니라 다음 순서를 반복합니다.
 
-| 구성 | 역할 |
-|---|---|
-| 프로젝트 하네스 | 각 서비스의 제품 의미, contract, 현재 상태와 evidence를 repository에 보존 |
-| Agent Skill | AI가 언제 질문·진단·계획·개발·context 복구·release 준비를 해야 하는지 안내 |
-| Codex Plugin | Skills, optional Hook, template, CLI 연결을 GitHub marketplace로 설치·공유 |
-| Go CLI | macOS·Windows에서 같은 검사·계획·생성·동기화·release gate를 결정적으로 실행 |
-| Hook | 신뢰된 session 시작이나 context 압축 후 refresh 필요를 알려주는 선택 기능 |
+1. 저장소와 사용 가능한 도구를 진단합니다.
+2. 서비스를 발견하며 중요한 답변을 계속 checkpoint합니다.
+3. 기술을 성급히 정하지 않고 새 프로젝트를 초기화하거나 기존 프로젝트에 도입합니다.
+4. 제품 전체 의미와 UI coverage를 세운 뒤 역할·도메인·journey 단위로 나눕니다.
+5. 병렬 구현의 모호함을 줄이는 공유 경계·contract·DBML을 먼저 합의합니다.
+6. 작은 수직 변경을 TDD로 만들고 계속 통합합니다.
+7. Provider를 consumer보다 먼저 통합하고 child commit이 검토 가능해진 뒤 root submodule pointer를 갱신합니다.
+8. Production을 강화하고 하나의 candidate를 만든 뒤 동일 digest를 기술 검증과 사용자 검증에 사용하여 release·운영으로 갑니다.
 
-Plugin은 편리한 Codex 배포 계층이지 프로젝트 원본이 아닙니다. 생성된 repository에는 작은 repo-local Agent Skill과 Markdown fallback이 남으므로 다른 사람이 Plugin 없이 clone해도 이어서 작업할 수 있습니다.
+기술은 제품 기능·품질·팀·운영 조건이 드러난 뒤 선택합니다. 실제 선택 시점에는 AI가 공식 유지보수·보안·release 상태를 다시 확인해야 합니다.
 
-## Git과 협업 기본값
+## Git·submodule·worktree
 
-- 초기 개인 발견에서는 Git 없이도 사용할 수 있지만 협업에는 매우 강하게 권장하고 검증 가능한 release에는 필수입니다.
-- 기본은 protected `main`과 짧은 branch이며 상시 `develop` branch를 만들지 않습니다.
-- branch와 commit에는 AI 사용 흔적을 넣지 않고 일반 Git convention을 따릅니다.
-- test와 구현은 checkout 가능한 검토 단위로 유지하며 깨진 red commit을 shared history에 강제하지 않습니다.
-- submodule은 root가 가리키는 exact SHA를 사용하고 remote 최신 commit을 몰래 따라가지 않습니다.
-- worktree는 같은 repository의 branch를 격리하고, semantic claim과 contract 검사는 worktree가 막지 못하는 의미 충돌을 처리합니다.
-- 여러 repository 변경은 동시에 merge된다고 가정하지 않고 호환 가능한 순서로 병합·배포합니다.
+Git은 협업에 매우 강하게 권장하며 검증 가능한 release에는 필수입니다. Branch와 commit은 `feature/account-recovery`, `feat(account): add recovery challenge` 같은 일반 convention을 사용하고 AI 표시는 넣지 않습니다.
 
-자세한 예시는 [Git·협업·submodule 정책](./docs/design/04-git-collaboration-and-submodules.md)에 있습니다.
+작업 전 CLI가 local/upstream 상태와 active claim을 비교합니다. 동시에 여러 branch가 필요하면 worktree로 격리할 수 있습니다. Multi-repo 프로젝트에서 각 child workspace는 자기 저장소에서 commit·review하고, root 저장소는 수용한 정확한 child commit을 기록합니다. Root pointer는 매 local commit마다가 아니라 호환 가능한 child 작업이 준비된 뒤 통합합니다.
 
-## 외부 도구
+충돌을 발견하면 AI는 의미가 겹치는 지점을 설명하고 소유권 분리, contract 선합의, provider/consumer 순차 통합, 공유 경계 먼저 merge, 의도적 직렬화 중 현실적인 방법을 권합니다. Dirty tree, divergence, detached submodule, 공개되지 않은 child commit을 파괴적으로 자동 복구하지 않습니다.
 
-외부 도구는 필수 묶음이 아니라 선택 adapter입니다.
+## DBML·dbdiagram·외부 UI
 
-- GitHub에서 협업하면 GitHub Issues/Projects를 기본 추천합니다.
-- 기존 Jira·Linear가 있으면 단일 live task-status 원본으로 유지할 수 있지만, 실제 read/write에는 해당 connector 설치 또는 구현이 필요합니다.
-- local/offline task graph에는 Beads를 추천할 수 있지만 제품이 자동 설치하거나 함께 배포하지 않습니다.
-- Superpowers와 BMAD는 workflow를 보완하지만 project source of truth를 소유하지 않습니다.
-- Git DBML이 canonical이고 dbdiagram은 시각 협의와 격리된 동기화를 제공합니다.
-- 외부 UI는 `reference`, `seed`, `canonical` 중 권위를 지정합니다.
+Git에 추적되는 DBML이 원본입니다. dbdiagram은 격리된 시각화와 semantic diff 공간이며 remote 변경을 자동으로 원본에 올리지 않습니다. AI가 변경 이유를 묻고 entity 단위 차이를 보여준 뒤 수용한 변경을 contract와 migration에 연결합니다.
 
-## 현재 폴더 구조
+외부 mockup은 quarantine에 가져온 뒤 `reference`, `seed`, `canonical` 중 하나로 등록합니다. License, 출처, 크기, 내용을 검사하기 전에는 제품 파일을 바꾸지 않습니다.
 
-```text
-fullstack-orchestrator/
-├── cli/                      # cross-platform Go CLI와 test
-├── skills/                   # 12개 focused Agent Skill
-├── .codex-plugin/            # Codex Plugin manifest
-├── .agents/plugins/          # repository marketplace catalog
-├── hooks/                    # trusted read-only lifecycle 알림
-├── schemas/                  # project·operation·RC contract
-├── templates/project/        # framework-neutral 생성 harness
-├── examples/                 # starter·multi-repository fixture
-├── locales/                  # 영어·한국어 catalog
-├── docs/                     # guide·security·design·구현 계획
-└── scripts/                  # Plugin·release 검증
-```
+## 기본 mode와 strict release
 
-주요 문서:
+기본 mode는 저장소 identity, artifact fingerprint, TDD evidence, integration evidence, 해당되는 migration/rollback evidence, 정확한 candidate digest에 연결된 사용자 확인을 요구합니다. 공개 작업은 하지 않습니다.
 
-- [설계 문서 안내](./docs/design/index.md)
-- [Lifecycle과 gate](./docs/design/01-project-lifecycle.md)
-- [생성 프로젝트 구조](./docs/design/02-generated-project-structure.md)
-- [Context와 source of truth](./docs/design/03-context-and-source-of-truth.md)
-- [AI 행동·승인 정책](./docs/design/05-ai-action-and-approval-policy.md)
-- [외부 adapter](./docs/design/06-external-adapters.md)
-- [CLI와 result schema](./docs/design/07-checker-cli-and-result-schema.md)
-- [Plugin·Skill·설치·보안](./docs/design/08-plugin-skills-installation-security.md)
-- [Test·RC·production readiness](./docs/design/09-test-release-and-production-readiness.md)
-- [Source repository·배포 청사진](./docs/design/10-product-repository-and-distribution.md)
-- [전체 교차 검토 결과](./docs/design/11-cross-review-and-confirmation.md)
-- [실제 사용자 walkthrough](./docs/design/12-user-experience-walkthrough.md)
-- [Production 구현 계획](./docs/superpowers/plans/2026-07-16-fullstack-orchestrator-production.md)
+Strict release는 [`profiles/strict-release`](./profiles/strict-release/README.md)의 선택 profile입니다. SBOM·provenance·signature·조직 gate를 추가하지만 평범한 프로젝트 흐름에는 강제하지 않습니다. 공개 계정 생성, signing identity, 되돌릴 수 없는 배포, package channel 소유권은 자동 local 흐름 밖에 둡니다.
 
-## 빌드와 검증
+## Build와 test
 
-```sh
+Go 1.24 이상이 필요합니다.
+
+```bash
 cd cli
 go test ./...
-go vet ./...
-go build -trimpath -o ../bin/orchestrator ./cmd/orchestrator
-cd ..
-sh scripts/validate-plugin.sh
+go build -o ../bin/orchestrator ./cmd/orchestrator
 ```
 
-CLI는 project draft/init/adopt, context audit/refresh/pack, Git inspect/sync/worktree plan, 작업 선택·claim·충돌·handoff, change·contract impact, DBML/dbdiagram, UI import, integration plan, release verification, RC 생성·검증, 정확한 승인 기반 publish plan을 제공합니다. 변경 명령은 기본적으로 plan만 보여주고 명시적 apply 또는 승인 receipt가 있어야 실행합니다.
+Windows PowerShell에서는 다음과 같습니다.
 
-현재 작업용 command 이름은 `orchestrator`입니다. 공개 package를 하나라도 만들기 전에 제품명, repository, Plugin, package, command namespace를 조사하고 한 번 확정합니다.
+```powershell
+cd cli
+go test ./...
+go build -o ..\bin\orchestrator.exe .\cmd\orchestrator
+```
 
-## 배포 gate
+`orchestrator doctor --json`으로 local capability를 확인할 수 있습니다. 일반적으로 AI가 Skill을 통해 CLI를 사용하고, 직접 확인할 때는 `orchestrator --help`를 사용합니다.
 
-Repository에는 CI와 package metadata까지 포함합니다. 실제 공개는 다음을 모두 통과한 뒤 실행합니다.
+## Plugin 설치와 공유
 
-- source와 Issue: public GitHub repository
-- Codex Plugin: GitHub 기반 Codex marketplace
-- macOS CLI: signed GitHub artifact와 Homebrew tap
-- Windows CLI: signed MSI/ZIP과 WinGet
-- release evidence: checksum, signature, SBOM, provenance, compatibility matrix, rollback, support 문서
+Plugin은 선택 사항입니다. 생성된 저장소는 repo-local Skill과 Markdown fallback만으로도 이어갈 수 있습니다.
 
-첫 공개 release는 설계 gate를 모두 충족한 production `1.0.0`입니다. AI 기술 검증과 사용자 검증은 exact same RC digest를 사용합니다.
+Local 개발에서는 이 저장소를 marketplace source로 추가하고 desktop app을 재시작한 뒤 **Plugins**에서 설치합니다. Codex CLI에서는 marketplace 추가 후 `/plugins`를 엽니다.
 
-## 보안과 개인정보
+```bash
+codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
+```
 
-- 중앙 account나 server가 필요 없는 local-first
-- telemetry 기본 off
-- source code, 제품 명세, prompt, path, command log를 기본 전송하지 않음
-- secret을 tracked file, evidence, prompt, diagnostic bundle에 저장하지 않음
-- hidden pull·rebase·stash·reset·force push·package 설치·외부 write·production release 금지
-- untrusted repository, Hook, import, task comment, provider text를 instruction이 아닌 data로 취급
-- 공개 전 signed artifact, dependency review, security test, SBOM, provenance, 비공개 취약점 신고 경로 필수
+GitHub로 배포할 때는 저장소를 공개한 뒤 `codex plugin marketplace add owner/repo`를 사용할 수 있습니다. 팀 저장소의 `.agents/plugins/marketplace.json`으로 공유하거나 ChatGPT workspace 안에서 설치한 local Plugin을 공유할 수도 있습니다. 자세한 local 절차는 [시작 가이드](./docs/getting-started/ko.md)에 있습니다.
 
-## 만들지 않는 것
+## 문서
 
-이 제품은 다음이 아닙니다.
+- [시작 가이드](./docs/getting-started/ko.md)
+- [핵심 개념](./docs/concepts/ko.md)
+- [신규 프로젝트](./docs/guides/new-project-ko.md)
+- [기존 프로젝트](./docs/guides/existing-project-ko.md)
+- [Submodule과 협업](./docs/guides/submodules-ko.md)
+- [DBML과 dbdiagram](./docs/guides/dbdiagram-ko.md)
+- [Release](./docs/guides/release-ko.md)
+- [문제 해결](./docs/guides/troubleshooting-ko.md)
+- [집중된 설계](./docs/design/index.md)
 
-- 특정 framework용 application template
-- 범용 AI memory database
-- Git·task manager·Figma·dbdiagram 대체품
-- Superpowers·BMAD·Beads를 단순 설치하는 묶음
-- 사용자 승인 없이 production을 배포하는 autopilot
+## 하지 않는 것
 
-핵심 범위는 제품 의도, 구현 경계, 실제 repository 상태, 협업 작업, release evidence 사이의 관계를 보존하고 검증하는 것입니다.
+Framework generator나 범용 프로젝트 관리 플랫폼이 아닙니다. Superpowers·BMAD·Beads·GitHub Issues·Jira·Linear를 제품의 source of truth로 만드는 묶음도 아닙니다. 외부 도구는 실제 상태를 감지하거나 trade-off와 함께 제시하며, 사용자가 선택한 live task-status 원본 하나만 연결합니다.
 
-## License
+## 외부 공개 전 결정
 
-Apache License 2.0을 사용합니다. [LICENSE](./LICENSE)를 확인하세요.
+외부 결정 없이 local 구현과 검증은 끝낼 수 있습니다. 실제 공개에는 최종 제품 이름과 identifier, 공개 저장소/account, strict artifact를 약속할 경우 signing 소유권, 되돌릴 수 없는 release 실행 승인이 필요합니다.

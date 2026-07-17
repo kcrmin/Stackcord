@@ -1,9 +1,21 @@
-# 위협 모델
+# Threat model
 
-보호 대상은 source code, 제품 policy, contract, Git history, credential, provider data, 외부 import, release identity, 사용자 승인입니다. Trust boundary는 local machine, 신뢰하지 않은 repository, Git remote, task provider, dbdiagram, archive, CI, package registry, production target입니다.
+## 보호 대상
 
-주요 위협은 repository instruction injection, path/symlink/junction escape, 악성 archive와 decompression bomb, command/argument injection, secret 노출, credential이 든 remote URL, 숨은 Git 변경, stale·조작된 provider 상태, 외부 write 중복, contract 의미 충돌, submodule pointer 바꿔치기, 위험한 Hook, dependency compromise, 사용자 검증 뒤 RC 교체입니다.
+제품은 source와 history, 제품 의도, contract, database와 migration 의미, credential, 외부 UI 출처, 작업 ownership, submodule identity, test evidence, release identity를 보호합니다. 원본 대화는 저장하지 않으므로 보호 대상 repository asset이 아닙니다.
 
-대응은 신뢰된 가장 가까운 root 탐색, strict schema와 duplicate key 차단, canonical fingerprint, read-only 기본 진단, A–D 승인, shell을 쓰지 않는 allowlisted Git read, operation journal·idempotency receipt, import 격리·용량 제한, 환경 변수 secret·redaction, 정확한 submodule pin, semantic claim, capability negotiation, immutable RC digest, signed artifact, SBOM/provenance, 같은 RC 사용자 검증입니다.
+## Trust boundary
 
-남은 위험은 담당자와 근거가 있는 warning으로 기록합니다. Production 공개는 항상 정확한 승인이 필요하며 조직 정책으로 비활성화할 수 있습니다.
+Repository file, Git remote, child 저장소, archive, diagram, 선택 task provider, AI output, hook, CI, publication system은 서로 다른 trust boundary를 넘습니다. Cache summary보다 actual local state를 먼저 검사합니다. Credential은 environment 또는 OS store에 두고 plan·command argument·tracked evidence·diagnostic에 넣지 않습니다.
+
+## 기본 control
+
+가장 가까운 trusted root 발견, strict parsing과 stable ID, canonical fingerprint, read-only 진단과 보이는 plan, shell 없는 Git inspect, 정확한 submodule pin, semantic conflict claim, import quarantine와 limit, TDD·integration evidence, redaction, exact user validation에 연결된 candidate digest를 사용합니다. 파괴적인 Git 복구나 외부 write를 숨기지 않습니다.
+
+## Strict-release control
+
+조직은 SBOM·provenance·signature·supply-chain receipt·보호된 publication 검증을 켤 수 있습니다. 이 control은 약속한 release 보장을 강화하지만 기본 repository·충돌·test·exact-candidate 검증을 대체하지 않습니다.
+
+## 잔여 위험
+
+AI 판단은 불완전할 수 있고 외부 도구는 바뀌며 compromised repository에는 오해를 부르는 instruction이 있을 수 있고 semantic claim은 제품 의미가 옳다는 것을 증명하지 못합니다. Trusted instruction을 review 가능하게 유지하고 최신 외부 도구 문서를 확인하며 import 내용을 검토하고 data 변경 backup을 보존하며 실제 환경에서 exact candidate를 사람이 검증해야 합니다.

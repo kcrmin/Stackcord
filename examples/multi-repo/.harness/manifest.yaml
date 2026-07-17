@@ -1,3 +1,8 @@
 schema_version: 1
 id: project.multi-repo-example
 locale: en
+generated_by: orchestrator
+paths:
+  specs: specs
+  contracts: contracts
+  docs: docs

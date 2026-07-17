@@ -1,9 +1,21 @@
-# Production 출시
+# Production 준비와 release
 
-Production hardening에는 안정적인 required check, 자동화된 critical verification, macOS/Windows journey, Plugin 없이 clone 이어가기, contract/migration rollback, 보안·license 검토, SBOM, provenance, signature, observability, backup/restore, 운영, support, 담당자가 있는 warning이 필요합니다.
+## 계속 강화
 
-`release prepare`는 정확한 root/workspace commit과 artifact/evidence digest를 하나의 manifest digest로 묶습니다. 사용자가 실제 환경에서 같은 RC를 실행하고 영수증에 그 digest를 기록합니다. Code·contract·docs·artifact·signature·evidence·설정 identity 중 하나라도 바뀌면 새 후보를 만듭니다.
+Production 준비는 마지막 testing 단계가 아닙니다. 각 변경은 해당되는 TDD·contract·accessibility·security·observability·실패·migration·rollback·integration evidence를 가집니다. Candidate 준비 전 AI가 제품 전체 coverage, open risk, Git reachability, clean workspace, submodule pointer, 재현 가능한 build input을 검토합니다.
 
-`release publish`는 항상 승인 등급 D이며 signed tag, 재현 build, release artifact, marketplace, Homebrew, WinGet, install smoke test, notes, rollback, support 등 모든 공개 side effect를 먼저 계획합니다. Clean install에서 checksum과 signature를 확인하기 전에는 출시가 끝난 것이 아닙니다.
+## Candidate 하나 준비
 
-보호된 tag의 release workflow에는 `release/approved-rc.json`, `release/user-validation-receipt.json`, `release/approval-receipt.json` 세 tracked 입력이 필요합니다. 공개 artifact를 staging하기 전에 RC manifest digest를 다시 계산하고 사용자 검증 receipt의 hash와 exact objective·repository·production target·operation ID·만료·Class D 확인을 대조합니다. 이 파일에는 identity와 compact evidence만 두며 secret이나 raw log를 넣지 않습니다.
+기본 `release prepare`는 정확한 root/workspace commit, artifact digest, 제품/docs/contract fingerprint, TDD evidence, integration evidence, 조건부 migration/rollback evidence를 결정적으로 묶습니다. 준비는 candidate를 쓰지만 공개 side effect를 만들지 않습니다. 필수 evidence가 없으면 중단합니다.
+
+## 정확한 candidate 검증
+
+기술 gate가 candidate를 fresh current input과 먼저 비교합니다. 그 다음 사용자가 실제 target 환경에서 같은 candidate를 실행하고 동작을 확인합니다. 작은 validation record는 candidate digest와 evidence를 지정하며 secret이나 대화 원문을 담지 않습니다. `release verify`는 기술 identity와 사용자 검증이 바뀌지 않은 정확히 같은 digest를 가리킬 때만 통과합니다.
+
+## Release profile 선택
+
+평범한 프로젝트는 기본 mode를 사용합니다. Strict release는 `profiles/strict-release/`에서 SBOM·provenance·signature·supply-chain evidence·보호된 publication check·조직용 control을 추가합니다. 팀이 그 보장을 약속하거나 요구할 때만 켭니다.
+
+## Core verifier 밖에서 공개
+
+공개 저장소 생성, tag/artifact 게시, package channel, signing identity, 배포 credential, 되돌릴 수 없는 production 작업에는 명시적인 사용자·조직 권한이 필요합니다. Core CLI는 의도적으로 검증된 candidate에서 멈춥니다. 조직은 모든 외부 side effect와 rollback을 검토한 뒤 선택한 CI/CD 또는 strict profile을 연결할 수 있습니다.

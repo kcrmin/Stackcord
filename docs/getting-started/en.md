@@ -1,51 +1,41 @@
 # Getting started
 
-The normal interface is a conversation with an AI: “Start a new service,” “Continue this clone,” or “What should I do next?” The Plugin routes that intent; the CLI supplies deterministic evidence. Direct CLI use is also supported.
+## Prerequisites
 
-## Build the CLI locally
+Use Git for collaboration and Go 1.24 or newer to build the CLI. Git is required when a release candidate must be traceable. A Plugin-capable AI client improves discovery, but the generated repository also includes a standalone Skill and Markdown fallback.
 
-Requirements: Git 2.40+ and Go 1.26+. No framework, database, cloud, Node.js, daemon, account, or telemetry is required.
+## Build the CLI
 
-macOS/Linux shell:
+From the product repository:
 
-```sh
+```bash
 cd cli
 go test ./...
-go build -trimpath -o ../bin/orchestrator ./cmd/orchestrator
-../bin/orchestrator doctor --json
+go build -o ../bin/orchestrator ./cmd/orchestrator
 ```
 
-Windows PowerShell:
+Windows PowerShell uses `go build -o ..\bin\orchestrator.exe .\cmd\orchestrator`. Put the resulting binary on `PATH` or tell the AI its absolute path. Run `orchestrator doctor --json` to inspect Git and optional capabilities.
 
-```powershell
-Set-Location cli
-go test ./...
-go build -trimpath -o ..\bin\orchestrator.exe .\cmd\orchestrator
-..\bin\orchestrator.exe doctor --json
+## Install the optional Plugin
+
+Add this repository as a local marketplace, restart the ChatGPT desktop app, and install it from **Plugins**:
+
+```bash
+codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
 ```
 
-## Install the Plugin from a GitHub marketplace
+In Codex CLI, open `/plugins` after adding the marketplace. For a GitHub-hosted marketplace use `codex plugin marketplace add owner/repo`. Plugin installation is optional; generated projects retain repo-local behavior.
 
-After this repository has a public owner/repository identity:
+## Start by talking to the AI
 
-```sh
-codex plugin marketplace add OWNER/REPOSITORY --ref main
-codex plugin add fullstack-orchestrator@fullstack-orchestrator
-```
+Say “Start a new service with me” in an empty parent directory or “Adopt this existing project without overwriting my files” in an existing repository. The AI inspects the filesystem and Git first, loads the relevant Skill, and asks one material question at a time. It saves normalized checkpoints as discovery continues.
 
-For a local checkout, add the repository root instead of `OWNER/REPOSITORY`. Restart the ChatGPT desktop app and begin a new task after installation or update.
+After initialization, use ordinary requests such as “What should I do next?”, “Build this feature”, “Check the contract and database impact”, or “Prepare a production candidate”. You should not need to manage internal IDs or command arguments.
 
-## First conversation
+## Verify the first result
 
-Say: “Start a new full-stack service.” The AI checkpoints normalized discovery in `.harness-drafts/`, asks one material question at a time, and creates the root only after the service summary and repository name are approved. It does not choose a framework in advance.
+Confirm that `README.md`, `AGENTS.md`, `.agents/skills/use-project-harness/`, `.harness/`, `specs/`, `contracts/`, and `docs/` exist. Ask the AI to run a context audit and Git inspection. The audit must use repository files as evidence and must report unknown or stale items instead of inventing answers.
 
-In an existing clone, say: “Continue this project.” The AI runs a read-only context audit, reports dirty/diverged/submodule state, active ownership, stale contracts, and one safe next action. It never hides pull, rebase, stash, reset, or pointer movement.
+## Next guides
 
-## Verify this repository
-
-```sh
-cd cli && go test ./... && go vet ./...
-cd .. && sh scripts/validate-plugin.sh
-```
-
-Public publishing still requires the identity freeze, native macOS/Windows CI, signed RC artifacts, and exact user confirmation of the same RC digest.
+Read [Core concepts](../concepts/en.md), then choose [New project](../guides/new-project-en.md) or [Existing project](../guides/existing-project-en.md). Use [Troubleshooting](../guides/troubleshooting-en.md) when clone, context, Git, or optional-tool state is unclear.

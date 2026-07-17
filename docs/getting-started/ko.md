@@ -1,51 +1,41 @@
-# 시작하기
+# 시작 가이드
 
-일반 사용자는 AI에게 “새 서비스를 시작해”, “이 clone을 이어서 해”, “다음에 뭘 해야 해?”라고 말하면 됩니다. Plugin이 의도를 적절한 Skill로 연결하고 CLI가 결정적인 근거를 제공합니다. CLI를 직접 사용할 수도 있습니다.
+## 준비 사항
 
-## CLI 로컬 빌드
+협업에는 Git을 사용하고 CLI build에는 Go 1.24 이상을 사용합니다. 추적 가능한 release candidate에는 Git이 필수입니다. Plugin을 지원하는 AI client가 서비스 발견에 편리하지만 생성된 저장소에는 독립적인 Skill과 Markdown fallback도 들어갑니다.
 
-Git 2.40+와 Go 1.26+가 필요합니다. 특정 프레임워크·DB·클라우드·Node.js·daemon·계정·telemetry는 필요하지 않습니다.
+## CLI build
 
-macOS/Linux shell:
+제품 저장소에서 실행합니다.
 
-```sh
+```bash
 cd cli
 go test ./...
-go build -trimpath -o ../bin/orchestrator ./cmd/orchestrator
-../bin/orchestrator doctor --json
+go build -o ../bin/orchestrator ./cmd/orchestrator
 ```
 
-Windows PowerShell:
+Windows PowerShell에서는 `go build -o ..\bin\orchestrator.exe .\cmd\orchestrator`를 사용합니다. 생성된 binary를 `PATH`에 두거나 AI에게 절대 경로를 알려줍니다. `orchestrator doctor --json`으로 Git과 선택 capability를 진단할 수 있습니다.
 
-```powershell
-Set-Location cli
-go test ./...
-go build -trimpath -o ..\bin\orchestrator.exe .\cmd\orchestrator
-..\bin\orchestrator.exe doctor --json
+## 선택적 Plugin 설치
+
+이 저장소를 local marketplace로 추가하고 ChatGPT desktop app을 재시작한 뒤 **Plugins**에서 설치합니다.
+
+```bash
+codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
 ```
 
-## GitHub marketplace에서 Plugin 설치
+Codex CLI에서는 marketplace 추가 뒤 `/plugins`를 엽니다. GitHub에 둔 marketplace는 `codex plugin marketplace add owner/repo`를 사용합니다. Plugin 설치는 선택이며 생성된 프로젝트의 repo-local 동작은 유지됩니다.
 
-공개 owner/repository 정체성이 확정된 뒤 다음처럼 설치합니다.
+## AI와 대화로 시작
 
-```sh
-codex plugin marketplace add OWNER/REPOSITORY --ref main
-codex plugin add fullstack-orchestrator@fullstack-orchestrator
-```
+빈 parent directory에서는 “새 서비스를 같이 시작해줘”, 기존 저장소에서는 “기존 파일을 덮어쓰지 말고 이 프로젝트에 도입해줘”라고 말합니다. AI는 먼저 filesystem과 Git을 확인하고 알맞은 Skill을 읽은 뒤 결과를 바꾸는 질문을 하나씩 묻습니다. 발견이 이어지는 동안 정규화 checkpoint를 계속 저장합니다.
 
-로컬 checkout을 시험할 때는 `OWNER/REPOSITORY` 대신 저장소 루트 경로를 등록합니다. 설치·업데이트 후 ChatGPT desktop app을 다시 시작하고 새 task에서 확인합니다.
+초기화 후에는 “지금 뭐 해야 해?”, “이 기능 만들어줘”, “Contract와 DB 영향을 확인해줘”, “Production candidate 준비해줘”처럼 요청합니다. 내부 ID나 command argument를 사용자가 관리할 필요가 없어야 합니다.
 
-## 첫 대화
+## 첫 결과 확인
 
-“새 full-stack 서비스를 시작해”라고 말하면 AI는 `.harness-drafts/`에 정규화된 발견 결과를 계속 저장하고 중요한 질문을 한 번에 하나씩 묻습니다. 서비스 요약과 저장소 이름을 승인하기 전에는 정식 root를 만들지 않으며 기술을 미리 강제하지 않습니다.
+`README.md`, `AGENTS.md`, `.agents/skills/use-project-harness/`, `.harness/`, `specs/`, `contracts/`, `docs/`가 있는지 확인합니다. AI에게 context audit과 Git inspect를 요청합니다. Audit은 저장소 파일을 근거로 사용하고 unknown이나 stale을 지어내지 말고 그대로 알려야 합니다.
 
-기존 clone에서는 “이 프로젝트 이어서 해”라고 말합니다. AI는 read-only context audit으로 dirty/diverged/submodule 상태, 현재 담당 범위, stale contract, 다음 안전 행동을 알려줍니다. pull·rebase·stash·reset·pointer 이동을 숨겨서 실행하지 않습니다.
+## 다음 가이드
 
-## 이 저장소 검증
-
-```sh
-cd cli && go test ./... && go vet ./...
-cd .. && sh scripts/validate-plugin.sh
-```
-
-실제 공개 출시는 이름 확정, macOS/Windows native CI, 서명된 RC artifact, 같은 RC digest에 대한 사용자 확인이 끝나야 합니다.
+[핵심 개념](../concepts/ko.md)을 읽고 [신규 프로젝트](../guides/new-project-ko.md) 또는 [기존 프로젝트](../guides/existing-project-ko.md)로 갑니다. Clone·context·Git·선택 도구 상태가 불명확하면 [문제 해결](../guides/troubleshooting-ko.md)을 사용합니다.

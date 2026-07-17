@@ -1,11 +1,33 @@
-# Concepts
+# Core concepts
 
-The harness is the whole durable collaboration structure, not only `.harness/`: `specs/` owns product meaning, `contracts/` owns cross-component obligations, `.harness/` owns coordination and evidence, and `docs/` owns guides and runbooks.
+## Conversation and verification
 
-A workspace is an implementation, validation, ownership, and contract boundary. Its kind can be root, directory, submodule, or external. A child is simply a nested agent or process; it is not a project structure concept. Submodules are recommended when a newly identified boundary genuinely needs a separate repository and exact pinned commit.
+Skills interpret natural-language goals, discover product meaning, choose what to ask, and explain trade-offs. The CLI does not replace that judgment; it verifies observable state and reproducible identity. It is read-only or plan-first unless an explicit, visible apply step is requested.
 
-Stable IDs such as `policy.account.recovery.rate-limit` survive file moves. A ticket number and a branch description are execution identifiers, not product meaning. Claims declare who intends to change paths, policies, contracts, migrations, UI flows, dependencies, and pointers; they are not distributed locks.
+## Sources of truth
 
-Lifecycle stages are dependency gates, not waterfall deadlines. Product-wide intent and UI coverage are established first, but integrated in small role/domain/journey changes. Shared interfaces and failure semantics precede parallel implementations; TDD then drives vertical slices.
+Actual Git, submodule, worktree, and filesystem state outrank cached summaries. `specs/` owns product intent and policy. `contracts/` owns cross-component behavior and failures. Git-tracked DBML owns data structure. `.harness/` indexes those sources and records compact coordination state. One selected task provider owns live task status; Git-local is the default, not a mandate.
 
-The Plugin packages Skills and optional Hooks. The repo-local Skill preserves continuation without the Plugin. The CLI performs schema, Git, operation, conflict, adapter, and release checks. Hooks only remind trusted sessions to audit context; they do not write or call external systems.
+## Identity and staleness
+
+Product facts receive stable IDs so references survive file movement and rewriting. Fingerprints bind indexes, change plans, evidence, and release candidates to exact content. When a dependency fingerprint changes, downstream state is stale until refreshed or deliberately accepted; timestamps alone are not trusted.
+
+## Workspaces and children
+
+A workspace is a repository or separately testable component represented in the root harness. A child workspace is commonly a Git submodule with its own history, branch, tests, and release responsibility. The root records the exact accepted child commit. A frontend and backend do not need to be separate merely because of their names; split them when independent ownership or lifecycle justifies it.
+
+## Conflict model
+
+Filesystem overlap is only one conflict type. Claims also reserve policies, scenarios, contracts, DB entities, migration slots, UI flows, dependency majors, stable IDs, and root pointers. A detected conflict blocks silent parallel editing and creates a discussion about ownership, boundaries, or sequence; it does not perform an automatic reset, stash, or rebase.
+
+## Iterative delivery and TDD
+
+The team establishes whole-product meaning and UI coverage, then delivers role/domain/journey slices continuously. Shared interfaces, contracts, and schemas are agreed early when they reduce parallel ambiguity. Behavior, bugs, contract changes, migrations, UI interactions, and integration rules start with a failing test or reproducible failing check and end with passing evidence.
+
+## Context recovery
+
+After clone, session restart, or context compression, the AI reads `AGENTS.md` and `.harness/entry.md`, audits canonical files, checks actual Git and workspace state, and recommends one safe next action. It must not ask questions already answered by valid current sources. If the Plugin is absent, `.agents/skills/use-project-harness/` provides the same recovery entry with reduced convenience.
+
+## Release identity
+
+Core release preparation binds source commits, artifact digests, product/docs/contract fingerprints, TDD evidence, integration evidence, and applicable migration evidence into one candidate digest. User validation is collected after the candidate exists and must name that exact digest. Strict release adds supply-chain evidence and protected publication tooling as an opt-in profile.
