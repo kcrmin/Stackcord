@@ -40,7 +40,7 @@ jobs:
           EXPECTED_RC_DIGEST: ${{ inputs.rc_digest }}
           APPROVAL_OPERATION_ID: ${{ inputs.approval_operation_id }}
           GITHUB_REF_VALUE: ${{ github.ref }}
-        run: python3 scripts/release/verify_publish_guard.py
+        run: python3 profiles/strict-release/scripts/verify_publish_guard.py
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: 1.26.5
@@ -62,8 +62,8 @@ jobs:
           VERSION: ${{ inputs.tag }}
         run: |
           cosign verify-blob --certificate-identity-regexp 'https://github.com/.+/.+/.github/workflows/release.yml@refs/tags/.+' --certificate-oidc-issuer https://token.actions.githubusercontent.com --bundle dist/checksums.txt.sigstore.json dist/checksums.txt
-          python3 scripts/release/generate_packages.py --root . --output dist/package-manifests --version "${VERSION#v}" --checksums dist/checksums.txt
-          python3 scripts/release/verify_staged_release.py dist
+          python3 profiles/strict-release/scripts/generate_packages.py --root . --output dist/package-manifests --version "${VERSION#v}" --checksums dist/checksums.txt
+          python3 profiles/strict-release/scripts/verify_staged_release.py dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: approved-release-staging

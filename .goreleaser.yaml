@@ -4,6 +4,7 @@ project_name: orchestrator
 before:
   hooks:
     - sh -c "cd cli && go mod verify && go test ./..."
+    - python3 -m unittest discover -s profiles/strict-release/scripts -p "*_test.py"
 
 builds:
   - id: orchestrator

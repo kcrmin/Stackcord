@@ -35,10 +35,11 @@ def generate(root: pathlib.Path, output: pathlib.Path, version: str, checksum_te
 
     if output.exists():
         shutil.rmtree(output)
-    for source in sorted((root / "packaging").rglob("*")):
+    templates = root / "profiles" / "strict-release" / "packaging"
+    for source in sorted(templates.rglob("*")):
         if not source.is_file() or "windows" in source.parts:
             continue
-        relative = source.relative_to(root / "packaging")
+        relative = source.relative_to(templates)
         target = output / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         text = source.read_text(encoding="utf-8")

@@ -14,9 +14,14 @@ def validate(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
     required = [
         ".github/workflows/ci.yml", ".github/workflows/security.yml", ".github/workflows/release.yml",
-        ".goreleaser.yaml", "packaging/homebrew/orchestrator.rb",
-        "packaging/winget/FullstackOrchestrator.Orchestrator.installer.yaml",
-        "packaging/windows/Product.wxs", "SECURITY.md", "SUPPORT.md", "CONTRIBUTING.md", "GOVERNANCE.md", "LICENSE",
+        ".goreleaser.yaml", "profiles/strict-release/README.md",
+        "profiles/strict-release/packaging/homebrew/orchestrator.rb",
+        "profiles/strict-release/packaging/winget/FullstackOrchestrator.Orchestrator.installer.yaml",
+        "profiles/strict-release/packaging/windows/Product.wxs",
+        "profiles/strict-release/scripts/generate_packages.py",
+        "profiles/strict-release/scripts/verify_publish_guard.py",
+        "profiles/strict-release/scripts/verify_staged_release.py",
+        "SECURITY.md", "SUPPORT.md", "CONTRIBUTING.md", "GOVERNANCE.md", "LICENSE",
     ]
     for relative in required:
         if not (root / relative).is_file():
@@ -45,7 +50,7 @@ def validate(root: pathlib.Path) -> list[str]:
             errors.append(f"security workflow missing {evidence}")
 
     release = (root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "release.yml").exists() else ""
-    for guard in ("workflow_dispatch", "environment: production", "rc_digest", "approval_operation_id", "--skip=publish", "verify_publish_guard.py", "cosign verify-blob", "gh release create"):
+    for guard in ("workflow_dispatch", "environment: production", "rc_digest", "approval_operation_id", "--skip=publish", "profiles/strict-release/scripts/verify_publish_guard.py", "cosign verify-blob", "gh release create"):
         if guard not in release:
             errors.append(f"release workflow missing fail-closed guard: {guard}")
     if "pull_request" in release.split("jobs:", 1)[0]:
@@ -56,7 +61,8 @@ def validate(root: pathlib.Path) -> list[str]:
         if token not in config:
             errors.append(f"GoReleaser configuration missing {token}")
 
-    package_text = "\n".join(path.read_text(encoding="utf-8") for path in (root / "packaging").rglob("*") if path.is_file()) if (root / "packaging").exists() else ""
+    package_root = root / "profiles" / "strict-release" / "packaging"
+    package_text = "\n".join(path.read_text(encoding="utf-8") for path in package_root.rglob("*") if path.is_file()) if package_root.exists() else ""
     for token in ("DARWIN_ARM64_SHA256", "DARWIN_AMD64_SHA256", "WINDOWS_ARM64_SHA256", "WINDOWS_AMD64_SHA256"):
         if token not in package_text:
             errors.append(f"package checksum token missing: {token}")
