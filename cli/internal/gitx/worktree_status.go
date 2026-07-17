@@ -58,7 +58,7 @@ func inspectWorktrees(ctx context.Context, git runner, root string) ([]Worktree,
 	}
 	for _, worktree := range result {
 		if worktree.Path == "" || worktree.Head == "" {
-			return nil, fmt.Errorf("Git worktree record is incomplete")
+			return nil, fmt.Errorf("git worktree record is incomplete")
 		}
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Path < result[j].Path })
