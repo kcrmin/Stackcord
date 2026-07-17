@@ -1,4 +1,0 @@
-interface:
-  display_name: "find-next-work"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $find-next-work to help with this project."

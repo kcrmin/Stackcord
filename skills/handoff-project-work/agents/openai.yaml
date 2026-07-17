@@ -1,4 +1,0 @@
-interface:
-  display_name: "handoff-project-work"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $handoff-project-work to help with this project."

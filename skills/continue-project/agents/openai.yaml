@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continue Project"
+  short_description: "Resume safely from repository truth and live state"
+  default_prompt: "Use $continue-project to reconstruct this project's current state and recommend the next safe work."

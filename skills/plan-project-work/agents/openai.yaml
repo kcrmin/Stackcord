@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Project Work"
+  short_description: "Plan conflict-aware TDD work across repositories"
+  default_prompt: "Use $plan-project-work to plan and safely start this change."

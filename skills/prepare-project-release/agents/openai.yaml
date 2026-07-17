@@ -1,4 +1,0 @@
-interface:
-  display_name: "prepare-project-release"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $prepare-project-release to help with this project."

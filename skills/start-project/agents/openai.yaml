@@ -1,4 +1,4 @@
 interface:
-  display_name: "start-project"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $start-project to help with this project."
+  display_name: "Start Project"
+  short_description: "Discover or adopt a durable full-stack project"
+  default_prompt: "Use $start-project to define this service and create or adopt its project safely."

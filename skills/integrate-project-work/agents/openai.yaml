@@ -1,4 +1,0 @@
-interface:
-  display_name: "integrate-project-work"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $integrate-project-work to help with this project."

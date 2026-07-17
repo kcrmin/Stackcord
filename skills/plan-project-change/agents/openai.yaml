@@ -1,4 +1,0 @@
-interface:
-  display_name: "plan-project-change"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $plan-project-change to help with this project."

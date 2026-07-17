@@ -1,4 +1,0 @@
-interface:
-  display_name: "manage-contract-change"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $manage-contract-change to help with this project."

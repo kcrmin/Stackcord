@@ -1,4 +1,0 @@
-interface:
-  display_name: "start-project-work"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $start-project-work to help with this project."

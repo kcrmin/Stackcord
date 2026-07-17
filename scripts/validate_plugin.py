@@ -46,7 +46,7 @@ def validate(root: pathlib.Path) -> list[str]:
             fail(errors, f"manifest interface missing {field}")
 
     expected = json.loads((root / "testdata" / "plugin" / "behavior.json").read_text(encoding="utf-8"))
-    expected_names = sorted(item["skill"] for item in expected)
+    expected_names = sorted({item["skill"] for item in expected})
     skill_dirs = sorted(path for path in (root / "skills").iterdir() if path.is_dir())
     actual_names = sorted(path.name for path in skill_dirs)
     if actual_names != expected_names:

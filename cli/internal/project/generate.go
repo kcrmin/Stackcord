@@ -77,21 +77,27 @@ func mergeManaged(existing, generated string) string {
 
 const repoSkill = `---
 name: use-project-harness
-description: Use when starting, resuming, planning, changing, integrating, or releasing work in this repository; refreshes durable project context before action.
+description: Use when starting, continuing, changing, coordinating, recovering, or releasing work in this repository.
 ---
 
 # Use Project Harness
 
-Read ` + "`.harness/entry.md`" + `, inspect actual Git/workspace state, and run ` + "`orchestrator context audit --json`" + ` when available. Read only the related specs, contracts, work claim, and evidence. Never treat chat memory, task titles, or generated summaries as product truth. If the CLI is unavailable, follow ` + "`references/fallback.md`" + `.
+Read ` + "`.harness/entry.md`" + `, inspect actual Git/workspace/submodule state, and run ` + "`orchestrator context audit --json`" + ` when available. Treat ` + "`specs/`" + ` as product meaning and ` + "`contracts/`" + ` as behavioral obligations. Read only the sources related to the current request.
+
+Ask one material product question at a time; infer facts from files and Git. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, check path and semantic scope, set ownership and merge order, and use conventional Git names without AI markers.
+
+Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, audit again before mutation. If the CLI is unavailable, follow ` + "`references/fallback.md`" + ` and state reduced verification.
 `
 
-const fallbackReference = `# Context recovery fallback
+const fallbackReference = `# Plugin-less and CLI-less fallback
 
-1. Read ` + "`AGENTS.md`" + ` and ` + "`.harness/entry.md`" + `.
-2. Inspect the current root, branch, dirty state, remotes, worktrees, and exact submodule pointers without mutation.
-3. Read the current branch record and claim, then only referenced specs and contracts.
-4. Compare source fingerprints to generated checkpoints; label stale and unknown state.
-5. State the current gate, blockers, evidence, and one safe next action before mutation.
+1. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, ` + "`.harness/manifest.yaml`" + `, and ` + "`.harness/profile.yaml`" + `.
+2. Inspect the current root, branch, dirty state, upstream, worktrees, workspace commits, and exact submodule pointers without mutation.
+3. Read related approved ` + "`specs/`" + `, ` + "`contracts/`" + `, the selected task source, active claim, and available test evidence.
+4. Separate facts, stale derivations, unknown state, blockers, and active ownership. State one safe next action.
+5. Before changing work, define affected product meaning, behavioral interface, failing test, path/semantic ownership, and integration order.
+
+Without the CLI, fingerprint, divergence, remote-claim, semantic-conflict, archive-safety, and release-identity verification has reduced coverage. Do not claim those checks passed.
 `
 
 const harnessEntry = `# Project harness entry
@@ -99,7 +105,7 @@ const harnessEntry = `# Project harness entry
 1. Find the nearest ` + "`.harness/manifest.yaml`" + ` and establish repository trust.
 2. Refresh filesystem, Git, workspace, submodule, work, spec, contract, and evidence state read-only.
 3. Treat ` + "`specs/`" + ` as product meaning, ` + "`contracts/`" + ` as obligations, and ` + "`.harness/`" + ` as coordination state.
-4. Before implementation, identify scenario, contract, failure behavior, TDD test, conflict scope, and merge order.
+4. Before implementation, identify the product slice, scenario, contract, failure behavior, failing TDD test, conflict scope, ownership, and merge order.
 5. Never hide pull, rebase, stash, reset, clean, force-push, external write, install, or release actions.
 6. If context was compacted or appears forgotten, run a full context audit before mutation.
 `

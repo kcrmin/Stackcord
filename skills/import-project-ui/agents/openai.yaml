@@ -1,4 +1,0 @@
-interface:
-  display_name: "import-project-ui"
-  short_description: "Coordinate durable full-stack project work"
-  default_prompt: "Use $import-project-ui to help with this project."

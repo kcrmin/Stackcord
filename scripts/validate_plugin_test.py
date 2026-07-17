@@ -18,8 +18,26 @@ class PluginContractTest(unittest.TestCase):
             self.assertTrue(skill.is_file(), case["skill"])
             text = skill.read_text()
             self.assertIn(f"name: {case['skill']}", text)
-            self.assertIn(case["command"], text)
+            self.assertIn(case["domain_command"], text)
             self.assertIn("context audit", text)
+            self.assertEqual("context audit", case["first_command"])
+            self.assertLessEqual(
+                text.index(case["first_command"]),
+                text.index(case["domain_command"]),
+            )
+
+    def test_behavior_surface_has_five_non_overlapping_skills(self):
+        cases = json.loads((ROOT / "testdata" / "plugin" / "behavior.json").read_text())
+        self.assertEqual(
+            {
+                "start-project",
+                "continue-project",
+                "plan-project-work",
+                "coordinate-project-work",
+                "recover-and-release-project",
+            },
+            {case["skill"] for case in cases},
+        )
 
 
 if __name__ == "__main__":

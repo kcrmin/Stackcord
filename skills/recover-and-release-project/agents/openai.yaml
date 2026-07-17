@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recover and Release Project"
+  short_description: "Recover context and verify one exact release candidate"
+  default_prompt: "Use $recover-and-release-project to restore context and prepare or verify this release."

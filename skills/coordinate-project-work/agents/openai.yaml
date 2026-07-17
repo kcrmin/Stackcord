@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coordinate Project Work"
+  short_description: "Coordinate contracts, data, UI, handoff, integration"
+  default_prompt: "Use $coordinate-project-work to coordinate this cross-boundary project change."
