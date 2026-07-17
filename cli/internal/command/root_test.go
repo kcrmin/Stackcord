@@ -116,7 +116,7 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		"work next", "work conflict", "work start", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",
 		"db diff", "db diagram", "ui import", "integrate plan",
-		"verify release", "rc create", "rc verify", "release prepare", "release publish",
+		"release prepare", "release verify",
 	}
 	for _, path := range paths {
 		found, _, err := cmd.Find(strings.Fields(path))
@@ -127,9 +127,21 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 
 func TestCommandSurfaceOmitsRemovedPlatformCommands(t *testing.T) {
 	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
-	for _, removed := range []string{"pack"} {
-		for _, child := range mustFindCommand(t, cmd, "context").Commands() {
-			require.NotEqual(t, removed, child.Name())
+	for _, removed := range []struct {
+		parent string
+		name   string
+	}{
+		{parent: "context", name: "pack"},
+		{name: "verify"},
+		{name: "rc"},
+		{parent: "release", name: "publish"},
+	} {
+		parent := cmd
+		if removed.parent != "" {
+			parent = mustFindCommand(t, cmd, removed.parent)
+		}
+		for _, child := range parent.Commands() {
+			require.NotEqual(t, removed.name, child.Name())
 		}
 	}
 }

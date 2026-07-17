@@ -1,59 +1,144 @@
 package release
 
-import "fullstack-orchestrator/cli/internal/domain"
+import (
+	"regexp"
+	"time"
 
-// Warning is publishable only when ownership and rationale are explicit.
-type Warning struct {
-	Code      string `json:"code"`
-	Owner     string `json:"owner"`
-	Rationale string `json:"rationale"`
+	"fullstack-orchestrator/cli/internal/domain"
+)
+
+// Profile controls optional release checks without weakening core verification.
+type Profile string
+
+const (
+	ProfileCore          Profile = "core"
+	ProfileStrictRelease Profile = "strict-release"
+)
+
+// StrictEvidence is required only for teams that enable the strict release profile.
+type StrictEvidence struct {
+	SBOMDigest          string            `json:"sbom_digest"`
+	ProvenanceDigest    string            `json:"provenance_digest"`
+	SignatureDigests    map[string]string `json:"signature_digests"`
+	SupplyChainReceipts map[string]string `json:"supply_chain_receipts"`
 }
 
-// Gates are production-critical outcomes, not check-box intentions.
-type Gates struct {
-	RequiredChecksStable      bool      `json:"required_checks_stable"`
-	CriticalChecksAutomated   bool      `json:"critical_checks_automated"`
-	ArtifactsSigned           bool      `json:"artifacts_signed"`
-	MigrationRollbackVerified bool      `json:"migration_rollback_verified"`
-	HooksTrustedReadOnly      bool      `json:"hooks_trusted_read_only"`
-	MacOSJourneyVerified      bool      `json:"macos_journey_verified"`
-	WindowsJourneyVerified    bool      `json:"windows_journey_verified"`
-	PluginlessContinuation    bool      `json:"pluginless_continuation"`
-	UserValidationMatches     bool      `json:"user_validation_matches"`
-	Warnings                  []Warning `json:"warnings"`
+// UserValidation binds explicit user confirmation to one immutable candidate.
+type UserValidation struct {
+	SchemaVersion   int    `json:"schema_version"`
+	CandidateDigest string `json:"candidate_digest"`
+	Confirmed       bool   `json:"confirmed"`
+	EvidenceDigest  string `json:"evidence_digest"`
+	VerifiedAt      string `json:"verified_at"`
 }
 
-// Verify aggregates production blockers and owned warnings.
-func Verify(gates Gates) domain.Result {
-	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "verify.release", OperationID: "release-gates", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "All production release gates passed."}
+var sha256Digest = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+func validateInput(input Input) []domain.Item {
 	checks := []struct {
-		ok            bool
-		code, message string
+		name string
+		ok   bool
 	}{
-		{gates.RequiredChecksStable, "release.required-checks-unstable", "Required checks are failing or flaky."},
-		{gates.CriticalChecksAutomated, "release.critical-check-manual", "A production-critical verification is manual-only."},
-		{gates.ArtifactsSigned, "release.artifact-unsigned", "Every published artifact must be signed."},
-		{gates.MigrationRollbackVerified, "release.rollback-unverified", "Migration rollback has not been verified."},
-		{gates.HooksTrustedReadOnly, "release.hook-unsafe", "Plugin Hooks are not proven trusted and read-only."},
-		{gates.MacOSJourneyVerified, "release.macos-unverified", "The macOS user journey has not passed."},
-		{gates.WindowsJourneyVerified, "release.windows-unverified", "The Windows user journey has not passed."},
-		{gates.PluginlessContinuation, "release.pluginless-unverified", "Clone continuation without the Plugin has not passed."},
-		{gates.UserValidationMatches, "release.user-validation-mismatch", "User validation does not reference the same RC digest."},
+		{"profile", input.Profile == ProfileCore || input.Profile == ProfileStrictRelease},
+		{"version", input.Version != ""},
+		{"root_commit", input.RootCommit != ""},
+		{"workspace_commits", nonEmptyMap(input.WorkspaceCommits)},
+		{"artifact_digests", digestMap(input.ArtifactDigests)},
+		{"product_fingerprint", isDigest(input.ProductFingerprint)},
+		{"docs_fingerprint", isDigest(input.DocsFingerprint)},
+		{"contract_fingerprint", isDigest(input.ContractFingerprint)},
+		{"tdd_evidence", digestMap(input.TDDEvidence)},
+		{"integration_evidence", digestMap(input.IntegrationEvidence)},
 	}
+	var blockers []domain.Item
 	for _, check := range checks {
 		if !check.ok {
-			result.Blockers = append(result.Blockers, domain.Item{Code: check.code, Message: check.message})
+			blockers = append(blockers, required(check.name))
 		}
 	}
-	for _, warning := range gates.Warnings {
-		if warning.Owner == "" || warning.Rationale == "" {
-			result.Blockers = append(result.Blockers, domain.Item{Code: "release.warning-unowned", Message: "Every release warning needs an owner and rationale.", Refs: []string{warning.Code}})
-			continue
+	if input.MigrationRequired {
+		if !isDigest(input.MigrationEvidence) {
+			blockers = append(blockers, required("migration_evidence"))
 		}
-		result.Warnings = append(result.Warnings, domain.Item{Code: warning.Code, Message: warning.Rationale, Refs: []string{warning.Owner}})
+		if !isDigest(input.RollbackEvidence) {
+			blockers = append(blockers, required("rollback_evidence"))
+		}
 	}
-	if len(result.Blockers) > 0 {
-		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitVerification, "Production release gates are blocked."
+	if input.Profile == ProfileStrictRelease {
+		if input.StrictEvidence == nil {
+			blockers = append(blockers, required("strict_evidence"))
+			return blockers
+		}
+		strictChecks := []struct {
+			name string
+			ok   bool
+		}{
+			{"sbom_digest", isDigest(input.StrictEvidence.SBOMDigest)},
+			{"provenance_digest", isDigest(input.StrictEvidence.ProvenanceDigest)},
+			{"signature_digests", digestMap(input.StrictEvidence.SignatureDigests)},
+			{"supply_chain_receipts", digestMap(input.StrictEvidence.SupplyChainReceipts)},
+		}
+		for _, check := range strictChecks {
+			if !check.ok {
+				blockers = append(blockers, required(check.name))
+			}
+		}
 	}
-	return result
+	return blockers
+}
+
+func validateUserValidation(validation UserValidation, candidateDigest string) []domain.Item {
+	checks := []struct {
+		name string
+		ok   bool
+	}{
+		{"candidate_digest", validation.SchemaVersion == 1 && validation.CandidateDigest == candidateDigest && isDigest(validation.CandidateDigest)},
+		{"confirmed", validation.Confirmed},
+		{"evidence_digest", isDigest(validation.EvidenceDigest)},
+		{"verified_at", validTime(validation.VerifiedAt)},
+	}
+	var blockers []domain.Item
+	for _, check := range checks {
+		if !check.ok {
+			blockers = append(blockers, domain.Item{Code: "release.user-validation-invalid", Message: "User validation must reference the exact release candidate.", Refs: []string{check.name}})
+		}
+	}
+	return blockers
+}
+
+func required(name string) domain.Item {
+	return domain.Item{Code: "release.evidence-required", Message: "Release evidence identity is required.", Refs: []string{name}}
+}
+
+func isDigest(value string) bool {
+	return sha256Digest.MatchString(value)
+}
+
+func digestMap(values map[string]string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	for key, value := range values {
+		if key == "" || !isDigest(value) {
+			return false
+		}
+	}
+	return true
+}
+
+func nonEmptyMap(values map[string]string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	for key, value := range values {
+		if key == "" || value == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func validTime(value string) bool {
+	_, err := time.Parse(time.RFC3339, value)
+	return err == nil
 }

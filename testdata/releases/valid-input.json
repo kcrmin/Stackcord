@@ -1,26 +1,13 @@
 {
+  "profile": "core",
   "version": "1.0.0",
   "root_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "workspace_commits": {"workspace.root": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
   "artifact_digests": {"archive": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-  "schema_versions": {"harness": "1"},
-  "adapter_versions": {"git": "1"},
-  "sbom_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "provenance_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "signature_digests": {"checksums": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-  "gate_receipts": {"tests": "receipt-tests"},
-  "docs_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "user_validation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-  "gates": {
-    "required_checks_stable": true,
-    "critical_checks_automated": true,
-    "artifacts_signed": true,
-    "migration_rollback_verified": true,
-    "hooks_trusted_read_only": true,
-    "macos_journey_verified": true,
-    "windows_journey_verified": true,
-    "pluginless_continuation": true,
-    "user_validation_matches": true,
-    "warnings": []
-  }
+  "product_fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "docs_fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "contract_fingerprint": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "tdd_evidence": {"tests": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+  "integration_evidence": {"integration": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+  "migration_required": false
 }

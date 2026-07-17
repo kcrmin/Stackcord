@@ -1,40 +1,70 @@
 package release_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/release"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCandidateDetectsEveryImmutableInputChange(t *testing.T) {
-	input := validInput()
-	candidate, result := release.CreateCandidate(input)
-	require.Equal(t, domain.StatusPassed, result.Status)
+func TestCoreCandidateNeedsNoStrictSupplyChainEvidence(t *testing.T) {
+	input := validCoreInput()
+	candidate, created := release.CreateCandidate(input)
+
+	require.Equal(t, domain.StatusPassed, created.Status)
 	require.NotEmpty(t, candidate.Digest)
-	require.Equal(t, domain.StatusPassed, release.VerifyCandidate(candidate, input).Status)
+	require.Nil(t, candidate.Input.StrictEvidence)
+	require.Equal(t, domain.StatusPassed, release.VerifyCandidate(candidate, input, validUserValidation(candidate.Digest)).Status)
+}
+
+func TestStrictCandidateRequiresSupplyChainEvidence(t *testing.T) {
+	input := validCoreInput()
+	input.Profile = release.ProfileStrictRelease
+
+	_, missing := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusBlocked, missing.Status)
+	require.Equal(t, "strict_evidence", missing.Blockers[0].Refs[0])
+
+	input.StrictEvidence = validStrictEvidence()
+	candidate, created := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusPassed, created.Status)
+	require.Equal(t, domain.StatusPassed, release.VerifyCandidate(candidate, input, validUserValidation(candidate.Digest)).Status)
+
+	input.StrictEvidence.SignatureDigests = nil
+	_, incomplete := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusBlocked, incomplete.Status)
+	require.Equal(t, "signature_digests", incomplete.Blockers[0].Refs[0])
+}
+
+func TestCandidateDetectsEveryCoreIdentityChange(t *testing.T) {
+	input := validCoreInput()
+	candidate, created := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusPassed, created.Status)
+	validation := validUserValidation(candidate.Digest)
 
 	cases := map[string]func(*release.Input){
-		"root_commit":            func(i *release.Input) { i.RootCommit = "bbbbbbbb" },
-		"workspace_commits":      func(i *release.Input) { i.WorkspaceCommits["workspace.web"] = "bbbbbbbb" },
-		"artifact_digests":       func(i *release.Input) { i.ArtifactDigests["cli-darwin-arm64"] = "sha256:bbbb" },
-		"schema_versions":        func(i *release.Input) { i.SchemaVersions["harness"] = "2" },
-		"adapter_versions":       func(i *release.Input) { i.AdapterVersions["github"] = "2" },
-		"sbom_digest":            func(i *release.Input) { i.SBOMDigest = "sha256:bbbb" },
-		"provenance_digest":      func(i *release.Input) { i.ProvenanceDigest = "sha256:bbbb" },
-		"signature_digests":      func(i *release.Input) { i.SignatureDigests["cli-darwin-arm64"] = "sha256:bbbb" },
-		"gate_receipts":          func(i *release.Input) { i.GateReceipts["tests"] = "receipt-b" },
-		"docs_fingerprint":       func(i *release.Input) { i.DocsFingerprint = "sha256:bbbb" },
-		"user_validation_digest": func(i *release.Input) { i.UserValidationDigest = "sha256:bbbb" },
+		"version":              func(i *release.Input) { i.Version = "1.0.1" },
+		"root_commit":          func(i *release.Input) { i.RootCommit = strings.Repeat("b", 40) },
+		"workspace_commits":    func(i *release.Input) { i.WorkspaceCommits["workspace.root"] = strings.Repeat("b", 40) },
+		"artifact_digests":     func(i *release.Input) { i.ArtifactDigests["archive"] = digest("b") },
+		"product_fingerprint":  func(i *release.Input) { i.ProductFingerprint = digest("c") },
+		"docs_fingerprint":     func(i *release.Input) { i.DocsFingerprint = digest("d") },
+		"contract_fingerprint": func(i *release.Input) { i.ContractFingerprint = digest("e") },
+		"tdd_evidence":         func(i *release.Input) { i.TDDEvidence["tests"] = digest("f") },
+		"integration_evidence": func(i *release.Input) { i.IntegrationEvidence["integration"] = digest("1") },
+		"migration_required": func(i *release.Input) {
+			i.MigrationRequired = true
+			i.MigrationEvidence, i.RollbackEvidence = digest("2"), digest("3")
+		},
 	}
 	for field, mutate := range cases {
 		t.Run(field, func(t *testing.T) {
-			changed := validInput()
+			changed := validCoreInput()
 			mutate(&changed)
-			result := release.VerifyCandidate(candidate, changed)
+			result := release.VerifyCandidate(candidate, changed, validation)
 			require.Equal(t, domain.StatusBlocked, result.Status)
 			require.Equal(t, field, result.Blockers[0].Refs[0])
 		})
@@ -42,106 +72,112 @@ func TestCandidateDetectsEveryImmutableInputChange(t *testing.T) {
 }
 
 func TestCandidateRejectsTamperedManifestDigest(t *testing.T) {
-	input := validInput()
+	input := validCoreInput()
 	candidate, created := release.CreateCandidate(input)
 	require.Equal(t, domain.StatusPassed, created.Status)
+	candidate.Digest = digest("f")
 
-	candidate.Digest = "sha256:tampered"
-	result := release.VerifyCandidate(candidate, input)
+	result := release.VerifyCandidate(candidate, input, validUserValidation(candidate.Digest))
 
 	require.Equal(t, domain.StatusBlocked, result.Status)
 	require.Equal(t, domain.ExitVerification, result.ExitCode)
 	require.Equal(t, "digest", result.Blockers[0].Refs[0])
 }
 
-func TestCandidateDetectsVersionAndSchemaChanges(t *testing.T) {
-	input := validInput()
+func TestMigrationEvidenceIsConditional(t *testing.T) {
+	input := validCoreInput()
+	_, withoutMigration := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusPassed, withoutMigration.Status)
+
+	input.MigrationRequired = true
+	_, missing := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusBlocked, missing.Status)
+	require.Equal(t, []string{"migration_evidence", "rollback_evidence"}, []string{missing.Blockers[0].Refs[0], missing.Blockers[1].Refs[0]})
+
+	input.MigrationEvidence, input.RollbackEvidence = digest("1"), digest("2")
+	_, complete := release.CreateCandidate(input)
+	require.Equal(t, domain.StatusPassed, complete.Status)
+}
+
+func TestUserValidationMustReferenceTheSameCandidate(t *testing.T) {
+	input := validCoreInput()
 	candidate, _ := release.CreateCandidate(input)
 
-	changedVersion := input
-	changedVersion.Version = "1.0.1"
-	require.Equal(t, "version", release.VerifyCandidate(candidate, changedVersion).Blockers[0].Refs[0])
-
-	candidate.SchemaVersion = 2
-	result := release.VerifyCandidate(candidate, input)
-	require.Equal(t, domain.StatusBlocked, result.Status)
-	require.Equal(t, "schema_version", result.Blockers[0].Refs[0])
-}
-
-func TestCandidateRequiresReleaseEvidenceIdentities(t *testing.T) {
-	input := validInput()
-	input.UserValidationDigest = ""
-
-	_, result := release.CreateCandidate(input)
-
-	require.Equal(t, domain.StatusBlocked, result.Status)
-	require.Equal(t, domain.ExitVerification, result.ExitCode)
-	require.Equal(t, "user_validation_digest", result.Blockers[0].Refs[0])
-}
-
-func TestEveryProductionGapBlocksRelease(t *testing.T) {
-	cases := map[string]func(*release.Gates){
-		"flaky required check":    func(g *release.Gates) { g.RequiredChecksStable = false },
-		"manual critical check":   func(g *release.Gates) { g.CriticalChecksAutomated = false },
-		"unsigned artifact":       func(g *release.Gates) { g.ArtifactsSigned = false },
-		"migration rollback":      func(g *release.Gates) { g.MigrationRollbackVerified = false },
-		"unsafe hook":             func(g *release.Gates) { g.HooksTrustedReadOnly = false },
-		"missing macOS journey":   func(g *release.Gates) { g.MacOSJourneyVerified = false },
-		"missing Windows journey": func(g *release.Gates) { g.WindowsJourneyVerified = false },
-		"pluginless continuation": func(g *release.Gates) { g.PluginlessContinuation = false },
-		"user digest mismatch":    func(g *release.Gates) { g.UserValidationMatches = false },
-		"unowned warning":         func(g *release.Gates) { g.Warnings = []release.Warning{{Code: "release.warning"}} },
+	cases := map[string]func(*release.UserValidation){
+		"candidate_digest": func(v *release.UserValidation) { v.CandidateDigest = digest("f") },
+		"confirmed":        func(v *release.UserValidation) { v.Confirmed = false },
+		"evidence_digest":  func(v *release.UserValidation) { v.EvidenceDigest = "" },
+		"verified_at":      func(v *release.UserValidation) { v.VerifiedAt = "not-a-time" },
 	}
-	for name, mutate := range cases {
-		t.Run(name, func(t *testing.T) {
-			gates := validGates()
-			mutate(&gates)
-			result := release.Verify(gates)
+	for field, mutate := range cases {
+		t.Run(field, func(t *testing.T) {
+			validation := validUserValidation(candidate.Digest)
+			mutate(&validation)
+			result := release.VerifyCandidate(candidate, input, validation)
 			require.Equal(t, domain.StatusBlocked, result.Status)
-			require.Equal(t, domain.ExitVerification, result.ExitCode)
+			require.Equal(t, field, result.Blockers[0].Refs[0])
 		})
 	}
 }
 
-func TestPublishAlwaysRequiresExactProductionApproval(t *testing.T) {
-	candidate, _ := release.CreateCandidate(validInput())
-	plan, result := release.PlanPublish(candidate, policy.Consent{})
-	require.Equal(t, domain.StatusApprovalRequired, result.Status)
-	require.Empty(t, plan.Commands)
+func TestStrictEvidenceChangeInvalidatesCandidate(t *testing.T) {
+	input := validCoreInput()
+	input.Profile = release.ProfileStrictRelease
+	input.StrictEvidence = validStrictEvidence()
+	candidate, _ := release.CreateCandidate(input)
 
-	consent := policy.Consent{Approved: true, ExactDReceipt: true, Action: policy.PublishProduction, Objective: "publish 1.0.0", Repository: "product", Target: candidate.Digest, ExpiresAt: time.Now().Add(time.Hour)}
-	plan, result = release.PlanPublish(candidate, consent)
-	require.Equal(t, domain.StatusPassed, result.Status)
-	require.NotEmpty(t, plan.Commands)
-}
-
-func TestPublishRejectsCandidateWhoseManifestWasTampered(t *testing.T) {
-	candidate, _ := release.CreateCandidate(validInput())
-	candidate.Digest = "sha256:tampered"
-	consent := policy.Consent{Approved: true, ExactDReceipt: true, Action: policy.PublishProduction, Objective: "publish 1.0.0", Repository: "product", Target: candidate.Digest, ExpiresAt: time.Now().Add(time.Hour)}
-
-	plan, result := release.PlanPublish(candidate, consent)
+	input.StrictEvidence.SBOMDigest = digest("f")
+	result := release.VerifyCandidate(candidate, input, validUserValidation(candidate.Digest))
 
 	require.Equal(t, domain.StatusBlocked, result.Status)
-	require.Empty(t, plan.Commands)
+	require.Equal(t, "strict_evidence", result.Blockers[0].Refs[0])
 }
 
-func TestPublishRejectsDigestValidCandidateWithMissingEvidence(t *testing.T) {
-	forged, _ := release.CreateCandidate(validInput())
-	forged.Input.UserValidationDigest = ""
-	consent := policy.Consent{Approved: true, ExactDReceipt: true, Action: policy.PublishProduction, Objective: "publish 1.0.0", Repository: "product", Target: forged.Digest, ExpiresAt: time.Now().Add(time.Hour)}
+func TestCandidateRejectsUnknownProfile(t *testing.T) {
+	input := validCoreInput()
+	input.Profile = release.Profile("enterprise")
 
-	plan, result := release.PlanPublish(forged, consent)
+	_, result := release.CreateCandidate(input)
 
 	require.Equal(t, domain.StatusBlocked, result.Status)
-	require.Empty(t, plan.Commands)
-	require.Contains(t, result.Blockers, domain.Item{Code: "release.evidence-required", Message: "Release evidence identity is required.", Refs: []string{"user_validation_digest"}})
+	require.Equal(t, "profile", result.Blockers[0].Refs[0])
 }
 
-func validInput() release.Input {
-	return release.Input{Version: "1.0.0", RootCommit: "aaaaaaaa", WorkspaceCommits: map[string]string{"workspace.web": "aaaaaaaa"}, ArtifactDigests: map[string]string{"cli-darwin-arm64": "sha256:aaaa", "plugin": "sha256:cccc"}, SchemaVersions: map[string]string{"harness": "1", "result": "1.0"}, AdapterVersions: map[string]string{"github": "1"}, SBOMDigest: "sha256:aaaa", ProvenanceDigest: "sha256:aaaa", SignatureDigests: map[string]string{"cli-darwin-arm64": "sha256:aaaa"}, GateReceipts: map[string]string{"tests": "receipt-a", "security": "receipt-a"}, DocsFingerprint: "sha256:aaaa", UserValidationDigest: "sha256:aaaa", Gates: validGates()}
+func validCoreInput() release.Input {
+	return release.Input{
+		Profile:             release.ProfileCore,
+		Version:             "1.0.0",
+		RootCommit:          strings.Repeat("a", 40),
+		WorkspaceCommits:    map[string]string{"workspace.root": strings.Repeat("a", 40)},
+		ArtifactDigests:     map[string]string{"archive": digest("a")},
+		ProductFingerprint:  digest("b"),
+		DocsFingerprint:     digest("c"),
+		ContractFingerprint: digest("d"),
+		TDDEvidence:         map[string]string{"tests": digest("e")},
+		IntegrationEvidence: map[string]string{"integration": digest("f")},
+		MigrationRequired:   false,
+	}
 }
 
-func validGates() release.Gates {
-	return release.Gates{RequiredChecksStable: true, CriticalChecksAutomated: true, ArtifactsSigned: true, MigrationRollbackVerified: true, HooksTrustedReadOnly: true, MacOSJourneyVerified: true, WindowsJourneyVerified: true, PluginlessContinuation: true, UserValidationMatches: true, Warnings: []release.Warning{}}
+func validStrictEvidence() *release.StrictEvidence {
+	return &release.StrictEvidence{
+		SBOMDigest:          digest("1"),
+		ProvenanceDigest:    digest("2"),
+		SignatureDigests:    map[string]string{"checksums": digest("3")},
+		SupplyChainReceipts: map[string]string{"security": digest("4")},
+	}
+}
+
+func validUserValidation(candidateDigest string) release.UserValidation {
+	return release.UserValidation{
+		SchemaVersion:   1,
+		CandidateDigest: candidateDigest,
+		Confirmed:       true,
+		EvidenceDigest:  digest("5"),
+		VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+func digest(character string) string {
+	return "sha256:" + strings.Repeat(character, 64)
 }

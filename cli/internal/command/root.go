@@ -83,8 +83,6 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	root.AddCommand(newDatabaseCommand(version, &jsonOutput))
 	root.AddCommand(newUICommand(version, &jsonOutput))
 	root.AddCommand(newIntegrateCommand(version, &jsonOutput))
-	root.AddCommand(newVerifyCommand(version, &jsonOutput))
-	root.AddCommand(newRCCommand(version, &jsonOutput))
 	root.AddCommand(newReleaseCommand(version, &jsonOutput))
 	return root
 }

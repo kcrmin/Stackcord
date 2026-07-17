@@ -5,68 +5,66 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"fullstack-orchestrator/cli/internal/domain"
 )
 
-// Input fixes every source and evidence identity included in a release candidate.
+// Input fixes every core identity and any explicitly enabled strict identity.
 type Input struct {
-	Version              string            `json:"version"`
-	RootCommit           string            `json:"root_commit"`
-	WorkspaceCommits     map[string]string `json:"workspace_commits"`
-	ArtifactDigests      map[string]string `json:"artifact_digests"`
-	SchemaVersions       map[string]string `json:"schema_versions"`
-	AdapterVersions      map[string]string `json:"adapter_versions"`
-	SBOMDigest           string            `json:"sbom_digest"`
-	ProvenanceDigest     string            `json:"provenance_digest"`
-	SignatureDigests     map[string]string `json:"signature_digests"`
-	GateReceipts         map[string]string `json:"gate_receipts"`
-	DocsFingerprint      string            `json:"docs_fingerprint"`
-	UserValidationDigest string            `json:"user_validation_digest"`
-	Gates                Gates             `json:"gates"`
+	Profile             Profile           `json:"profile"`
+	Version             string            `json:"version"`
+	RootCommit          string            `json:"root_commit"`
+	WorkspaceCommits    map[string]string `json:"workspace_commits"`
+	ArtifactDigests     map[string]string `json:"artifact_digests"`
+	ProductFingerprint  string            `json:"product_fingerprint"`
+	DocsFingerprint     string            `json:"docs_fingerprint"`
+	ContractFingerprint string            `json:"contract_fingerprint"`
+	TDDEvidence         map[string]string `json:"tdd_evidence"`
+	IntegrationEvidence map[string]string `json:"integration_evidence"`
+	MigrationRequired   bool              `json:"migration_required"`
+	MigrationEvidence   string            `json:"migration_evidence,omitempty"`
+	RollbackEvidence    string            `json:"rollback_evidence,omitempty"`
+	StrictEvidence      *StrictEvidence   `json:"strict_evidence,omitempty"`
 }
 
-// Candidate is immutable by digest and contains no credentials.
+// Candidate is immutable by digest and contains no credentials or user approval.
 type Candidate struct {
 	SchemaVersion int    `json:"schema_version"`
 	Input         Input  `json:"input"`
 	Digest        string `json:"digest"`
 }
 
-// CreateCandidate verifies gates and computes one deterministic manifest digest.
+// CreateCandidate validates the selected profile and computes one deterministic digest.
 func CreateCandidate(input Input) (Candidate, domain.Result) {
-	verification := Verify(input.Gates)
-	if verification.Status != domain.StatusPassed {
-		return Candidate{}, verification
-	}
+	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "release.prepare", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Release candidate created from exact verified inputs."}
 	if blockers := validateInput(input); len(blockers) > 0 {
-		verification.Status, verification.ExitCode, verification.Summary = domain.StatusBlocked, domain.ExitVerification, "Release evidence identities are incomplete."
-		verification.Blockers = blockers
-		return Candidate{}, verification
+		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitVerification, "Release candidate evidence is incomplete."
+		result.Blockers = blockers
+		return Candidate{}, result
 	}
 	candidate := Candidate{SchemaVersion: 1, Input: cloneInput(input)}
-	candidate.Input.Gates = Gates{}
 	digest, err := candidateDigest(candidate)
 	if err != nil {
-		verification.Status, verification.ExitCode, verification.Summary = domain.StatusFailed, domain.ExitInternal, "Release candidate could not be encoded."
-		return Candidate{}, verification
+		result.Status, result.ExitCode, result.Summary = domain.StatusFailed, domain.ExitInternal, "Release candidate could not be encoded."
+		return Candidate{}, result
 	}
 	candidate.Digest = digest
-	verification.Command, verification.OperationID, verification.Summary = "rc.create", "rc-"+input.Version, "Immutable release candidate created from verified inputs."
-	verification.Evidence = []domain.Item{{Code: "release.candidate-digest", Message: candidate.Digest}}
-	return candidate, verification
+	result.OperationID = operationID("release-prepare", input.Version, candidate.Digest)
+	result.Evidence = []domain.Item{{Code: "release.candidate-digest", Message: candidate.Digest}}
+	return candidate, result
 }
 
-// VerifyCandidate compares every immutable field and digest.
-func VerifyCandidate(candidate Candidate, current Input) domain.Result {
-	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "rc.verify", OperationID: "rc-verify", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Release candidate inputs are unchanged."}
+// VerifyCandidate verifies current technical identities and user confirmation against one digest.
+func VerifyCandidate(candidate Candidate, current Input, validation UserValidation) domain.Result {
+	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "release.verify", OperationID: operationID("release-verify", candidate.Input.Version, candidate.Digest), Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Technical and user validation reference the same release candidate."}
 	result.Blockers = append(result.Blockers, validateInput(candidate.Input)...)
 	if candidate.SchemaVersion != 1 {
-		result.Blockers = append(result.Blockers, domain.Item{Code: "release.candidate-changed", Message: "Release candidate schema version is unsupported.", Refs: []string{"schema_version"}})
+		result.Blockers = append(result.Blockers, changed("schema_version"))
 	}
 	expectedDigest, err := candidateDigest(candidate)
 	if err != nil || candidate.Digest != expectedDigest {
-		result.Blockers = append(result.Blockers, domain.Item{Code: "release.candidate-changed", Message: "Release candidate manifest digest does not match its contents.", Refs: []string{"digest"}})
+		result.Blockers = append(result.Blockers, changed("digest"))
 	}
 	fields := []struct {
 		name string
@@ -76,63 +74,33 @@ func VerifyCandidate(candidate Candidate, current Input) domain.Result {
 		{"root_commit", candidate.Input.RootCommit == current.RootCommit},
 		{"workspace_commits", reflect.DeepEqual(candidate.Input.WorkspaceCommits, current.WorkspaceCommits)},
 		{"artifact_digests", reflect.DeepEqual(candidate.Input.ArtifactDigests, current.ArtifactDigests)},
-		{"schema_versions", reflect.DeepEqual(candidate.Input.SchemaVersions, current.SchemaVersions)},
-		{"adapter_versions", reflect.DeepEqual(candidate.Input.AdapterVersions, current.AdapterVersions)},
-		{"sbom_digest", candidate.Input.SBOMDigest == current.SBOMDigest},
-		{"provenance_digest", candidate.Input.ProvenanceDigest == current.ProvenanceDigest},
-		{"signature_digests", reflect.DeepEqual(candidate.Input.SignatureDigests, current.SignatureDigests)},
-		{"gate_receipts", reflect.DeepEqual(candidate.Input.GateReceipts, current.GateReceipts)},
+		{"product_fingerprint", candidate.Input.ProductFingerprint == current.ProductFingerprint},
 		{"docs_fingerprint", candidate.Input.DocsFingerprint == current.DocsFingerprint},
-		{"user_validation_digest", candidate.Input.UserValidationDigest == current.UserValidationDigest},
+		{"contract_fingerprint", candidate.Input.ContractFingerprint == current.ContractFingerprint},
+		{"tdd_evidence", reflect.DeepEqual(candidate.Input.TDDEvidence, current.TDDEvidence)},
+		{"integration_evidence", reflect.DeepEqual(candidate.Input.IntegrationEvidence, current.IntegrationEvidence)},
+		{"migration_required", candidate.Input.MigrationRequired == current.MigrationRequired},
+		{"migration_evidence", candidate.Input.MigrationEvidence == current.MigrationEvidence},
+		{"rollback_evidence", candidate.Input.RollbackEvidence == current.RollbackEvidence},
+		{"strict_evidence", reflect.DeepEqual(candidate.Input.StrictEvidence, current.StrictEvidence)},
 	}
 	for _, field := range fields {
 		if !field.same {
-			result.Blockers = append(result.Blockers, domain.Item{Code: "release.candidate-changed", Message: "Release candidate input changed.", Refs: []string{field.name}})
+			result.Blockers = append(result.Blockers, changed(field.name))
 		}
 	}
+	result.Blockers = append(result.Blockers, validateInput(current)...)
+	result.Blockers = append(result.Blockers, validateUserValidation(validation, candidate.Digest)...)
 	if len(result.Blockers) > 0 {
-		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitVerification, "Release candidate is no longer immutable; create a new candidate."
+		result.Status, result.ExitCode, result.Summary = domain.StatusBlocked, domain.ExitVerification, "Release candidate identity or validation differs; prepare or validate the exact candidate."
+		return result
 	}
+	result.Evidence = []domain.Item{{Code: "release.candidate-digest", Message: candidate.Digest}, {Code: "release.user-validation", Message: validation.EvidenceDigest}}
 	return result
 }
 
-func validateInput(input Input) []domain.Item {
-	checks := []struct {
-		name string
-		ok   bool
-	}{
-		{"version", input.Version != ""},
-		{"root_commit", input.RootCommit != ""},
-		{"workspace_commits", nonEmptyMap(input.WorkspaceCommits)},
-		{"artifact_digests", nonEmptyMap(input.ArtifactDigests)},
-		{"schema_versions", nonEmptyMap(input.SchemaVersions)},
-		{"adapter_versions", nonEmptyMap(input.AdapterVersions)},
-		{"sbom_digest", input.SBOMDigest != ""},
-		{"provenance_digest", input.ProvenanceDigest != ""},
-		{"signature_digests", nonEmptyMap(input.SignatureDigests)},
-		{"gate_receipts", nonEmptyMap(input.GateReceipts)},
-		{"docs_fingerprint", input.DocsFingerprint != ""},
-		{"user_validation_digest", input.UserValidationDigest != ""},
-	}
-	var blockers []domain.Item
-	for _, check := range checks {
-		if !check.ok {
-			blockers = append(blockers, domain.Item{Code: "release.evidence-required", Message: "Release evidence identity is required.", Refs: []string{check.name}})
-		}
-	}
-	return blockers
-}
-
-func nonEmptyMap(values map[string]string) bool {
-	if len(values) == 0 {
-		return false
-	}
-	for key, value := range values {
-		if key == "" || value == "" {
-			return false
-		}
-	}
-	return true
+func changed(field string) domain.Item {
+	return domain.Item{Code: "release.candidate-changed", Message: "Release candidate input changed.", Refs: []string{field}}
 }
 
 func candidateDigest(candidate Candidate) (string, error) {
@@ -149,17 +117,29 @@ func cloneInput(input Input) Input {
 	copy := input
 	copy.WorkspaceCommits = cloneMap(input.WorkspaceCommits)
 	copy.ArtifactDigests = cloneMap(input.ArtifactDigests)
-	copy.SchemaVersions = cloneMap(input.SchemaVersions)
-	copy.AdapterVersions = cloneMap(input.AdapterVersions)
-	copy.SignatureDigests = cloneMap(input.SignatureDigests)
-	copy.GateReceipts = cloneMap(input.GateReceipts)
-	copy.Gates.Warnings = append([]Warning(nil), input.Gates.Warnings...)
+	copy.TDDEvidence = cloneMap(input.TDDEvidence)
+	copy.IntegrationEvidence = cloneMap(input.IntegrationEvidence)
+	if input.StrictEvidence != nil {
+		strict := *input.StrictEvidence
+		strict.SignatureDigests = cloneMap(input.StrictEvidence.SignatureDigests)
+		strict.SupplyChainReceipts = cloneMap(input.StrictEvidence.SupplyChainReceipts)
+		copy.StrictEvidence = &strict
+	}
 	return copy
 }
+
 func cloneMap(input map[string]string) map[string]string {
 	result := make(map[string]string, len(input))
 	for key, value := range input {
 		result[key] = value
 	}
 	return result
+}
+
+func operationID(prefix, version, digest string) string {
+	short := strings.TrimPrefix(digest, "sha256:")
+	if len(short) > 12 {
+		short = short[:12]
+	}
+	return prefix + "-" + version + "-" + short
 }

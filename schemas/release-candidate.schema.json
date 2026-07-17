@@ -1,12 +1,79 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://orchestrator.invalid/schemas/release-candidate.schema.json",
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "identityMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "digestMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "$ref": "#/$defs/digest" }
+    }
+  },
   "type": "object",
   "required": ["schema_version", "input", "digest"],
   "properties": {
     "schema_version": { "const": 1 },
-    "input": { "type": "object", "required": ["version", "root_commit", "workspace_commits", "artifact_digests", "schema_versions", "adapter_versions", "sbom_digest", "provenance_digest", "signature_digests", "gate_receipts", "docs_fingerprint", "user_validation_digest"] },
-    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+    "input": {
+      "type": "object",
+      "required": [
+        "profile",
+        "version",
+        "root_commit",
+        "workspace_commits",
+        "artifact_digests",
+        "product_fingerprint",
+        "docs_fingerprint",
+        "contract_fingerprint",
+        "tdd_evidence",
+        "integration_evidence",
+        "migration_required"
+      ],
+      "properties": {
+        "profile": { "enum": ["core", "strict-release"] },
+        "version": { "type": "string", "minLength": 1 },
+        "root_commit": { "type": "string", "minLength": 1 },
+        "workspace_commits": { "$ref": "#/$defs/identityMap" },
+        "artifact_digests": { "$ref": "#/$defs/digestMap" },
+        "product_fingerprint": { "$ref": "#/$defs/digest" },
+        "docs_fingerprint": { "$ref": "#/$defs/digest" },
+        "contract_fingerprint": { "$ref": "#/$defs/digest" },
+        "tdd_evidence": { "$ref": "#/$defs/digestMap" },
+        "integration_evidence": { "$ref": "#/$defs/digestMap" },
+        "migration_required": { "type": "boolean" },
+        "migration_evidence": { "$ref": "#/$defs/digest" },
+        "rollback_evidence": { "$ref": "#/$defs/digest" },
+        "strict_evidence": {
+          "type": "object",
+          "required": ["sbom_digest", "provenance_digest", "signature_digests", "supply_chain_receipts"],
+          "properties": {
+            "sbom_digest": { "$ref": "#/$defs/digest" },
+            "provenance_digest": { "$ref": "#/$defs/digest" },
+            "signature_digests": { "$ref": "#/$defs/digestMap" },
+            "supply_chain_receipts": { "$ref": "#/$defs/digestMap" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "migration_required": { "const": true } } },
+          "then": { "required": ["migration_evidence", "rollback_evidence"] }
+        },
+        {
+          "if": { "properties": { "profile": { "const": "strict-release" } } },
+          "then": { "required": ["strict_evidence"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "digest": { "$ref": "#/$defs/digest" }
   },
   "additionalProperties": false
 }

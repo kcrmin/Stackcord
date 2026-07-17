@@ -151,7 +151,7 @@ Superpowers, BMAD, and Beads are complementary workflows or task tools. They nev
 
 ### Core
 
-Core release preparation requires:
+Core release preparation fixes:
 
 - coherent canonical context with no blocker;
 - clean, exact root and workspace commits;
@@ -159,7 +159,8 @@ Core release preparation requires:
 - product/docs/contract fingerprint;
 - passing TDD and integration evidence identities;
 - migration/rollback evidence only when the project has a migration;
-- user-validation receipt bound to the same RC digest.
+
+Preparation creates the RC digest first. Final verification then combines a fresh technical identity check with a user-validation receipt bound to that exact digest. This avoids the impossible cycle of requiring user validation before the candidate exists.
 
 Changing any included identity creates a new RC.
 

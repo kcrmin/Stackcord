@@ -165,8 +165,9 @@ Commit: `refactor(plugin): consolidate project workflows into five skills`
 
 **Interfaces:**
 - `release.Profile` is `core` or `strict-release`.
-- `release.Input` always requires version, root/workspace commits, artifact digests, product/docs/contract fingerprints, TDD evidence, integration evidence, conditional migration evidence, and same-RC user validation.
+- `release.Input` always requires version, root/workspace commits, artifact digests, product/docs/contract fingerprints, TDD evidence, integration evidence, and conditional migration evidence.
 - `release.StrictEvidence` is optional for core and required for strict.
+- `release.UserValidation` is created after preparation and binds explicit confirmation to the candidate digest; `release verify` combines it with the current technical identities.
 - CLI exposes only `release prepare|verify`.
 
 - [ ] **Step 1: Write failing tests showing a valid core candidate passes without SBOM/signature/provenance and a strict candidate fails without them.**
