@@ -77,6 +77,20 @@ func TestPlanWorktreeUsesConventionalBranchAndOutsidePath(t *testing.T) {
 	require.ErrorContains(t, err, "branch must match")
 }
 
+func TestInspectReportsExistingWorktrees(t *testing.T) {
+	root, _ := repositoryFixture(t)
+	target := filepath.Join(t.TempDir(), "account-recovery")
+	runGit(t, root, "worktree", "add", "-b", "feature/account-recovery", target)
+
+	state, err := gitx.Inspect(context.Background(), root)
+
+	require.NoError(t, err)
+	require.Len(t, state.Worktrees, 2)
+	resolvedTarget, err := filepath.EvalSymlinks(target)
+	require.NoError(t, err)
+	require.Contains(t, state.Worktrees, gitx.Worktree{Path: resolvedTarget, Head: runGit(t, target, "rev-parse", "HEAD"), Branch: "feature/account-recovery"})
+}
+
 func TestPlanWorkspaceSyncBlocksUnsafeOrLocallyChangedSubmodules(t *testing.T) {
 	state := gitx.State{Root: t.TempDir(), Submodules: []gitx.Submodule{
 		{Path: "services/unsafe", URL: "file:///tmp/unsafe", UnsafeURL: true},

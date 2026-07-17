@@ -10,11 +10,11 @@ Ask the AI to propose or revise the data model from policies, scenarios, retenti
 
 ## Visualize in isolation
 
-When dbdiagram CLI or another supported renderer is available, the AI creates an operation-scoped local workspace under `.harness/local/dbdiagram/`. Credentials remain outside Git. Visualization or remote collaboration never modifies canonical DBML implicitly.
+When the user selects the [official dbdiagram CLI](https://docs.dbdiagram.io/release-notes/2026-07/), the AI detects the `dbdiagram` executable and creates an operation-scoped local workspace under `.harness/local/dbdiagram/`. It copies canonical DBML to `candidate.dbml`, prepares `dbdiagram init --entry candidate.dbml --diagram-id <id>`, and then explicitly runs `dbdiagram push` or `dbdiagram pull` only after the external action is visible. Credentials remain outside Git. Visualization or remote collaboration never modifies canonical DBML implicitly.
 
 ## Reconcile remote changes
 
-If someone changes a diagram externally, import it into the isolated workspace, compare entity/field/index/relation semantics, and ask why material changes were made. Accepted differences become an explicit Git change with updated policy, contract, and migration impact. Rejected differences leave canonical DBML unchanged.
+`push` updates the selected online diagram from the isolated copy so collaborators can view it. If someone changes that diagram externally, `pull` updates only the isolated copy. Compare entity/field/index/relation semantics and ask why material changes were made. Accepted differences become an explicit Git change with updated policy, contract, and migration impact. Rejected differences leave canonical DBML unchanged.
 
 ## Evolve production data safely
 

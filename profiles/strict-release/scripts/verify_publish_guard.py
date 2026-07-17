@@ -13,6 +13,7 @@ from typing import Optional
 
 SEMVER_TAG = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+GIT_OBJECT_ID = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 OPERATION_ID = re.compile(r"^release-approval-[A-Za-z0-9._-]+$")
 INPUT_FIELDS = (
     "profile",
@@ -32,6 +33,13 @@ INPUT_FIELDS = (
 )
 MAP_FIELDS = {"workspace_commits", "artifact_digests", "tdd_evidence", "integration_evidence"}
 STRICT_FIELDS = ("sbom_digest", "provenance_digest", "signature_digests", "supply_chain_receipts")
+
+
+def valid_identity_map(value: object, pattern: re.Pattern) -> bool:
+    return isinstance(value, dict) and bool(value) and all(
+        isinstance(key, str) and bool(key) and isinstance(item, str) and pattern.fullmatch(item)
+        for key, item in value.items()
+    )
 
 
 def candidate_digest(candidate: dict) -> str:
@@ -113,9 +121,30 @@ def verify(root: pathlib.Path, environment: dict[str, str]) -> list[str]:
         errors.append("approved candidate manifest digest does not match its contents")
     if candidate_input.get("profile") != "strict-release":
         errors.append("strict publication requires a strict-release candidate")
+    if not GIT_OBJECT_ID.fullmatch(str(candidate_input.get("root_commit", ""))):
+        errors.append("approved candidate root commit is invalid")
+    if not valid_identity_map(candidate_input.get("workspace_commits"), GIT_OBJECT_ID):
+        errors.append("approved candidate workspace commits are invalid")
+    for field in ("artifact_digests", "tdd_evidence", "integration_evidence"):
+        if not valid_identity_map(candidate_input.get(field), DIGEST):
+            errors.append(f"approved candidate {field} contains an invalid digest")
+    for field in ("product_fingerprint", "docs_fingerprint", "contract_fingerprint"):
+        if not DIGEST.fullmatch(str(candidate_input.get(field, ""))):
+            errors.append(f"approved candidate {field} is invalid")
+    if candidate_input.get("migration_required") is True:
+        for field in ("migration_evidence", "rollback_evidence"):
+            if not DIGEST.fullmatch(str(candidate_input.get(field, ""))):
+                errors.append(f"approved candidate {field} is invalid")
     strict_evidence = candidate_input.get("strict_evidence", {})
     if not isinstance(strict_evidence, dict) or any(field not in strict_evidence for field in STRICT_FIELDS):
         errors.append("strict publication evidence is incomplete")
+    elif (
+        not DIGEST.fullmatch(str(strict_evidence.get("sbom_digest", "")))
+        or not DIGEST.fullmatch(str(strict_evidence.get("provenance_digest", "")))
+        or not valid_identity_map(strict_evidence.get("signature_digests"), DIGEST)
+        or not valid_identity_map(strict_evidence.get("supply_chain_receipts"), DIGEST)
+    ):
+        errors.append("strict publication evidence contains an invalid digest")
     if candidate_input.get("version") and tag != "v" + candidate_input["version"]:
         errors.append("approved candidate version differs from tag")
 

@@ -143,6 +143,23 @@ func TestCandidateRejectsUnknownProfile(t *testing.T) {
 	require.Equal(t, "profile", result.Blockers[0].Refs[0])
 }
 
+func TestCandidateRequiresExactGitObjectIDs(t *testing.T) {
+	for name, mutate := range map[string]func(*release.Input){
+		"root_commit":       func(input *release.Input) { input.RootCommit = "main" },
+		"workspace_commits": func(input *release.Input) { input.WorkspaceCommits["workspace.root"] = "HEAD" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			input := validCoreInput()
+			mutate(&input)
+
+			_, result := release.CreateCandidate(input)
+
+			require.Equal(t, domain.StatusBlocked, result.Status)
+			require.Equal(t, name, result.Blockers[0].Refs[0])
+		})
+	}
+}
+
 func validCoreInput() release.Input {
 	return release.Input{
 		Profile:             release.ProfileCore,

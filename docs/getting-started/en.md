@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Use Git for collaboration and Go 1.24 or newer to build the CLI. Git is required when a release candidate must be traceable. A Plugin-capable AI client improves discovery, but the generated repository also includes a standalone Skill and Markdown fallback.
+Use Git for collaboration and Go 1.26 or newer to build the CLI. Git is required when a release candidate must be traceable. A Plugin-capable AI client improves discovery, but the generated repository also includes a standalone Skill and Markdown fallback.
 
 ## Build the CLI
 

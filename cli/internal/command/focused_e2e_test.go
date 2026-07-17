@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -74,6 +75,17 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 
 	inspect := runFocusedCommand(t, "git", "inspect", "--root", root, "--json")
 	require.Contains(t, inspect, `"git.submodules","message":"1"`)
+	require.Contains(t, inspect, `"git.submodule.initialized","message":"true"`)
+	require.Contains(t, inspect, `"git.submodule.dirty","message":"false"`)
+	require.Contains(t, inspect, `"git.submodule.pointer-mismatch","message":"false"`)
+	require.Contains(t, inspect, `"git.detached","message":"false"`)
+
+	require.NoError(t, os.WriteFile(filepath.Join(root, "workspaces", "backend", "README.md"), []byte("dirty backend\n"), 0o600))
+	dirtyInspect := runFocusedCommand(t, "git", "inspect", "--root", root, "--json")
+	require.Contains(t, dirtyInspect, `"status":"warning"`)
+	require.Contains(t, dirtyInspect, `"git.submodule.dirty","message":"true"`)
+	require.Contains(t, dirtyInspect, `"git.submodule-dirty"`)
+	require.NoError(t, os.WriteFile(filepath.Join(root, "workspaces", "backend", "README.md"), []byte("backend\n"), 0o600))
 	require.Contains(t, runFocusedCommand(t, "integrate", "plan", "--root", root, "--json"), "additive contract, providers, consumers, UI connection")
 
 	contractPath := filepath.Join(parent, "contract.yaml")
@@ -86,7 +98,13 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	require.NoError(t, os.WriteFile(beforeDBML, []byte("Table users {\n id int [pk]\n}\n"), 0o600))
 	require.NoError(t, os.WriteFile(afterDBML, []byte("Table users {\n id int [pk]\n email varchar [not null]\n}\n"), 0o600))
 	require.Contains(t, runFocusedCommand(t, "db", "diff", "--before", beforeDBML, "--after", afterDBML, "--json"), "users.email")
-	require.Contains(t, runFocusedCommand(t, "db", "diagram", "--root", root, "--operation", "01JDBE2E", "--project-id", "diagram-1", "--json"), ".harness/local/dbdiagram")
+	dbEntry := filepath.Join(root, "schema.dbml")
+	require.NoError(t, os.WriteFile(dbEntry, []byte("Table users {\n id int [pk]\n}\n"), 0o600))
+	diagramPlan := runFocusedCommand(t, "db", "diagram", "--root", root, "--operation", "01JDBE2E", "--action", "push", "--entry", "schema.dbml", "--project-id", "diagram-1", "--apply", "--json")
+	require.Contains(t, diagramPlan, ".harness/local/dbdiagram")
+	require.Contains(t, diagramPlan, "dbdiagram init --entry candidate.dbml --diagram-id diagram-1")
+	require.Contains(t, diagramPlan, "dbdiagram push")
+	require.Equal(t, focusedRead(t, dbEntry), focusedRead(t, filepath.Join(root, ".harness", "local", "dbdiagram", "01JDBE2E", "candidate.dbml")))
 
 	archive := focusedUIArchive(t)
 	uiPlan := runFocusedCommand(t, "ui", "import", "--root", root, "--archive", archive, "--id", "ui.external.recovery", "--authority", "reference", "--json")
@@ -138,6 +156,58 @@ func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *te
 	changed := runFocusedCommand(t, "release", "verify", "--candidate", candidatePath, "--input", inputPath, "--validation", validationPath, "--json")
 	require.Contains(t, changed, `"status":"blocked"`)
 	require.Contains(t, changed, "product_fingerprint")
+}
+
+func TestFocusedJourneyNativeBinaryInitializesAdoptsRecoversAndVerifiesRelease(t *testing.T) {
+	binary := focusedBuildNativeCLI(t)
+	parent := t.TempDir()
+	root := filepath.Join(parent, "new-project")
+
+	require.Contains(t, focusedNative(t, binary, "project", "init", "--root", root, "--id", "project.native-new", "--locale", "en", "--apply", "--json"), `"status":"passed"`)
+	focusedGit(t, root, "init", "--initial-branch=main")
+	focusedGit(t, root, "config", "user.email", "fixture@example.invalid")
+	focusedGit(t, root, "config", "user.name", "Fixture User")
+	focusedGit(t, root, "add", ".")
+	focusedGit(t, root, "commit", "-m", "chore: initialize project")
+	require.Contains(t, focusedNative(t, binary, "context", "audit", "--root", root, "--json"), `"status":"passed"`)
+	require.Contains(t, focusedNative(t, binary, "git", "inspect", "--root", root, "--json"), `"git.branch","message":"main"`)
+
+	existing := filepath.Join(parent, "existing-project")
+	require.NoError(t, os.MkdirAll(existing, 0o700))
+	readme := "# Existing service\n\nUser-owned introduction.\n"
+	require.NoError(t, os.WriteFile(filepath.Join(existing, "README.md"), []byte(readme), 0o600))
+	require.Contains(t, focusedNative(t, binary, "project", "adopt", "--root", existing, "--id", "project.native-existing", "--locale", "en", "--apply", "--json"), `"status":"passed"`)
+	require.Contains(t, focusedRead(t, filepath.Join(existing, "README.md")), readme)
+	require.FileExists(t, filepath.Join(existing, ".agents", "skills", "use-project-harness", "SKILL.md"))
+
+	commit := focusedGit(t, root, "rev-parse", "HEAD")
+	input := release.Input{
+		Profile:             release.ProfileCore,
+		Version:             "1.0.0",
+		RootCommit:          commit,
+		WorkspaceCommits:    map[string]string{"workspace.root": commit},
+		ArtifactDigests:     map[string]string{"archive": focusedDigest("a")},
+		ProductFingerprint:  focusedDigest("b"),
+		DocsFingerprint:     focusedDigest("c"),
+		ContractFingerprint: focusedDigest("d"),
+		TDDEvidence:         map[string]string{"tests": focusedDigest("e")},
+		IntegrationEvidence: map[string]string{"integration": focusedDigest("f")},
+	}
+	inputPath := filepath.Join(parent, "release-input.json")
+	focusedWriteJSON(t, inputPath, input)
+	require.Contains(t, focusedNative(t, binary, "release", "prepare", "--root", root, "--input", inputPath, "--apply", "--json"), `"status":"passed"`)
+	candidatePath := filepath.Join(root, ".harness", "state", "release-candidate.json")
+	var candidate release.Candidate
+	require.NoError(t, json.Unmarshal([]byte(focusedRead(t, candidatePath)), &candidate))
+	validationPath := filepath.Join(parent, "user-validation.json")
+	focusedWriteJSON(t, validationPath, release.UserValidation{
+		SchemaVersion:   1,
+		CandidateDigest: candidate.Digest,
+		Confirmed:       true,
+		EvidenceDigest:  focusedDigest("1"),
+		VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
+	})
+	require.Contains(t, focusedNative(t, binary, "release", "verify", "--candidate", candidatePath, "--input", inputPath, "--validation", validationPath, "--json"), `"status":"passed"`)
 }
 
 func focusedCheckpoint() project.DiscoveryCheckpoint {
@@ -230,4 +300,29 @@ func focusedTree(t *testing.T, root string) string {
 
 func focusedDigest(character string) string {
 	return "sha256:" + strings.Repeat(character, 64)
+}
+
+func focusedBuildNativeCLI(t *testing.T) string {
+	t.Helper()
+	cliRoot, err := filepath.Abs(filepath.Join("..", ".."))
+	require.NoError(t, err)
+	name := "orchestrator"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	binary := filepath.Join(t.TempDir(), name)
+	command := exec.Command("go", "build", "-trimpath", "-o", binary, "./cmd/orchestrator")
+	command.Dir = cliRoot
+	output, err := command.CombinedOutput()
+	require.NoError(t, err, "build native CLI: %s", output)
+	return binary
+}
+
+func focusedNative(t *testing.T, binary string, args ...string) string {
+	t.Helper()
+	command := exec.Command(binary, args...)
+	command.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	output, err := command.CombinedOutput()
+	require.NoError(t, err, "native CLI %s: %s", strings.Join(args, " "), output)
+	return string(output)
 }

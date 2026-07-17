@@ -120,19 +120,34 @@ func newDatabaseCommand(version string, jsonOutput *bool) *cobra.Command {
 	_ = diffCommand.MarkFlagRequired("before")
 	_ = diffCommand.MarkFlagRequired("after")
 	var config database.DBDiagramConfig
+	var apply bool
 	diagram := &cobra.Command{Use: "diagram", RunE: func(cmd *cobra.Command, _ []string) error {
-		plan, err := database.PullPlan(config)
+		plan, err := database.SyncPlan(config)
 		if err != nil {
 			return err
 		}
-		return writeResult(cmd, *jsonOutput, planResult(version, "db.diagram", plan, "Isolated dbdiagram pull plan is ready; canonical DBML will not change."))
+		planned := planResult(version, "db.diagram.plan", plan, "Isolated official dbdiagram sync plan is ready; canonical DBML will not change.")
+		if !apply {
+			return writeResult(cmd, *jsonOutput, planned)
+		}
+		result := operation.Apply(cmd.Context(), plan)
+		result.ToolVersion, result.Command = version, "db.diagram.prepare"
+		if result.Status == domain.StatusPassed {
+			result.Summary = "The isolated DBML copy is ready; external dbdiagram commands remain explicit."
+			result.NextActions = planned.NextActions
+		}
+		return writeResult(cmd, *jsonOutput, result)
 	}}
 	diagram.Flags().StringVar(&config.Root, "root", ".", "project root")
 	diagram.Flags().StringVar(&config.OperationID, "operation", "", "operation ID")
-	diagram.Flags().StringVar(&config.Executable, "executable", "db2", "official dbdiagram CLI executable")
+	diagram.Flags().StringVar(&config.Action, "action", "pull", "isolated dbdiagram action: push or pull")
+	diagram.Flags().StringVar(&config.Entry, "entry", "", "canonical DBML path inside the project")
+	diagram.Flags().StringVar(&config.Executable, "executable", "dbdiagram", "official dbdiagram CLI executable")
 	diagram.Flags().StringVar(&config.ProjectID, "project-id", "", "dbdiagram project ID")
 	diagram.Flags().StringVar(&config.TokenEnvironment, "token-env", "DBDIAGRAM_TOKEN", "credential environment variable name")
+	diagram.Flags().BoolVar(&apply, "apply", false, "write only the isolated DBML copy; never run external commands")
 	_ = diagram.MarkFlagRequired("operation")
+	_ = diagram.MarkFlagRequired("entry")
 	_ = diagram.MarkFlagRequired("project-id")
 	parent.AddCommand(diffCommand, diagram)
 	return parent

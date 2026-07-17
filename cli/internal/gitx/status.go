@@ -20,6 +20,7 @@ type State struct {
 	Behind     int         `json:"behind"`
 	Diverged   bool        `json:"diverged"`
 	Submodules []Submodule `json:"submodules"`
+	Worktrees  []Worktree  `json:"worktrees"`
 }
 
 // Inspect reports actual Git state without fetching or changing the repository.
@@ -45,7 +46,7 @@ func Inspect(ctx context.Context, root string) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	state := State{Root: top, Branch: branch, Head: head, Dirty: status != "", Detached: branch == "HEAD", Submodules: []Submodule{}}
+	state := State{Root: top, Branch: branch, Head: head, Dirty: status != "", Detached: branch == "HEAD", Submodules: []Submodule{}, Worktrees: []Worktree{}}
 	if upstream, upstreamErr := git.read(ctx, top, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"); upstreamErr == nil {
 		state.Upstream = upstream
 		counts, countErr := git.read(ctx, top, "rev-list", "--left-right", "--count", "HEAD...@{upstream}")
@@ -59,6 +60,10 @@ func Inspect(ctx context.Context, root string) (State, error) {
 		state.Ahead, _ = strconv.Atoi(parts[0])
 		state.Behind, _ = strconv.Atoi(parts[1])
 		state.Diverged = state.Ahead > 0 && state.Behind > 0
+	}
+	state.Worktrees, err = inspectWorktrees(ctx, git, top)
+	if err != nil {
+		return State{}, err
 	}
 	state.Submodules, err = inspectSubmodules(ctx, git, top)
 	return state, err

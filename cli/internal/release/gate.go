@@ -33,6 +33,7 @@ type UserValidation struct {
 }
 
 var sha256Digest = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+var gitObjectID = regexp.MustCompile(`^(?:[0-9a-f]{40}|[0-9a-f]{64})$`)
 
 func validateInput(input Input) []domain.Item {
 	checks := []struct {
@@ -41,8 +42,8 @@ func validateInput(input Input) []domain.Item {
 	}{
 		{"profile", input.Profile == ProfileCore || input.Profile == ProfileStrictRelease},
 		{"version", input.Version != ""},
-		{"root_commit", input.RootCommit != ""},
-		{"workspace_commits", nonEmptyMap(input.WorkspaceCommits)},
+		{"root_commit", isGitObjectID(input.RootCommit)},
+		{"workspace_commits", gitObjectIDMap(input.WorkspaceCommits)},
 		{"artifact_digests", digestMap(input.ArtifactDigests)},
 		{"product_fingerprint", isDigest(input.ProductFingerprint)},
 		{"docs_fingerprint", isDigest(input.DocsFingerprint)},
@@ -126,12 +127,16 @@ func digestMap(values map[string]string) bool {
 	return true
 }
 
-func nonEmptyMap(values map[string]string) bool {
+func isGitObjectID(value string) bool {
+	return gitObjectID.MatchString(value)
+}
+
+func gitObjectIDMap(values map[string]string) bool {
 	if len(values) == 0 {
 		return false
 	}
 	for key, value := range values {
-		if key == "" || value == "" {
+		if key == "" || !isGitObjectID(value) {
 			return false
 		}
 	}

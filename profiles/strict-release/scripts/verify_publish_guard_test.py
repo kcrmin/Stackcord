@@ -131,6 +131,27 @@ class PublishGuardTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
             verify_publish_guard.strict_load('{"target":"one","target":"two"}')
 
+    def test_rejects_malformed_commit_and_strict_evidence_identities(self):
+        candidate = strict_candidate()
+        candidate["input"]["root_commit"] = "main"
+        candidate["input"]["strict_evidence"]["sbom_digest"] = "present-but-not-a-digest"
+        candidate["digest"] = verify_publish_guard.candidate_digest(candidate)
+        environment = {
+            "EXPECTED_TAG": "v1.0.0",
+            "EXPECTED_RC_DIGEST": candidate["digest"],
+            "APPROVAL_OPERATION_ID": "release-approval-01J",
+            "GITHUB_REF_VALUE": "refs/tags/v1.0.0",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "release").mkdir()
+            (root / "release" / "approved-rc.json").write_text(json.dumps(candidate))
+
+            errors = verify_publish_guard.verify(root, environment)
+
+            self.assertIn("approved candidate root commit is invalid", errors)
+            self.assertIn("strict publication evidence contains an invalid digest", errors)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,7 @@
 
 ## 준비 사항
 
-협업에는 Git을 사용하고 CLI build에는 Go 1.24 이상을 사용합니다. 추적 가능한 release candidate에는 Git이 필수입니다. Plugin을 지원하는 AI client가 서비스 발견에 편리하지만 생성된 저장소에는 독립적인 Skill과 Markdown fallback도 들어갑니다.
+협업에는 Git을 사용하고 CLI build에는 Go 1.26 이상을 사용합니다. 추적 가능한 release candidate에는 Git이 필수입니다. Plugin을 지원하는 AI client가 서비스 발견에 편리하지만 생성된 저장소에는 독립적인 Skill과 Markdown fallback도 들어갑니다.
 
 ## CLI build
 

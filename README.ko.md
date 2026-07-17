@@ -112,7 +112,7 @@ Strict release는 [`profiles/strict-release`](./profiles/strict-release/README.m
 
 ## Build와 test
 
-Go 1.24 이상이 필요합니다.
+Go 1.26 이상이 필요합니다.
 
 ```bash
 cd cli

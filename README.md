@@ -112,7 +112,7 @@ Strict release is opt-in under [`profiles/strict-release`](./profiles/strict-rel
 
 ## Build and test
 
-Go 1.24 or newer is required.
+Go 1.26 or newer is required.
 
 ```bash
 cd cli

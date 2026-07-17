@@ -3,11 +3,12 @@
   "$id": "https://orchestrator.invalid/schemas/release-candidate.schema.json",
   "$defs": {
     "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "identityMap": {
+    "gitObjectId": { "type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" },
+    "gitObjectMap": {
       "type": "object",
       "minProperties": 1,
       "propertyNames": { "minLength": 1 },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "additionalProperties": { "$ref": "#/$defs/gitObjectId" }
     },
     "digestMap": {
       "type": "object",
@@ -38,8 +39,8 @@
       "properties": {
         "profile": { "enum": ["core", "strict-release"] },
         "version": { "type": "string", "minLength": 1 },
-        "root_commit": { "type": "string", "minLength": 1 },
-        "workspace_commits": { "$ref": "#/$defs/identityMap" },
+        "root_commit": { "$ref": "#/$defs/gitObjectId" },
+        "workspace_commits": { "$ref": "#/$defs/gitObjectMap" },
         "artifact_digests": { "$ref": "#/$defs/digestMap" },
         "product_fingerprint": { "$ref": "#/$defs/digest" },
         "docs_fingerprint": { "$ref": "#/$defs/digest" },
