@@ -154,9 +154,18 @@ func parseDocument(path string) (documentMetadata, string, error) {
 			return documentMetadata{}, "", fmt.Errorf("parse frontmatter in %s: %w", path, err)
 		}
 	}
+	raw, err := schema.DecodeYAML[map[string]any](metadataBytes)
+	if err != nil {
+		return documentMetadata{}, "", fmt.Errorf("decode metadata in %s: %w", path, err)
+	}
 	var metadata documentMetadata
 	if err := yaml.Unmarshal(metadataBytes, &metadata); err != nil {
 		return documentMetadata{}, "", fmt.Errorf("decode metadata in %s: %w", path, err)
+	}
+	if metadata.ID != "" {
+		if issues := schema.Validate("spec", raw); len(issues) > 0 {
+			return documentMetadata{}, "", fmt.Errorf("schema validation failed for %s: %s", path, issues[0].Message)
+		}
 	}
 	fingerprint, err := Fingerprint(kind, data)
 	if err != nil {

@@ -116,7 +116,7 @@ func ExitCode(cmd *cobra.Command) int {
 
 func newContextCommand(version string, jsonOutput *bool) *cobra.Command {
 	contextCommand := &cobra.Command{Use: "context", Short: "Rebuild project understanding from canonical repository files"}
-	for _, name := range []string{"audit", "pack", "refresh"} {
+	for _, name := range []string{"audit", "refresh"} {
 		name := name
 		var rootPath string
 		var write bool

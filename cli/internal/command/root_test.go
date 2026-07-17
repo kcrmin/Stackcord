@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"fullstack-orchestrator/cli/internal/command"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
 
@@ -110,7 +111,7 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
 	paths := []string{
 		"project checkpoint", "project init", "project adopt",
-		"context audit", "context refresh", "context pack",
+		"context audit", "context refresh",
 		"git inspect", "git sync-plan", "git worktree-plan",
 		"work next", "work conflict", "work start", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",
@@ -122,6 +123,22 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		require.NoError(t, err, path)
 		require.Equal(t, strings.Fields(path)[len(strings.Fields(path))-1], found.Name(), path)
 	}
+}
+
+func TestCommandSurfaceOmitsRemovedPlatformCommands(t *testing.T) {
+	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	for _, removed := range []string{"pack"} {
+		for _, child := range mustFindCommand(t, cmd, "context").Commands() {
+			require.NotEqual(t, removed, child.Name())
+		}
+	}
+}
+
+func mustFindCommand(t *testing.T, root *cobra.Command, path string) *cobra.Command {
+	t.Helper()
+	found, _, err := root.Find(strings.Fields(path))
+	require.NoError(t, err)
+	return found
 }
 
 func TestDoctorExportsPrivacySafeDiagnostics(t *testing.T) {

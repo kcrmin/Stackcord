@@ -84,6 +84,18 @@ func TestFindRootRejectsSymlinkManifest(t *testing.T) {
 	require.ErrorContains(t, err, "symlink")
 }
 
+func TestRefreshRejectsInvalidIndexedDocumentMetadata(t *testing.T) {
+	root := contextFixture(t, false)
+	invalid := "---\nschema_version: 1\nid: INVALID\nkind: policy\nstatus: imaginary\nrevision: 0\nrefs: [policy.same, policy.same]\n---\nInvalid.\n"
+	require.NoError(t, os.WriteFile(filepath.Join(root, "specs", "policies", "invalid.md"), []byte(invalid), 0o600))
+
+	_, issues := contextpkg.Refresh(stdcontext.Background(), root, contextpkg.ReadOnly)
+
+	require.NotEmpty(t, errorsOnly(issues))
+	require.Equal(t, "context.error.document", errorsOnly(issues)[0].Code)
+	require.Contains(t, errorsOnly(issues)[0].Message, "schema")
+}
+
 func contextFixture(t *testing.T, semanticConflict bool) string {
 	t.Helper()
 	root := t.TempDir()
