@@ -268,7 +268,7 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 
 - [x] **Step 4: Smoke-test a native binary against new project, existing adoption, context audit, Git inspect, and core RC.** Verify no files outside temporary fixtures or the isolated product repository changed.
 
-- [ ] **Step 5: Review `git diff main...HEAD`, run `git diff --check`, commit final verification metadata, and prepare the independent external repository path without publishing.**
+- [x] **Step 5: Review `git diff main...HEAD`, run `git diff --check`, commit final verification metadata, and prepare the independent external repository path without publishing.**
 
 Commit: `chore(release): complete focused product verification`
 
