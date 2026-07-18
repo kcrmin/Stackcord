@@ -48,10 +48,12 @@ func Reconcile(expectation Expectation, mapping Mapping, snapshot Snapshot, now 
 	default:
 		add("provider.capability-invalid", "Provider claim capability is invalid.", snapshot.Capabilities.Claim)
 	}
-	if activeStatus(snapshot.Status) && snapshot.Capabilities.Claim != "atomic" && snapshot.Capabilities.Claim != "verified" {
-		add("provider.claim-unverified", "The provider cannot confirm exclusive active ownership.", snapshot.Capabilities.Claim)
+	// Advisory assignment is still a valid live observation. Exclusive semantic
+	// ownership is established separately through the Git coordination CAS.
+	if activeStatus(snapshot.Status) && snapshot.Capabilities.Claim == "none" {
+		add("provider.owner-unobservable", "Active work must expose an assigned owner before semantic scope can be reserved.")
 	}
-	if activeStatus(snapshot.Status) && snapshot.Capabilities.Claim != "none" && strings.TrimSpace(snapshot.Owner) == "" {
+	if activeStatus(snapshot.Status) && strings.TrimSpace(snapshot.Owner) == "" {
 		add("provider.owner-missing", "Active provider work has no observable owner.")
 	}
 	if !knownStatus(snapshot.Status) {

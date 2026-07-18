@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import datetime
 import hashlib
 import json
 import os
@@ -86,7 +87,170 @@ class Dogfood:
         self.prove_integration(root)
         self.prove_release(root)
         self.prove_clone_recovery(root)
+        self.prove_external_provider_bridge()
         self.prove_product_self_adoption()
+
+    def prove_external_provider_bridge(self) -> None:
+        remote = self.workspace / "remotes" / "external-provider.git"
+        root = self.workspace / "external-provider"
+        self.git(self.workspace, "init", "--bare", "--initial-branch=main", str(remote))
+        self.git(self.workspace, "init", "--initial-branch=main", str(root))
+        self.git_identity(root)
+        self.git(root, "remote", "add", "origin", str(remote))
+        self.write(root / "README.md", "external task provider bridge fixture\n")
+        self.git(root, "add", "README.md")
+        self.git(root, "commit", "-m", "chore: initialize task provider fixture")
+        self.git(root, "push", "-u", "origin", "main")
+
+        adopted = self.cli(
+            "project", "adopt", "--root", str(root), "--id", "project.external-provider",
+            "--name", "External Provider Fixture", "--locale", "en", "--apply",
+        )
+        self.expect_status(adopted, "passed", "external provider adoption")
+        self.write(
+            root / ".harness" / "work" / "provider.yaml",
+            "schema_version: 1\nprovider: github\nlive_status_source: github\n"
+            + "remote: origin\ncoordination_branch: coordination\n",
+        )
+        definition = self.work_definition(
+            "work.provider-bridge",
+            "Connect external task ownership",
+            "A visible external task and Git semantic reservation identify the same owner and scope.",
+            ["workspace.root"],
+            ["repository.root"],
+            ["service/**"],
+            evidence=["test"],
+        )
+        definition_path = self.workspace / "inputs" / "external-provider-work.json"
+        self.write(definition_path, json.dumps(definition, sort_keys=True, indent=2) + "\n")
+        defined = self.cli("work", "define", "--root", str(root), "--input", str(definition_path), "--apply")
+        self.expect_status(defined, "passed", "external provider work definition")
+        generated = root / ".harness" / "work" / "definitions" / "work.provider-bridge.yaml"
+        fingerprint = next(
+            (line.split(":", 1)[1].strip() for line in generated.read_text(encoding="utf-8").splitlines() if line.startswith("fingerprint:")),
+            "",
+        )
+        if not fingerprint:
+            raise ScenarioError("external provider work fingerprint was not generated")
+        mapping = {
+            "schema_version": 1,
+            "work_id": "work.provider-bridge",
+            "definition_fingerprint": fingerprint,
+            "provider": "github",
+            "item_id": "42",
+            "dependency_items": {},
+        }
+        mapping_path = self.workspace / "inputs" / "external-provider-mapping.json"
+        snapshot_path = root / ".harness" / "local" / "providers" / "github" / "work.provider-bridge.yaml"
+        self.write(mapping_path, json.dumps(mapping, sort_keys=True, indent=2) + "\n")
+
+        def snapshot(revision: str, status: str, owner: str, fetched_at: str | None = None) -> dict[str, Any]:
+            return {
+                "schema_version": 1,
+                "provider": "github",
+                "item_id": "42",
+                "revision": revision,
+                "status": status,
+                "owner": owner,
+                "dependencies": [],
+                "capabilities": {"hierarchy": True, "dependencies": True, "claim": "advisory", "revision": True},
+                "definition_fingerprint": fingerprint,
+                "fetched_at": fetched_at or datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+                "source": "connector-live",
+                "raw_hash": "sha256:" + hashlib.sha256(revision.encode("utf-8")).hexdigest(),
+            }
+
+        self.write(snapshot_path, json.dumps(snapshot("issue-revision-1", "in_progress", "alex"), sort_keys=True, indent=2) + "\n")
+        reconciled = self.cli(
+            "work", "provider", "reconcile", "--root", str(root), "--mapping", str(mapping_path),
+            "--snapshot", str(snapshot_path), "--apply",
+        )
+        self.expect_status(reconciled, "passed", "external provider initial reconciliation")
+        self.git(root, "add", ".")
+        self.git(root, "commit", "-m", "chore: configure task tracking")
+        self.git(root, "push", "origin", "main")
+
+        started = self.cli(
+            "work", "start", "--root", str(root), "--work-id", "work.provider-bridge",
+            "--claim-id", "claim.provider-bridge", "--owner", "alex",
+            "--branch", "feature/provider-bridge", "--apply",
+        )
+        start_evidence = {item.get("code") for item in started.get("evidence", [])}
+        start_warnings = {item.get("code") for item in started.get("warnings", [])}
+        self.require(
+            "provider.external-assignment-reserved",
+            {"provider.live-revision", "coordination.semantic-reservation"}.issubset(start_evidence)
+            and "provider.assignment-advisory" in start_warnings,
+            "a visible external assignment was bound to one exclusive Git semantic reservation",
+        )
+
+        self.write(snapshot_path, json.dumps(snapshot("issue-revision-2", "blocked", "alex"), sort_keys=True, indent=2) + "\n")
+        changed = self.cli(
+            "work", "provider", "reconcile", "--root", str(root), "--mapping", str(mapping_path),
+            "--snapshot", str(snapshot_path), "--apply",
+        )
+        self.expect_status(changed, "passed", "external provider changed reconciliation")
+        transitioned = self.cli(
+            "work", "transition", "--root", str(root), "--work-id", "work.provider-bridge",
+            "--target", "blocked", "--apply",
+        )
+        transition_evidence = {item.get("code") for item in transitioned.get("evidence", [])}
+        self.require(
+            "provider.external-transition-synchronized",
+            {"provider.live-revision", "coordination.semantic-reservation"}.issubset(transition_evidence),
+            "the exact external status revision was verified before Git semantic coordination changed",
+        )
+
+        local_status = self.cli("status", "--root", str(root))
+        local_work = next((item for item in local_status.get("active_work", []) if item.get("id") == "work.provider-bridge"), {})
+        self.require(
+            "provider.external-local-context",
+            local_status.get("provider", {}).get("confidence") == "confirmed"
+            and local_work.get("owner") == "alex"
+            and local_work.get("branch") == "feature/provider-bridge"
+            and local_work.get("state") == "blocked",
+            "fresh external state and the Git semantic reservation formed one local continuity view",
+        )
+
+        cloned = self.workspace / "external-provider-clone"
+        self.git(self.workspace, "clone", str(remote), str(cloned))
+        self.git_identity(cloned)
+        clone_result, clone_status = self.cli_raw("status", "--root", str(cloned))
+        recovered_work = next((item for item in (clone_status or {}).get("active_work", []) if item.get("id") == "work.provider-bridge"), {})
+        clone_issues = {item.get("code") for item in (clone_status or {}).get("issues", [])}
+        self.require(
+            "provider.external-clone-reservation-recovered",
+            clone_result.returncode != 0
+            and "provider.live-unknown" in clone_issues
+            and recovered_work.get("owner") == "alex"
+            and recovered_work.get("branch") == "feature/provider-bridge"
+            and recovered_work.get("state") == "blocked",
+            "a clean clone recovered semantic ownership while correctly requiring a fresh external-provider read",
+        )
+
+        integration_result, integration = self.cli_raw("integrate", "plan", "--root", str(root))
+        integration_codes = {item.get("code") for item in (integration or {}).get("blockers", [])}
+        self.require(
+            "provider.external-integration-identity",
+            integration_result.returncode != 0
+            and "integrate.work-not-reviewable" in integration_codes
+            and "integrate.provider-unknown" not in integration_codes
+            and "integrate.provider-drift" not in integration_codes,
+            "integration recognized the combined external and Git revisions, then blocked only because work was not reviewable",
+        )
+
+        stale_time = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1)).isoformat().replace("+00:00", "Z")
+        self.write(snapshot_path, json.dumps(snapshot("issue-revision-stale", "in_progress", "alex", stale_time), sort_keys=True, indent=2) + "\n")
+        stale_result, stale = self.cli_raw(
+            "work", "provider", "reconcile", "--root", str(root), "--mapping", str(mapping_path),
+            "--snapshot", str(snapshot_path),
+        )
+        stale_codes = {item.get("code") for key in ("blockers", "warnings") for item in (stale or {}).get(key, [])}
+        self.require(
+            "provider.external-stale-rejected",
+            stale_result.returncode != 0 and "provider.snapshot-stale" in stale_codes,
+            "an old connector observation could not authorize task or semantic state changes",
+        )
 
     def prove_product_self_adoption(self) -> None:
         source = self.product_root

@@ -36,3 +36,9 @@ required_assertions:
   - release.exact-candidate
   - release.tamper-blocked
   - self.product-adopt-and-live-work
+  - provider.external-assignment-reserved
+  - provider.external-transition-synchronized
+  - provider.external-stale-rejected
+  - provider.external-local-context
+  - provider.external-clone-reservation-recovered
+  - provider.external-integration-identity

@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -46,6 +48,21 @@ func TestReconcileDetectsDependencyMappingDrift(t *testing.T) {
 
 	require.Equal(t, Unknown, state.Confidence)
 	require.Contains(t, providerCodes(state.Issues), "provider.dependency-drift")
+}
+
+func TestCanonicalMappingLocationRejectsEscapedParentSymlink(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness", "work"), 0o700))
+	if err := os.Symlink(outside, filepath.Join(root, ".harness", "work", "mappings")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	target := filepath.Join(outside, "work.account-recovery.yaml")
+	require.NoError(t, os.WriteFile(target, []byte("escaped\n"), 0o600))
+
+	err := ValidateCanonicalMappingLocation(root, filepath.Join(root, ".harness", "work", "mappings", "work.account-recovery.yaml"))
+
+	require.Error(t, err)
 }
 
 func validExpectation() Expectation {

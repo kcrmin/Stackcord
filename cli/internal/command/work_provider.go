@@ -1,6 +1,8 @@
 package command
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -80,11 +82,15 @@ func newWorkProviderReconcile(version string, jsonOutput *bool) *cobra.Command {
 					if marshalErr != nil {
 						return marshalErr
 					}
-					plan, planErr := providerMappingPlan(located.Path, mapping.WorkID, data)
+					snapshotData, marshalErr := yaml.Marshal(snapshot)
+					if marshalErr != nil {
+						return marshalErr
+					}
+					plan, planErr := providerReconcilePlan(located.Path, mapping, data, snapshotData)
 					if planErr != nil {
 						return planErr
 					}
-					result.Changes = []domain.Item{{Code: "provider.mapping-planned", Message: plan.Files[0].Path}}
+					result.Changes = []domain.Item{{Code: "provider.mapping-planned", Message: plan.Files[0].Path}, {Code: "provider.observation-local-planned", Message: plan.Files[1].Path}}
 				}
 				return writeResult(cmd, *jsonOutput, result)
 			}
@@ -92,7 +98,11 @@ func newWorkProviderReconcile(version string, jsonOutput *bool) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			plan, err := providerMappingPlan(located.Path, mapping.WorkID, data)
+			snapshotData, err := yaml.Marshal(snapshot)
+			if err != nil {
+				return err
+			}
+			plan, err := providerReconcilePlan(located.Path, mapping, data, snapshotData)
 			if err != nil {
 				return err
 			}
@@ -106,7 +116,7 @@ func newWorkProviderReconcile(version string, jsonOutput *bool) *cobra.Command {
 	command.Flags().StringVar(&root, "root", ".", "project root or child path")
 	command.Flags().StringVar(&mappingPath, "mapping", "", "strict provider mapping YAML or JSON")
 	command.Flags().StringVar(&snapshotPath, "snapshot", "", "fresh normalized snapshot under local provider state or a temporary path")
-	command.Flags().BoolVar(&apply, "apply", false, "write only the stable provider mapping")
+	command.Flags().BoolVar(&apply, "apply", false, "write the stable mapping and ignored local observation")
 	_ = command.MarkFlagRequired("mapping")
 	_ = command.MarkFlagRequired("snapshot")
 	return command
@@ -155,13 +165,15 @@ func findDefinition(definitions []work.Definition, id string) (work.Definition, 
 	return work.Definition{}, false
 }
 
-func providerMappingPlan(root, workID string, data []byte) (operation.Plan, error) {
+func providerReconcilePlan(root string, mapping provider.Mapping, mappingData, snapshotData []byte) (operation.Plan, error) {
+	digest := sha256.Sum256(snapshotData)
 	plan := operation.Plan{
-		ID:   "provider-map-" + strings.ReplaceAll(workID, ".", "-"),
+		ID:   "provider-reconcile-" + strings.ReplaceAll(mapping.WorkID, ".", "-") + "-" + hex.EncodeToString(digest[:6]),
 		Root: root,
-		Files: []operation.FileChange{{
-			Path: filepath.ToSlash(filepath.Join(".harness", "work", "mappings", workID+".yaml")), Content: data, Mode: 0o644,
-		}},
+		Files: []operation.FileChange{
+			{Path: filepath.ToSlash(filepath.Join(".harness", "work", "mappings", mapping.WorkID+".yaml")), Content: mappingData, Mode: 0o644},
+			{Path: filepath.ToSlash(filepath.Join(".harness", "local", "providers", mapping.Provider, mapping.WorkID+".yaml")), Content: snapshotData, Mode: 0o600},
+		},
 	}
 	var err error
 	plan.InitialStateFingerprint, err = operation.StateFingerprint(plan)
@@ -198,10 +210,13 @@ func candidateFromDefinition(definition work.Definition, now time.Time) policy.C
 	}
 }
 
-func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, request project.StartWorkRequest, definition work.Definition, plan operation.Plan, config taskProviderConfig) error {
+func applyCoordinatedStart(cmd *cobra.Command, jsonOutput bool, version string, request project.StartWorkRequest, definition work.Definition, plan operation.Plan, config taskProviderConfig, external *externalProviderObservation) error {
 	store := provider.NewGitLocalStore(request.Root, config.Remote, config.CoordinationBranch)
 	current, err := store.Read(cmd.Context())
 	if errors.Is(err, provider.ErrNoRemote) {
+		if external != nil {
+			return writeResult(cmd, jsonOutput, lifecycleBlocked(version, "work.start", "coordination.remote-required", "External task assignment cannot reserve cross-repository semantic scope without a reachable Git coordination remote.", config.Remote))
+		}
 		result := operation.Apply(cmd.Context(), plan)
 		result.ToolVersion, result.Command = version, "work.start"
 		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.single-user-local", Message: "No Git coordination remote was available; this claim is local advisory state and is not a team lock."})
@@ -252,8 +267,18 @@ func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, req
 	}
 	result := operation.Apply(cmd.Context(), plan)
 	result.ToolVersion, result.Command = version, "work.start"
-	result.Facts = append(result.Facts, domain.Item{Code: "provider.name", Message: "git-local"})
-	result.Evidence = append(result.Evidence, domain.Item{Code: "provider.git-local-claim", Message: revision, Refs: []string{request.WorkID, request.Owner}})
+	result.Facts = append(result.Facts, domain.Item{Code: "provider.name", Message: config.LiveStatusSource})
+	if external == nil {
+		result.Evidence = append(result.Evidence, domain.Item{Code: "provider.git-local-claim", Message: revision, Refs: []string{request.WorkID, request.Owner}})
+	} else {
+		result.Evidence = append(result.Evidence,
+			domain.Item{Code: "provider.live-revision", Message: observationRevision(*external), Refs: []string{external.State.Provider, external.State.ItemID}},
+			domain.Item{Code: "coordination.semantic-reservation", Message: revision, Refs: []string{request.WorkID, request.Owner}},
+		)
+		if external.Snapshot.Capabilities.Claim == "advisory" {
+			result.Warnings = append(result.Warnings, domain.Item{Code: "provider.assignment-advisory", Message: "The task provider assignment is advisory; the verified Git CAS reservation is the exclusive semantic lock.", Refs: []string{external.State.Provider, external.State.ItemID}})
+		}
+	}
 	if result.Status != domain.StatusPassed {
 		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.claim-active", Message: "The remote claim succeeded but the local checkpoint failed; resume the same work instead of claiming again.", Refs: []string{request.WorkID, revision}})
 	} else {

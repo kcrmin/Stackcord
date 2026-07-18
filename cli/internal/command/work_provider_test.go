@@ -18,7 +18,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-func TestProviderReconcileCommitsOnlyStableMapping(t *testing.T) {
+func TestProviderReconcileCommitsOnlyStableMappingAndKeepsObservationLocal(t *testing.T) {
 	root := providerProject(t)
 	definition := providerDefinition()
 	plan, err := work.PlanDefinition(context.Background(), root, definition)
@@ -47,7 +47,97 @@ func TestProviderReconcileCommitsOnlyStableMapping(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(data), "owner:")
 	require.NotContains(t, string(data), "status:")
-	require.NoFileExists(t, filepath.Join(root, ".harness", "local", "providers", "jira", definition.ID+".json"))
+	observation := filepath.Join(root, ".harness", "local", "providers", "jira", definition.ID+".yaml")
+	require.FileExists(t, observation)
+	observationData, err := os.ReadFile(observation)
+	require.NoError(t, err)
+	require.Contains(t, string(observationData), "status: ready")
+	require.Contains(t, string(observationData), "source: connector-live")
+}
+
+func TestExternalProviderStartUsesFreshAssignmentAndGitSemanticReservation(t *testing.T) {
+	root, remote := commandSharedRemote(t)
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "adopt", "--root", root, "--id", "project.external-provider", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: github\nlive_status_source: github\nremote: origin\ncoordination_branch: coordination\n"), 0o600))
+	defineCommandWork(t, root, "work.account-recovery", "services/identity/**")
+	definition, found, err := loadDefinitionFixture(root, "work.account-recovery")
+	require.NoError(t, err)
+	require.True(t, found)
+
+	mapping := provider.Mapping{SchemaVersion: 1, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Provider: "github", ItemID: "42", DependencyItems: map[string]string{}}
+	snapshot := provider.Snapshot{
+		SchemaVersion: 1, Provider: "github", ItemID: "42", Revision: "etag-42", Status: "in_progress", Owner: "alex", Dependencies: []string{},
+		Capabilities: provider.Capabilities{Hierarchy: true, Dependencies: true, Claim: "advisory", Revision: true}, DefinitionFingerprint: definition.Fingerprint,
+		FetchedAt: time.Now().UTC(), Source: "connector-live", RawHash: "sha256:" + strings.Repeat("c", 64),
+	}
+	reconcileProviderFixture(t, root, mapping, snapshot)
+	commandGit(t, root, "add", ".")
+	commandGit(t, root, "commit", "-m", "chore: configure task tracking")
+	commandGit(t, root, "push")
+
+	var output bytes.Buffer
+	start := command.New("1.0.0", &output, &bytes.Buffer{})
+	start.SetArgs([]string{"work", "start", "--root", root, "--work-id", definition.ID, "--claim-id", "claim.account-recovery", "--owner", "alex", "--branch", "feature/account-recovery", "--apply", "--json"})
+	require.NoError(t, start.Execute())
+	require.Equal(t, 0, command.ExitCode(start), output.String())
+	require.Contains(t, output.String(), "provider.live-revision")
+	require.Contains(t, output.String(), "coordination.semantic-reservation")
+	require.Contains(t, output.String(), "provider.assignment-advisory")
+
+	observed, err := provider.NewGitLocalStore(root, remote, "coordination").Read(context.Background())
+	require.NoError(t, err)
+	require.Len(t, observed.Claims, 1)
+	require.Equal(t, definition.ID, observed.Claims[0].WorkID)
+	require.Equal(t, definition.Fingerprint, observed.Claims[0].DefinitionFingerprint)
+	require.Equal(t, "alex", observed.Claims[0].Owner)
+	require.FileExists(t, filepath.Join(root, ".harness", "work", "claims", "claim.account-recovery.yaml"))
+}
+
+func TestExternalProviderStartRejectsAssignmentForAnotherOwner(t *testing.T) {
+	root, _ := commandSharedRemote(t)
+	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	init.SetArgs([]string{"project", "adopt", "--root", root, "--id", "project.external-owner", "--locale", "en", "--apply", "--json"})
+	require.NoError(t, init.Execute())
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: jira\nlive_status_source: jira\nremote: origin\ncoordination_branch: coordination\n"), 0o600))
+	defineCommandWork(t, root, "work.account-recovery", "services/identity/**")
+	definition, found, err := loadDefinitionFixture(root, "work.account-recovery")
+	require.NoError(t, err)
+	require.True(t, found)
+	mapping := provider.Mapping{SchemaVersion: 1, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Provider: "jira", ItemID: "JIRA-42", DependencyItems: map[string]string{}}
+	snapshot := provider.Snapshot{SchemaVersion: 1, Provider: "jira", ItemID: "JIRA-42", Revision: "42", Status: "in_progress", Owner: "sam", Dependencies: []string{}, Capabilities: provider.Capabilities{Hierarchy: true, Dependencies: true, Claim: "verified", Revision: true}, DefinitionFingerprint: definition.Fingerprint, FetchedAt: time.Now().UTC(), Source: "connector-live", RawHash: "sha256:" + strings.Repeat("d", 64)}
+	reconcileProviderFixture(t, root, mapping, snapshot)
+	commandGit(t, root, "add", ".")
+	commandGit(t, root, "commit", "-m", "chore: configure task tracking")
+	commandGit(t, root, "push")
+
+	var output bytes.Buffer
+	start := command.New("1.0.0", &output, &bytes.Buffer{})
+	start.SetArgs([]string{"work", "start", "--root", root, "--work-id", definition.ID, "--claim-id", "claim.account-recovery", "--owner", "alex", "--branch", "feature/account-recovery", "--apply", "--json"})
+	require.NoError(t, start.Execute())
+	require.NotEqual(t, 0, command.ExitCode(start), output.String())
+	require.Contains(t, output.String(), "provider.owner-mismatch")
+}
+
+func TestWorkNextUsesFreshExternalObservationsWithoutTreatingThemAsCanonicalFiles(t *testing.T) {
+	root := providerProject(t)
+	definition := providerDefinition()
+	plan, err := work.PlanDefinition(context.Background(), root, definition)
+	require.NoError(t, err)
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
+	definition.Fingerprint = work.Fingerprint(definition)
+	mapping := provider.Mapping{SchemaVersion: 1, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Provider: "jira", ItemID: "JIRA-123", DependencyItems: map[string]string{}}
+	snapshot := provider.Snapshot{SchemaVersion: 1, Provider: "jira", ItemID: "JIRA-123", Revision: "43", Status: "ready", Dependencies: []string{}, Capabilities: provider.Capabilities{Hierarchy: true, Dependencies: true, Claim: "verified", Revision: true}, DefinitionFingerprint: definition.Fingerprint, FetchedAt: time.Now().UTC(), Source: "connector-live", RawHash: "sha256:" + strings.Repeat("e", 64)}
+	reconcileProviderFixture(t, root, mapping, snapshot)
+
+	var output bytes.Buffer
+	next := command.New("1.0.0", &output, &bytes.Buffer{})
+	next.SetArgs([]string{"work", "next", "--root", root, "--json"})
+	require.NoError(t, next.Execute())
+	require.Equal(t, 0, command.ExitCode(next), output.String())
+	require.Contains(t, output.String(), "work.recommended")
+	require.Contains(t, output.String(), definition.ID)
 }
 
 func TestProviderReconcileRejectsProviderOtherThanSelectedLiveSource(t *testing.T) {
@@ -102,4 +192,28 @@ func writeProviderFixture(t *testing.T, name string, value any) string {
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, data, 0o600))
 	return path
+}
+
+func reconcileProviderFixture(t *testing.T, root string, mapping provider.Mapping, snapshot provider.Snapshot) {
+	t.Helper()
+	mappingPath := writeProviderFixture(t, "mapping.yaml", mapping)
+	snapshotPath := writeProviderFixture(t, "snapshot.yaml", snapshot)
+	var output bytes.Buffer
+	reconcile := command.New("1.0.0", &output, &bytes.Buffer{})
+	reconcile.SetArgs([]string{"work", "provider", "reconcile", "--root", root, "--mapping", mappingPath, "--snapshot", snapshotPath, "--apply", "--json"})
+	require.NoError(t, reconcile.Execute())
+	require.Equal(t, 0, command.ExitCode(reconcile), output.String())
+}
+
+func loadDefinitionFixture(root, id string) (work.Definition, bool, error) {
+	definitions, err := work.LoadDefinitions(root)
+	if err != nil {
+		return work.Definition{}, false, err
+	}
+	for _, definition := range definitions {
+		if definition.ID == id {
+			return definition, true, nil
+		}
+	}
+	return work.Definition{}, false, nil
 }

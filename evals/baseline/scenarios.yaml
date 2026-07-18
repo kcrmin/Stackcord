@@ -21,6 +21,12 @@
       "manual_note": "Branches alone do not provide an atomic service-scope ownership reservation."
     },
     {
+      "id": "external-task-semantic-reservation",
+      "harness_assertions": ["provider.external-assignment-reserved", "provider.external-transition-synchronized", "provider.external-stale-rejected", "provider.external-local-context", "provider.external-clone-reservation-recovered", "provider.external-integration-identity"],
+      "manual_deterministic": false,
+      "manual_note": "An issue assignee and branch do not atomically reserve contract, policy, database, UI, dependency, and pointer meaning or reject stale connector reads."
+    },
+    {
       "id": "path-disjoint-semantic-conflict",
       "harness_assertions": ["conflict.semantic-path-disjoint"],
       "manual_deterministic": false,

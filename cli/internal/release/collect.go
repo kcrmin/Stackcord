@@ -523,10 +523,28 @@ func (selectedProviderReader) Read(ctx context.Context, root string, definitions
 		}
 		return states, nil
 	}
+	if config.Remote == "" {
+		config.Remote = "origin"
+	}
+	if config.CoordinationBranch == "" {
+		config.CoordinationBranch = "coordination"
+	}
+	coordinated, coordinateErr := provider.NewGitLocalStore(root, config.Remote, config.CoordinationBranch).Read(ctx)
+	if coordinateErr != nil {
+		return nil, []domain.Item{releaseIssue("release.provider-unknown", "Git semantic reservations could not be read for the selected task source.")}
+	}
+	claims := make(map[string]provider.GitLocalClaim, len(coordinated.Claims))
+	for _, claim := range coordinated.Claims {
+		claims[claim.WorkID] = claim
+	}
 	states, issues := []integration.ProviderState{}, []domain.Item{}
 	for _, definition := range definitions {
 		mappingPath := filepath.Join(root, ".harness", "work", "mappings", definition.ID+".yaml")
-		snapshotPath := filepath.Join(root, ".harness", "local", "providers", definition.ID+".yaml")
+		snapshotPath := filepath.Join(root, ".harness", "local", "providers", config.Provider, definition.ID+".yaml")
+		if provider.ValidateCanonicalMappingLocation(root, mappingPath) != nil || provider.ValidateCanonicalSnapshotLocation(root, snapshotPath) != nil {
+			issues = append(issues, releaseIssue("release.provider-unknown", "Provider mapping or observation escaped its canonical local boundary.", definition.ID, config.Provider))
+			continue
+		}
 		mapping, mappingErr := provider.LoadMapping(mappingPath)
 		snapshot, snapshotErr := provider.LoadSnapshot(snapshotPath)
 		if mappingErr != nil || snapshotErr != nil {
@@ -534,9 +552,32 @@ func (selectedProviderReader) Read(ctx context.Context, root string, definitions
 			continue
 		}
 		state := provider.Reconcile(provider.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, snapshot, time.Now().UTC())
-		states = append(states, integration.ProviderState{WorkID: definition.ID, Status: state.Status, Revision: state.Revision, DefinitionFingerprint: definition.Fingerprint, Confirmed: state.Confidence == provider.Confirmed})
+		claim, exists := claims[definition.ID]
+		claimStatus := claim.Status
+		if claimStatus == "" {
+			claimStatus = "in_progress"
+		}
+		providerStatus := normalizeReleaseProviderStatus(state.Status)
+		ownerClearedAtTerminal := providerStatus == "done" && state.Owner == ""
+		if state.Confidence != provider.Confirmed || mapping.Provider != config.Provider || !exists || claim.DefinitionFingerprint != definition.Fingerprint || claimStatus != providerStatus || (!ownerClearedAtTerminal && claim.Owner != state.Owner) {
+			issues = append(issues, releaseIssue("release.provider-drift", "External task state differs from its Git semantic reservation.", definition.ID, config.Provider))
+			continue
+		}
+		revision := state.Revision
+		if revision == "" {
+			revision = snapshot.RawHash
+		}
+		digest := sha256.Sum256([]byte(revision + "\x00" + provider.ClaimRevision(claim)))
+		states = append(states, integration.ProviderState{WorkID: definition.ID, Status: providerStatus, Revision: "sha256:" + hex.EncodeToString(digest[:]), DefinitionFingerprint: definition.Fingerprint, Confirmed: true})
 	}
 	return states, issues
+}
+
+func normalizeReleaseProviderStatus(value string) string {
+	if value == "closed" {
+		return "done"
+	}
+	return value
 }
 
 func hashReleaseSources(root string, sources []string) (string, error) {

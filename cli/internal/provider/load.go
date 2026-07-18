@@ -53,11 +53,15 @@ func ValidateSnapshotLocation(root, path string) error {
 	if err != nil {
 		return err
 	}
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
 	path, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
-	localRoot := filepath.Join(root, ".harness", "local", "providers")
+	localRoot := filepath.Join(resolvedRoot, ".harness", "local", "providers")
 	temporaryRoot, tempErr := filepath.EvalSymlinks(os.TempDir())
 	if tempErr != nil {
 		temporaryRoot = os.TempDir()
@@ -70,6 +74,40 @@ func ValidateSnapshotLocation(root, path string) error {
 		return nil
 	}
 	return fmt.Errorf("provider snapshots must stay under .harness/local/providers or an explicit temporary path")
+}
+
+// ValidateCanonicalMappingLocation ensures a repository mapping cannot escape
+// its committed directory through a parent symlink.
+func ValidateCanonicalMappingLocation(root, path string) error {
+	if !canonicalProviderLocation(root, path, ".harness", "work", "mappings") {
+		return fmt.Errorf("canonical provider mappings must stay under .harness/work/mappings")
+	}
+	return nil
+}
+
+// ValidateCanonicalSnapshotLocation ensures an ignored observation has not
+// escaped through a symlink, even when the project itself lives under /tmp.
+func ValidateCanonicalSnapshotLocation(root, path string) error {
+	if !canonicalProviderLocation(root, path, ".harness", "local", "providers") {
+		return fmt.Errorf("canonical provider observations must stay under .harness/local/providers")
+	}
+	return nil
+}
+
+func canonicalProviderLocation(root, path string, directory ...string) bool {
+	root, err := filepath.Abs(root)
+	if err != nil {
+		return false
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return false
+	}
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false
+	}
+	return pathWithin(filepath.Join(append([]string{resolvedRoot}, directory...)...), resolved)
 }
 
 func regularProviderFile(path string) error {

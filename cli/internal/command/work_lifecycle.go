@@ -194,11 +194,6 @@ func newWorkTransition(version string, jsonOutput *bool, aliasTarget workpkg.Sta
 		if err != nil {
 			return err
 		}
-		if config.LiveStatusSource != "git-local" {
-			result := lifecycleBlocked(version, "work."+use, "provider.connector-required", "Ask the selected provider connector to change status, then re-read and reconcile the exact live revision.", config.LiveStatusSource)
-			result.Status, result.ExitCode = domain.StatusUnknown, domain.ExitUnavailable
-			return writeResult(cmd, *jsonOutput, result)
-		}
 		store := provider.NewGitLocalStore(located.Path, config.Remote, config.CoordinationBranch)
 		current, err := store.Read(cmd.Context())
 		if err != nil {
@@ -219,7 +214,32 @@ func newWorkTransition(version string, jsonOutput *bool, aliasTarget workpkg.Sta
 			return err
 		}
 		claim := current.Claims[claimIndex]
-		live := workpkg.LiveState{Status: gitLocalWorkState(claim.Status), Owner: claim.Owner, Revision: current.Revision, Confirmed: true, Children: childStates(located.Path, definition.ID, current.Claims), RootPointersConfirmed: rootPointersConfirmed(cmd, located.Path, located.Manifest, definition)}
+		liveRevision := current.Revision
+		var external *externalProviderObservation
+		if config.LiveStatusSource != "git-local" {
+			observation, observationErr := loadExternalProviderObservation(located.Path, config, definition, time.Now().UTC())
+			if observationErr != nil || observation.State.Confidence != provider.Confirmed {
+				return writeResult(cmd, *jsonOutput, externalObservationBlocked(version, "work."+use, observation, observationErr))
+			}
+			observedStatus, statusValid := providerWorkState(observation.State.Status)
+			if !statusValid {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work."+use, "provider.status-unknown", "The external task status is not mapped to the executable lifecycle.", observation.State.Status))
+			}
+			currentStatus := gitLocalWorkState(claim.Status)
+			if observedStatus != currentStatus && observedStatus != target {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work."+use, "provider.status-mismatch", "The external task status differs from both the last coordinated state and the requested target.", string(currentStatus), observation.State.Status, string(target)))
+			}
+			terminalWithoutOwner := target == workpkg.Done && observedStatus == target && strings.TrimSpace(observation.State.Owner) == ""
+			if !terminalWithoutOwner && strings.TrimSpace(observation.State.Owner) != strings.TrimSpace(claim.Owner) {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work."+use, "provider.owner-mismatch", "The freshly observed task owner differs from the semantic reservation owner.", claim.Owner, observation.State.Owner))
+			}
+			if apply && observedStatus != target {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work."+use, "provider.target-not-confirmed", "Change the external task status, re-read it through the connector, and reconcile the exact target before applying.", string(target), observation.State.Status))
+			}
+			external = &observation
+			liveRevision = observationRevision(observation)
+		}
+		live := workpkg.LiveState{Status: gitLocalWorkState(claim.Status), Owner: claim.Owner, Revision: liveRevision, Confirmed: true, Children: childStates(located.Path, definition.ID, current.Claims), RootPointersConfirmed: rootPointersConfirmed(cmd, located.Path, located.Manifest, definition)}
 		result := workpkg.Transition(definition, live, records, target)
 		result.ToolVersion, result.Command = version, "work."+use
 		result.Warnings = append(result.Warnings, warnings...)
@@ -229,8 +249,16 @@ func newWorkTransition(version string, jsonOutput *bool, aliasTarget workpkg.Sta
 		}
 		if result.Status != domain.StatusPassed || !apply {
 			if result.Status == domain.StatusPassed {
-				result.Summary = "Lifecycle transition is verified and ready to publish to the selected provider."
-				result.NextActions = []domain.Item{{Code: "work.transition.apply", Message: "Publish the verified transition and re-read its live revision."}}
+				if external == nil {
+					result.Summary = "Lifecycle transition is verified and ready to publish to the selected provider."
+					result.NextActions = []domain.Item{{Code: "work.transition.apply", Message: "Publish the verified transition and re-read its live revision."}}
+				} else if observedStatus, valid := providerWorkState(external.State.Status); valid && observedStatus == target {
+					result.Summary = "The external target revision and lifecycle evidence are verified; semantic coordination is ready to synchronize."
+					result.NextActions = []domain.Item{{Code: "work.transition.apply", Message: "Synchronize the verified target with the Git semantic reservation."}}
+				} else {
+					result.Summary = "Lifecycle evidence is verified before changing the external task source."
+					result.NextActions = []domain.Item{{Code: "provider.transition", Message: "Change the selected task item, re-read it through the connector, reconcile it, then rerun with --apply.", Refs: []string{config.LiveStatusSource, string(target)}}}
+				}
 			}
 			return writeResult(cmd, *jsonOutput, result)
 		}
@@ -248,8 +276,16 @@ func newWorkTransition(version string, jsonOutput *bool, aliasTarget workpkg.Sta
 			}
 			return writeResult(cmd, *jsonOutput, gitLocalFailureResult(version, "provider.transition-postcondition", "Published lifecycle state could not be confirmed.", err))
 		}
-		result.Summary = "Lifecycle transition was verified, published, and re-read from the selected provider."
-		result.Evidence = append(result.Evidence, domain.Item{Code: "provider.live-revision", Message: revision, Refs: []string{workID, string(target)}})
+		if external == nil {
+			result.Summary = "Lifecycle transition was verified, published, and re-read from the selected provider."
+			result.Evidence = append(result.Evidence, domain.Item{Code: "provider.live-revision", Message: revision, Refs: []string{workID, string(target)}})
+		} else {
+			result.Summary = "The external lifecycle revision was verified and its semantic reservation was synchronized through Git CAS."
+			result.Evidence = append(result.Evidence,
+				domain.Item{Code: "provider.live-revision", Message: observationRevision(*external), Refs: []string{external.State.Provider, external.State.ItemID, string(target)}},
+				domain.Item{Code: "coordination.semantic-reservation", Message: revision, Refs: []string{workID, string(target)}},
+			)
+		}
 		return writeResult(cmd, *jsonOutput, result)
 	}}
 	command.Flags().StringVar(&root, "root", ".", "project root or child path")
@@ -288,11 +324,6 @@ func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if config.LiveStatusSource != "git-local" {
-			result := lifecycleBlocked(version, "work.handoff", "provider.connector-required", "Transfer ownership in the selected provider, then re-read its owner and revision through the connector.", config.LiveStatusSource)
-			result.Status, result.ExitCode = domain.StatusUnknown, domain.ExitUnavailable
-			return writeResult(cmd, *jsonOutput, result)
-		}
 		store := provider.NewGitLocalStore(located.Path, config.Remote, config.CoordinationBranch)
 		current, err := store.Read(cmd.Context())
 		if err != nil {
@@ -314,6 +345,24 @@ func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
 		}
 		if claim.Status == "integrated" || claim.Status == "done" {
 			return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.handoff", "work.handoff-terminal", "Integrated or completed work no longer has implementation ownership to transfer.", workID))
+		}
+		var external *externalProviderObservation
+		if config.LiveStatusSource != "git-local" {
+			observation, observationErr := loadExternalProviderObservation(located.Path, config, definition, time.Now().UTC())
+			if observationErr != nil || observation.State.Confidence != provider.Confirmed {
+				return writeResult(cmd, *jsonOutput, externalObservationBlocked(version, "work.handoff", observation, observationErr))
+			}
+			if observation.State.Status != string(gitLocalWorkState(claim.Status)) {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.handoff", "provider.status-mismatch", "Ownership cannot change while the external lifecycle differs from the coordinated reservation.", claim.Status, observation.State.Status))
+			}
+			observedOwner := strings.TrimSpace(observation.State.Owner)
+			if observedOwner != strings.TrimSpace(claim.Owner) && observedOwner != strings.TrimSpace(owner) {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.handoff", "provider.owner-mismatch", "The external owner differs from both the current and requested owners.", claim.Owner, owner, observation.State.Owner))
+			}
+			if apply && observedOwner != strings.TrimSpace(owner) {
+				return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.handoff", "provider.handoff-not-confirmed", "Transfer the external task owner, re-read it through the connector, and reconcile it before applying the handoff.", owner, observation.State.Owner))
+			}
+			external = &observation
 		}
 		for _, blocker := range blockers {
 			if !validHandoffRef(blocker) {
@@ -350,7 +399,13 @@ func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
 		handoff := &provider.GitLocalHandoff{FromOwner: claim.Owner, ToOwner: owner, Workspace: workspaceID, Branch: claim.Branch, Commit: gitState.Head, LocalOnly: false, Evidence: evidenceIDs, Blockers: append([]string(nil), blockers...), NextAction: strings.TrimSpace(nextAction), RecordedAt: now}
 		result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.handoff", OperationID: "work-handoff-" + strings.ReplaceAll(workID, ".", "-"), Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Ownership-transfer checkpoint is verified and ready to publish.", Facts: []domain.Item{{Code: "work.handoff-owner", Message: owner, Refs: []string{claim.Owner}}, {Code: "git.branch", Message: gitState.Branch}, {Code: "git.commit", Message: gitState.Head}, {Code: "work.handoff-local-only", Message: "false"}}, Warnings: warnings}
 		if !apply {
-			result.NextActions = []domain.Item{{Code: "work.handoff.apply", Message: "Publish the exact ownership change and re-read the selected provider."}}
+			if external == nil {
+				result.NextActions = []domain.Item{{Code: "work.handoff.apply", Message: "Publish the exact ownership change and re-read the selected provider."}}
+			} else if external.State.Owner == owner {
+				result.NextActions = []domain.Item{{Code: "work.handoff.apply", Message: "Synchronize the verified external owner with the Git semantic reservation."}}
+			} else {
+				result.NextActions = []domain.Item{{Code: "provider.handoff", Message: "Transfer the selected task item, re-read it through the connector, reconcile it, then rerun with --apply.", Refs: []string{config.LiveStatusSource, owner}}}
+			}
 			return writeResult(cmd, *jsonOutput, result)
 		}
 		next := current
@@ -370,8 +425,16 @@ func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
 			}
 			return writeResult(cmd, *jsonOutput, gitLocalFailureResult(version, "provider.handoff-postcondition", "Published ownership transfer could not be confirmed.", err))
 		}
-		result.Summary = "Ownership changed with exact branch, commit, evidence, blockers, next action, and live revision confirmed."
-		result.Evidence = []domain.Item{{Code: "provider.live-revision", Message: revision, Refs: []string{workID, owner}}}
+		if external == nil {
+			result.Summary = "Ownership changed with exact branch, commit, evidence, blockers, next action, and live revision confirmed."
+			result.Evidence = []domain.Item{{Code: "provider.live-revision", Message: revision, Refs: []string{workID, owner}}}
+		} else {
+			result.Summary = "The external ownership change and exact Git checkpoint were verified, then semantic coordination was synchronized."
+			result.Evidence = []domain.Item{
+				{Code: "provider.live-revision", Message: observationRevision(*external), Refs: []string{external.State.Provider, external.State.ItemID, owner}},
+				{Code: "coordination.semantic-reservation", Message: revision, Refs: []string{workID, owner}},
+			}
+		}
 		return writeResult(cmd, *jsonOutput, result)
 	}}
 	command.Flags().StringVar(&root, "root", ".", "project root or claimed workspace")

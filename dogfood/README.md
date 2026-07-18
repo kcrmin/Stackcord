@@ -37,6 +37,7 @@ The executable scenario in `scenario.yaml` and `expected-results.json` verifies:
 - an orchestration root with actual frontend and backend submodules;
 - approved product, business-rule, and failure-behavior contracts;
 - one winner under a concurrent Git-local reservation race;
+- an external task assignment reconciled to a Git CAS semantic reservation, including lifecycle synchronization and stale-read rejection;
 - semantic conflict detection even when file paths do not overlap;
 - rejection of evidence from the wrong workspace;
 - red-then-green backend and frontend tests with commit-bound evidence;
@@ -50,6 +51,6 @@ The executable scenario in `scenario.yaml` and `expected-results.json` verifies:
 
 ## Boundaries / 한계
 
-The fixture intentionally uses local bare remotes behind public-looking placeholder URLs. It does not certify hosted GitHub or Jira writes, network reliability, production load, code signing, or marketplace publication. `report.md` compares raw deterministic scenario coverage only; it does not claim that the harness makes people a particular percentage faster.
+The fixture intentionally uses local bare remotes behind public-looking placeholder URLs. Its external-provider scenario executes the normalized connector boundary but does not certify hosted GitHub or Jira writes, network reliability, production load, code signing, or marketplace publication. `report.md` compares raw deterministic scenario coverage only; it does not claim that the harness makes people a particular percentage faster.
 
 이 fixture는 외부 GitHub/Jira 쓰기, 네트워크 신뢰성, 부하 성능, 코드 서명, marketplace 공개를 인증하지 않습니다. `report.md`의 수치는 결정적 검증 범위 비교이며 사람의 생산성 향상 수치가 아닙니다.

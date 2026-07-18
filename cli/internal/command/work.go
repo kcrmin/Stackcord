@@ -35,27 +35,34 @@ func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if providerConfig.LiveStatusSource != "git-local" {
-			result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: "The configured external task provider must be queried before recommending work.", Facts: []domain.Item{{Code: "work.provider", Message: providerConfig.LiveStatusSource}}, NextActions: []domain.Item{{Code: "work.provider-check", Message: "Use the configured provider adapter and rerun after live status is observable."}}}
-			return writeResult(cmd, *jsonOutput, result)
-		}
 		items, err := loadWorkItems(root)
 		if err != nil {
 			return err
 		}
-		claims, liveStatuses, err := loadClaimsAndStatuses(cmd.Context(), root)
+		claims, liveStatuses, providerComplete, providerIssues, err := loadClaimsAndStatuses(cmd.Context(), root)
 		if err != nil {
 			return err
+		}
+		if providerConfig.LiveStatusSource != "git-local" && !providerComplete {
+			result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: "The selected external task source has not been freshly observed for every canonical work item.", Facts: []domain.Item{{Code: "work.provider", Message: providerConfig.LiveStatusSource}}, Warnings: providerIssues, NextActions: []domain.Item{{Code: "work.provider-check", Message: "Read changed or missing items through the selected connector, reconcile them, then ask for the next task again."}}}
+			return writeResult(cmd, *jsonOutput, result)
 		}
 		snapshot, issues := contextpkg.Refresh(cmd.Context(), root, contextpkg.ReadOnly)
 		done := map[string]bool{}
 		for _, item := range items {
 			state, observed := liveStatuses[item.ID]
+			if providerConfig.LiveStatusSource != "git-local" && !observed {
+				continue
+			}
 			done[item.ID] = item.Status == domain.WorkDone || (observed && (state == workpkg.Integrated || state == workpkg.Done))
 		}
 		var ready []domain.WorkItem
 		for _, item := range items {
-			if state, observed := liveStatuses[item.ID]; observed && state != workpkg.Proposed && state != workpkg.ReadyState {
+			state, observed := liveStatuses[item.ID]
+			if providerConfig.LiveStatusSource != "git-local" && !observed {
+				continue
+			}
+			if observed && state != workpkg.Proposed && state != workpkg.ReadyState {
 				continue
 			}
 			if item.Status != domain.WorkReady && item.Status != domain.WorkProposed {
@@ -75,7 +82,7 @@ func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 			}
 		}
 		sort.Slice(ready, func(i, j int) bool { return ready[i].ID < ready[j].ID })
-		result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Dependency-ready work was evaluated from the selected local provider."}
+		result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.next", OperationID: "work-next-read-only", Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Dependency-ready work was evaluated from the selected live task source and Git semantic reservations.", Warnings: providerIssues}
 		for _, issue := range issues {
 			if strings.HasPrefix(issue.Code, "context.error") {
 				result.Blockers = append(result.Blockers, issue)
@@ -151,21 +158,43 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 		if definitionFound {
 			request.Candidate = candidateFromDefinition(definition, now)
 		}
+		providerConfig, err := loadTaskProvider(request.Root)
+		if err != nil {
+			return err
+		}
 		claims, err := loadClaims(cmd.Context(), request.Root)
 		if err != nil {
 			return err
+		}
+		if apply && providerConfig.LiveStatusSource != "git-local" {
+			filtered := claims[:0]
+			for _, claim := range claims {
+				if claim.ID != "claim.external-provider-unobservable" {
+					filtered = append(filtered, claim)
+				}
+			}
+			claims = filtered
 		}
 		request.ActiveClaims = claims
 		request.Snapshot, _ = contextpkg.Refresh(cmd.Context(), request.Root, contextpkg.ReadOnly)
 		plan := project.StartWork(request)
 		if apply && len(plan.Blockers) == 0 {
-			config, configErr := loadTaskProvider(request.Root)
-			if configErr != nil {
-				return configErr
-			}
+			config := providerConfig
 			if config.LiveStatusSource != "git-local" {
-				result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-provider-read-only", Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: "The selected external provider must claim and re-read this work before local implementation starts.", Blockers: []domain.Item{{Code: "provider.connector-required", Message: "Use the selected provider connector to claim this work, then reconcile its live revision."}}}
-				return writeResult(cmd, *jsonOutput, result)
+				if !definitionFound {
+					return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.start", "work.definition-required", "External task coordination requires an executable canonical work definition.", request.WorkID))
+				}
+				observation, observationErr := loadExternalProviderObservation(request.Root, config, definition, time.Now().UTC())
+				if observationErr != nil || observation.State.Confidence != provider.Confirmed {
+					return writeResult(cmd, *jsonOutput, externalObservationBlocked(version, "work.start", observation, observationErr))
+				}
+				if observation.State.Status != string(workpkg.InProgress) {
+					return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.start", "provider.status-not-active", "Assign the item and move it to in_progress in the selected task source before reserving implementation scope.", observation.State.Status, observation.State.ItemID))
+				}
+				if strings.TrimSpace(observation.State.Owner) != strings.TrimSpace(request.Owner) {
+					return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.start", "provider.owner-mismatch", "The requested collaborator must match the freshly observed task owner.", request.Owner, observation.State.Owner))
+				}
+				return applyCoordinatedStart(cmd, *jsonOutput, version, request, definition, plan, config, &observation)
 			}
 			if !definitionFound {
 				_, remoteErr := provider.NewGitLocalStore(request.Root, config.Remote, config.CoordinationBranch).Read(cmd.Context())
@@ -184,7 +213,7 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 				}
 				return writeResult(cmd, *jsonOutput, result)
 			}
-			return applyGitLocalStart(cmd, *jsonOutput, version, request, definition, plan, config)
+			return applyCoordinatedStart(cmd, *jsonOutput, version, request, definition, plan, config, nil)
 		}
 		return writeResult(cmd, *jsonOutput, planResult(version, "work.start.plan", plan, "Work claim and branch checkpoint plan is ready."))
 	}}
@@ -283,59 +312,71 @@ func sortedWorkItems(items map[string]domain.WorkItem) []domain.WorkItem {
 }
 
 func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
-	claims, _, err := loadClaimsAndStatuses(ctx, root)
+	claims, _, _, _, err := loadClaimsAndStatuses(ctx, root)
 	return claims, err
 }
 
-func loadClaimsAndStatuses(ctx context.Context, root string) ([]policy.Claim, map[string]workpkg.State, error) {
+func loadClaimsAndStatuses(ctx context.Context, root string) ([]policy.Claim, map[string]workpkg.State, bool, []domain.Item, error) {
 	providerConfig, err := loadTaskProvider(root)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, nil, err
 	}
 	directory := filepath.Join(root, ".harness", "work", "claims")
 	entries, err := os.ReadDir(directory)
 	if os.IsNotExist(err) {
 		entries = nil
 	} else if err != nil {
-		return nil, nil, err
+		return nil, nil, false, nil, err
 	}
 	localClaims := []policy.Claim{}
-	if providerConfig.LiveStatusSource != "git-local" {
-		localClaims = append(localClaims, policy.Claim{ID: "claim.external-provider-unobservable", Observable: false})
-	}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
 		}
 		claim, loadErr := loadYAML[policy.Claim](filepath.Join(directory, entry.Name()))
 		if loadErr != nil {
-			return nil, nil, loadErr
+			return nil, nil, false, nil, loadErr
 		}
 		if issues := schema.Validate("claim", claim); len(issues) > 0 {
-			return nil, nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
+			return nil, nil, false, nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
 		}
 		claim.Observable = false
 		localClaims = append(localClaims, claim)
 	}
-	if providerConfig.LiveStatusSource != "git-local" {
-		return localClaims, map[string]workpkg.State{}, nil
-	}
 	observed, readErr := provider.NewGitLocalStore(root, providerConfig.Remote, providerConfig.CoordinationBranch).Read(ctx)
 	if errors.Is(readErr, provider.ErrNoRemote) {
-		return localClaims, map[string]workpkg.State{}, nil
+		if providerConfig.LiveStatusSource != "git-local" {
+			localClaims = append(localClaims, policy.Claim{ID: "claim.external-provider-unobservable", Observable: false})
+			externalStatuses, complete, issues, statusErr := externalProviderStatuses(root, providerConfig, time.Now().UTC())
+			if statusErr != nil {
+				return nil, nil, false, nil, statusErr
+			}
+			issues = append(issues, domain.Item{Code: "coordination.remote-unavailable", Message: "Work can be selected, but collaborative semantic scope cannot be reserved until the Git coordination remote is reachable.", Refs: []string{providerConfig.Remote}})
+			return localClaims, externalStatuses, complete, issues, nil
+		}
+		return localClaims, map[string]workpkg.State{}, true, nil, nil
 	}
 	if readErr != nil {
-		return nil, nil, readErr
+		return nil, nil, false, nil, readErr
 	}
 	claims := make([]policy.Claim, 0, len(observed.Claims))
 	statuses := make(map[string]workpkg.State, len(observed.Claims))
 	for _, claim := range observed.Claims {
-		statuses[claim.WorkID] = gitLocalWorkState(claim.Status)
+		if providerConfig.LiveStatusSource == "git-local" {
+			statuses[claim.WorkID] = gitLocalWorkState(claim.Status)
+		}
 		if provider.GitLocalClaimActive(claim, time.Now().UTC()) {
 			claims = append(claims, policyClaimFromGitLocal(claim))
 		}
 	}
-	return claims, statuses, nil
+	if providerConfig.LiveStatusSource == "git-local" {
+		return claims, statuses, true, nil, nil
+	}
+	externalStatuses, complete, issues, err := externalProviderStatuses(root, providerConfig, time.Now().UTC())
+	if err != nil {
+		return nil, nil, false, nil, err
+	}
+	return claims, externalStatuses, complete, issues, nil
 }
 
 type taskProviderConfig struct {

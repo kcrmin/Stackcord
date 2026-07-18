@@ -214,73 +214,132 @@ func collectProvider(ctx context.Context, root string) (ProviderView, map[string
 		return ProviderView{Confidence: Unknown}, nil, fmt.Errorf("task provider configuration is incomplete or has more than one live source")
 	}
 	view := ProviderView{Name: config.Provider, Confidence: Unknown}
-	if config.Provider == "git-local" {
-		remote := config.Remote
-		if remote == "" {
-			remote = "origin"
-		}
-		branch := config.CoordinationBranch
-		if branch == "" {
-			branch = "coordination"
-		}
-		observed, readErr := providerpkg.NewGitLocalStore(root, remote, branch).Read(ctx)
-		if errors.Is(readErr, providerpkg.ErrNoRemote) {
-			return view, nil, nil
-		}
-		if readErr != nil {
-			return view, nil, readErr
-		}
-		view.Confidence, view.Revision = Confirmed, observed.Revision
-		claims := make(map[string]providerpkg.GitLocalClaim, len(observed.Claims))
-		for _, claim := range observed.Claims {
-			claims[claim.WorkID] = claim
-		}
-		return view, claims, nil
+	remote := config.Remote
+	if remote == "" {
+		remote = "origin"
 	}
-	mappingDirectory := filepath.Join(root, ".harness", "work", "mappings")
-	entries, readErr := os.ReadDir(mappingDirectory)
-	if os.IsNotExist(readErr) {
+	branch := config.CoordinationBranch
+	if branch == "" {
+		branch = "coordination"
+	}
+	observed, readErr := providerpkg.NewGitLocalStore(root, remote, branch).Read(ctx)
+	if errors.Is(readErr, providerpkg.ErrNoRemote) {
 		return view, nil, nil
 	}
 	if readErr != nil {
 		return view, nil, readErr
 	}
-	sort.Slice(entries, func(left, right int) bool { return entries[left].Name() < entries[right].Name() })
+	claims := make(map[string]providerpkg.GitLocalClaim, len(observed.Claims))
+	for _, claim := range observed.Claims {
+		claims[claim.WorkID] = claim
+	}
+	if config.Provider == "git-local" {
+		view.Confidence, view.Revision = Confirmed, observed.Revision
+		return view, claims, nil
+	}
 	definitions, definitionErr := workpkg.LoadDefinitions(root)
 	if definitionErr != nil {
-		return view, nil, definitionErr
+		return view, claims, definitionErr
 	}
-	for _, entry := range entries {
-		if entry.IsDir() || (filepath.Ext(entry.Name()) != ".yaml" && filepath.Ext(entry.Name()) != ".yml") {
-			continue
+	if len(definitions) == 0 {
+		view.Confidence, view.Revision = Confirmed, observed.Revision
+		return view, claims, nil
+	}
+	revisions := make([]string, 0, len(definitions))
+	drifted := false
+	for _, definition := range definitions {
+		mappingPath := filepath.Join(root, ".harness", "work", "mappings", definition.ID+".yaml")
+		if _, statErr := os.Lstat(mappingPath); os.IsNotExist(statErr) {
+			return view, claims, nil
+		} else if statErr != nil {
+			return view, claims, statErr
 		}
-		mapping, loadErr := providerpkg.LoadMapping(filepath.Join(mappingDirectory, entry.Name()))
+		if locationErr := providerpkg.ValidateCanonicalMappingLocation(root, mappingPath); locationErr != nil {
+			return view, claims, locationErr
+		}
+		mapping, loadErr := providerpkg.LoadMapping(mappingPath)
 		if loadErr != nil {
-			return view, nil, loadErr
+			return view, claims, loadErr
 		}
 		if mapping.Provider != config.Provider {
-			return view, nil, fmt.Errorf("provider mapping %s differs from selected provider %s", mapping.Provider, config.Provider)
+			return view, claims, fmt.Errorf("provider mapping %s differs from selected provider %s", mapping.Provider, config.Provider)
 		}
-		definition, found := findWorkDefinition(definitions, mapping.WorkID)
-		if !found {
-			return view, nil, fmt.Errorf("provider mapping references missing work definition %s", mapping.WorkID)
+		if mapping.WorkID != definition.ID {
+			return view, claims, fmt.Errorf("provider mapping references a different work definition %s", mapping.WorkID)
 		}
-		view.ItemID = mapping.ItemID
-		cachePath := filepath.Join(root, ".harness", "local", "providers", mapping.Provider, mapping.WorkID+".json")
-		cached, snapshotErr := providerpkg.LoadSnapshot(cachePath)
-		if os.IsNotExist(snapshotErr) {
-			return view, nil, nil
+		snapshotPath := filepath.Join(root, ".harness", "local", "providers", mapping.Provider, mapping.WorkID+".yaml")
+		if _, statErr := os.Lstat(snapshotPath); os.IsNotExist(statErr) {
+			return view, claims, nil
+		} else if statErr != nil {
+			return view, claims, statErr
 		}
+		if locationErr := providerpkg.ValidateCanonicalSnapshotLocation(root, snapshotPath); locationErr != nil {
+			return view, claims, locationErr
+		}
+		observation, snapshotErr := providerpkg.LoadSnapshot(snapshotPath)
 		if snapshotErr != nil {
-			return view, nil, snapshotErr
+			return view, claims, snapshotErr
 		}
-		cached.Source = "cache"
-		state := providerpkg.Reconcile(providerpkg.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, cached, time.Now().UTC())
-		view.Revision, view.Owner, view.Status = state.Revision, state.Owner, state.Status
-		view.Confidence = Stale
-		return view, nil, nil
+		state := providerpkg.Reconcile(providerpkg.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, observation, time.Now().UTC())
+		if state.Confidence != providerpkg.Confirmed {
+			view.Revision, view.Owner, view.Status = state.Revision, state.Owner, state.Status
+			view.Confidence = Stale
+			return view, claims, nil
+		}
+		revision := state.Revision
+		if revision == "" {
+			revision = observation.RawHash
+		}
+		revisions = append(revisions, definition.ID+"\x00"+revision)
+		claim, reserved := claims[definition.ID]
+		if !reserved && externalStatusNeedsReservation(state.Status) {
+			claim = providerpkg.GitLocalClaim{ID: definition.ID, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Status: normalizeExternalStatus(state.Status), Owner: state.Owner, Repository: "repository.root"}
+			claims[definition.ID] = claim
+			drifted = true
+		} else if reserved {
+			coordinatedStatus := claim.Status
+			if coordinatedStatus == "" {
+				coordinatedStatus = "in_progress"
+			}
+			providerStatus := normalizeExternalStatus(state.Status)
+			ownerClearedAtTerminal := providerStatus == "done" && state.Owner == ""
+			if coordinatedStatus != providerStatus || (!ownerClearedAtTerminal && claim.Owner != state.Owner) {
+				drifted = true
+			}
+			claim.Status, claim.Owner = providerStatus, state.Owner
+			if ownerClearedAtTerminal {
+				claim.Owner = claims[definition.ID].Owner
+			}
+			claims[definition.ID] = claim
+		}
+		if len(definitions) == 1 {
+			view.ItemID, view.Owner, view.Status = state.ItemID, state.Owner, state.Status
+		}
 	}
-	return view, nil, nil
+	sort.Strings(revisions)
+	digest := sha256.Sum256([]byte(strings.Join(revisions, "\n")))
+	view.Revision = "sha256:" + hex.EncodeToString(digest[:])
+	if drifted {
+		return view, claims, fmt.Errorf("external task owner or status differs from the Git semantic reservation")
+	}
+	view.Confidence = Confirmed
+	return view, claims, nil
+}
+
+func normalizeExternalStatus(value string) string {
+	if value == "closed" {
+		return "done"
+	}
+	return value
+}
+
+func externalStatusNeedsReservation(value string) bool {
+	switch normalizeExternalStatus(value) {
+	case "in_progress", "blocked", "review", "integrated":
+		return true
+	default:
+		return false
+	}
 }
 
 func mergeLiveWork(values []WorkView, claims map[string]providerpkg.GitLocalClaim) []WorkView {

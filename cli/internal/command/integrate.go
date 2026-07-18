@@ -1,6 +1,8 @@
 package command
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -169,18 +171,35 @@ func collectIntegrationProviders(cmd *cobra.Command, root string, definitions []
 	if config.Provider != config.LiveStatusSource {
 		return nil, []domain.Item{{Code: "integrate.provider-invalid", Message: "Project must use exactly one selected live task source."}}
 	}
+	coordinated, coordinateErr := provider.NewGitLocalStore(root, config.Remote, config.CoordinationBranch).Read(cmd.Context())
+	if coordinateErr != nil {
+		return nil, []domain.Item{{Code: "integrate.provider-unknown", Message: "Git semantic reservations could not be read for the selected task source."}}
+	}
+	claims := make(map[string]provider.GitLocalClaim, len(coordinated.Claims))
+	for _, claim := range coordinated.Claims {
+		claims[claim.WorkID] = claim
+	}
 	states, issues := []integration.ProviderState{}, []domain.Item{}
 	for _, definition := range definitions {
-		mappingPath := filepath.Join(root, ".harness", "work", "mappings", definition.ID+".yaml")
-		snapshotPath := filepath.Join(root, ".harness", "local", "providers", definition.ID+".yaml")
-		mapping, mappingErr := provider.LoadMapping(mappingPath)
-		snapshot, snapshotErr := provider.LoadSnapshot(snapshotPath)
-		if mappingErr != nil || snapshotErr != nil {
+		observation, observationErr := loadExternalProviderObservation(root, config, definition, time.Now().UTC())
+		if observationErr != nil || observation.State.Confidence != provider.Confirmed {
 			issues = append(issues, domain.Item{Code: "integrate.provider-unknown", Message: "Fresh selected-provider observation is unavailable.", Refs: []string{definition.ID, config.Provider}})
 			continue
 		}
-		state := provider.Reconcile(provider.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, snapshot, time.Now().UTC())
-		states = append(states, integration.ProviderState{WorkID: definition.ID, Status: state.Status, Revision: state.Revision, DefinitionFingerprint: definition.Fingerprint, Confirmed: state.Confidence == provider.Confirmed})
+		claim, exists := claims[definition.ID]
+		claimStatus := claim.Status
+		if claimStatus == "" {
+			claimStatus = "in_progress"
+		}
+		observedStatus, valid := providerWorkState(observation.State.Status)
+		ownerClearedAtTerminal := valid && observedStatus == workpkg.Done && observation.State.Owner == ""
+		if !exists || claim.DefinitionFingerprint != definition.Fingerprint || !valid || string(observedStatus) != claimStatus || (!ownerClearedAtTerminal && observation.State.Owner != claim.Owner) {
+			issues = append(issues, domain.Item{Code: "integrate.provider-drift", Message: "External task state differs from its Git semantic reservation.", Refs: []string{definition.ID, config.Provider}})
+			continue
+		}
+		identity := observationRevision(observation) + "\x00" + provider.ClaimRevision(claim)
+		digest := sha256.Sum256([]byte(identity))
+		states = append(states, integration.ProviderState{WorkID: definition.ID, Status: string(observedStatus), Revision: "sha256:" + hex.EncodeToString(digest[:]), DefinitionFingerprint: definition.Fingerprint, Confirmed: true})
 	}
 	return states, issues
 }
