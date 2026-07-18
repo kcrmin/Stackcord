@@ -4,7 +4,6 @@ project_name: orchestrator
 before:
   hooks:
     - sh -c "cd cli && go mod verify && go test ./..."
-    - python3 -m unittest discover -s profiles/strict-release/scripts -p "*_test.py"
 
 builds:
   - id: orchestrator
@@ -24,34 +23,12 @@ builds:
 archives:
   - id: orchestrator
     ids: [orchestrator]
-    formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ title .Os }}_{{ if eq .Arch \"amd64\" }}x86_64{{ else }}{{ .Arch }}{{ end }}"
-    format_overrides:
-      - goos: windows
-        formats: [zip]
-    files:
-      - LICENSE
-      - README.md
-      - README.ko.md
+    formats: [binary]
+    name_template: "orchestrator_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: checksums.txt
   algorithm: sha256
-
-sboms:
-  - id: archive-sbom
-    artifacts: archive
-
-signs:
-  - id: checksum-keyless
-    cmd: cosign
-    artifacts: checksum
-    signature: "${artifact}.sigstore.json"
-    args:
-      - sign-blob
-      - --yes
-      - --bundle=${signature}
-      - ${artifact}
 
 changelog:
   use: git

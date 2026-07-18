@@ -1112,7 +1112,7 @@ git commit -m "feat(plugin): guide verified service continuity"
 - Release packages provide checksummed darwin/amd64, darwin/arm64, windows/amd64, and windows/arm64 CLI assets.
 - First explicit product use may offer the matching verified install; SessionStart never downloads software.
 
-- [ ] **Step 1: Write failing bootstrap and package tests.**
+- [x] **Step 1: Write failing bootstrap and package tests.**
 
 ```python
 def test_bootstrap_selects_exact_platform_asset_and_verifies_checksum(self):
@@ -1126,25 +1126,25 @@ def test_session_hook_never_downloads(self):
     self.assertNotIn("Invoke-WebRequest", hooks)
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `python3 scripts/bootstrap_cli_test.py -v && python3 scripts/render_plugin_packages_test.py -v`
 
 Expected: FAIL because bootstrap and platform packages do not exist.
 
-- [ ] **Step 3: Implement checksum-first bootstrap scripts.**
+- [x] **Step 3: Implement checksum-first bootstrap scripts.**
 
 They accept an explicit release base URL and version, choose only a supported exact asset, download to a temporary path, verify SHA-256 from a pinned checksum manifest, set executable permissions where applicable, atomically install into the user-selected tool directory, and run `orchestrator doctor --json`. They never execute unverified bytes or edit shell profiles.
 
-- [ ] **Step 4: Keep hooks fail-safe.**
+- [x] **Step 4: Keep hooks fail-safe.**
 
 Hooks call a resolved `orchestrator` only after installation. Before installation they exit without mutation; the repo-local Skill performs reduced preflight. The first explicit natural-language product request explains and performs the supported install path according to user and environment policy.
 
-- [ ] **Step 5: Render platform release packages.**
+- [x] **Step 5: Render platform release packages.**
 
 GoReleaser produces CLI archives and checksums. The packaging script combines the common Plugin files with platform guidance and validates that every package references the same Plugin and CLI version. The public base URL remains configuration until the repository decision is supplied.
 
-- [ ] **Step 6: Cross-build and test.**
+- [x] **Step 6: Cross-build and test.**
 
 Run:
 
@@ -1160,7 +1160,7 @@ done
 
 Expected: four binaries and passing package tests.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```sh
 git add scripts .goreleaser.yaml .github/workflows/release.yml .codex-plugin .agents/plugins skills hooks

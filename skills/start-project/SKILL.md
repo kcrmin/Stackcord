@@ -7,7 +7,7 @@ description: Use when a service idea needs discovery, a framework-neutral full-s
 
 Build durable product understanding before selecting implementation technology. Let conversation stay natural; use the CLI only for observable state and safe writes.
 
-1. Run `orchestrator status --json`. If no harness exists, treat that result as the starting diagnosis. If the CLI is absent, use the repo-local fallback and disclose reduced verification.
+1. Resolve the CLI from `ORCHESTRATOR_CLI`, a repository build, or `PATH`, then run `orchestrator status --json`. If no harness exists, treat that result as the starting diagnosis. On the first explicit product request only, an absent CLI may trigger an offer to run the matching verified `scripts/bootstrap-cli.sh` or `scripts/bootstrap-cli.ps1` with an explicit release URL, version, and install directory. Hooks never install software. If installation is unavailable or declined, use the repo-local fallback and disclose reduced verification.
 2. Inspect files, Git, existing configuration, and detected tools before asking anything discoverable.
 3. Ask one decision only when its answer materially changes the product. Offer 2–3 exclusive choices, recommend the first, and accept free-form input.
 4. After every material answer, normalize the complete current meaning and run `orchestrator project checkpoint`. Save product summary, goals and non-goals, roles, journeys, capabilities, service policies, failure behavior, scenarios, quality, UI coverage, data needs, decisions, assumptions, and open questions. Never save raw dialogue or tone.

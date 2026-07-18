@@ -14,7 +14,8 @@ def validate(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
     required = [
         ".github/workflows/ci.yml", ".github/workflows/security.yml", ".github/workflows/release.yml",
-        ".goreleaser.yaml", "profiles/strict-release/README.md",
+        ".goreleaser.yaml", "scripts/bootstrap-cli.sh", "scripts/bootstrap-cli.ps1",
+        "scripts/render_plugin_packages.py", "profiles/strict-release/README.md",
         "profiles/strict-release/packaging/homebrew/orchestrator.rb",
         "profiles/strict-release/packaging/winget/FullstackOrchestrator.Orchestrator.installer.yaml",
         "profiles/strict-release/packaging/windows/Product.wxs",
@@ -50,16 +51,22 @@ def validate(root: pathlib.Path) -> list[str]:
             errors.append(f"security workflow missing {evidence}")
 
     release = (root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "release.yml").exists() else ""
-    for guard in ("workflow_dispatch", "environment: production", "rc_digest", "approval_operation_id", "--skip=publish", "profiles/strict-release/scripts/verify_publish_guard.py", "cosign verify-blob", "gh release create"):
+    for guard in ("workflow_dispatch", "environment: production", "rc_digest", "--skip=publish", "render_plugin_packages.py", "checksums.txt", "--draft", "gh release create"):
         if guard not in release:
             errors.append(f"release workflow missing fail-closed guard: {guard}")
+    for strict_token in ("approval_operation_id", "verify_publish_guard.py", "cosign", "sigstore"):
+        if strict_token in release:
+            errors.append(f"default release workflow contains strict-only control: {strict_token}")
     if "pull_request" in release.split("jobs:", 1)[0]:
         errors.append("release workflow must not publish from pull requests")
 
     config = (root / ".goreleaser.yaml").read_text(encoding="utf-8") if (root / ".goreleaser.yaml").exists() else ""
-    for token in ("CGO_ENABLED=0", "darwin", "windows", "amd64", "arm64", "-trimpath", "sboms:", "cosign", "checksums.txt"):
+    for token in ("CGO_ENABLED=0", "darwin", "windows", "amd64", "arm64", "-trimpath", "formats: [binary]", "orchestrator_{{ .Os }}_{{ .Arch }}", "checksums.txt"):
         if token not in config:
             errors.append(f"GoReleaser configuration missing {token}")
+    for strict_token in ("sboms:", "signs:", "cosign"):
+        if strict_token in config:
+            errors.append(f"default GoReleaser contains strict-only control: {strict_token}")
 
     package_root = root / "profiles" / "strict-release" / "packaging"
     package_text = "\n".join(path.read_text(encoding="utf-8") for path in package_root.rglob("*") if path.is_file()) if package_root.exists() else ""

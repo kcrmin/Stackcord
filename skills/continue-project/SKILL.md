@@ -7,7 +7,7 @@ description: Use when a cloned, transferred, or paused project must be resumed, 
 
 Recover from repository evidence, not chat memory. Present one plain-language next action while keeping coordination mechanics in the background.
 
-1. Run `orchestrator status --json` before mutation. Resolve the orchestration root when invoked inside a frontend, backend, or other child workspace.
+1. Resolve the CLI from `ORCHESTRATOR_CLI`, a repository build, or `PATH`, then run `orchestrator status --json` before mutation. Resolve the orchestration root when invoked inside a frontend, backend, or other child workspace. On an explicit continuation request, an absent CLI may trigger an offer to run the matching verified `scripts/bootstrap-cli.sh` or `scripts/bootstrap-cli.ps1` with an explicit release URL, version, and install directory; lifecycle hooks never install it.
 2. Re-read actual branch, dirty state, upstream, ahead/behind/diverged state, worktrees, workspace commits, root submodule pointers, approved product meaning, service contracts, evidence, and selected live task provider.
 3. If GitHub, Jira, or Beads is selected, use only its installed authenticated connector or CLI. Reconcile with `orchestrator work provider`; when unavailable, mark live state unknown and offer reconnection or reduced Git-local work. Never present a cached snapshot as live.
 4. Summarize confirmed facts, stale derivations, unknown external state, blockers, active ownership, and local-only work. Do not expose IDs or internal storage paths unless diagnosing them is necessary.

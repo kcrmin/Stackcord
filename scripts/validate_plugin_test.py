@@ -56,7 +56,17 @@ class PluginContractTest(unittest.TestCase):
         for event in hooks["hooks"].values():
             command = event[0]["hooks"][0]
             self.assertEqual("command", command["type"])
-            self.assertIn("orchestrator hook", command["command"])
+            self.assertIn("$PLUGIN_ROOT/hooks/run-orchestrator-hook.sh", command["command"])
+            self.assertIn("$env:PLUGIN_ROOT", command["commandWindows"])
+            self.assertIn("run-orchestrator-hook.ps1", command["commandWindows"])
+        shell_resolver = (ROOT / "hooks" / "run-orchestrator-hook.sh").read_text(
+            encoding="utf-8"
+        )
+        powershell_resolver = (
+            ROOT / "hooks" / "run-orchestrator-hook.ps1"
+        ).read_text(encoding="utf-8")
+        self.assertIn('exec "$CLI" hook "$EVENT"', shell_resolver)
+        self.assertIn("& $Cli hook $Event", powershell_resolver)
 
     def test_agent_entry_links_exist(self):
         text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")

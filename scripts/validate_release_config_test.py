@@ -29,6 +29,20 @@ class ReleaseConfigurationTest(unittest.TestCase):
         validator = load_validator()
         self.assertEqual([], validator.validate(ROOT))
 
+    def test_default_release_is_core_and_strict_supply_chain_is_optional(self):
+        goreleaser = (ROOT / ".goreleaser.yaml").read_text(encoding="utf-8")
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        self.assertIn("formats: [binary]", goreleaser)
+        for asset in (
+            "orchestrator_{{ .Os }}_{{ .Arch }}",
+            "checksums.txt",
+        ):
+            self.assertIn(asset, goreleaser)
+        for strict_token in ("sboms:", "signs:", "cosign", "approval_operation_id"):
+            self.assertNotIn(strict_token, goreleaser + release)
+        self.assertIn("render_plugin_packages.py", release)
+        self.assertIn("gh release create", release)
+
 
 if __name__ == "__main__":
     unittest.main()

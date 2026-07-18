@@ -1,32 +1,26 @@
-name: Release approved candidate
+name: Stage verified candidate
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Protected candidate tag, for example v1.0.0
+        description: Exact candidate tag, for example v1.0.0
         required: true
         type: string
       rc_digest:
-        description: Exact approved sha256 release-candidate digest
-        required: true
-        type: string
-      approval_operation_id:
-        description: Exact class D approval operation receipt
+        description: Exact locally verified sha256 release-candidate digest
         required: true
         type: string
 
 concurrency:
-  group: production-release
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
 
 permissions:
   contents: write
-  id-token: write
-  attestations: write
 
 jobs:
-  publish:
+  stage:
     runs-on: ubuntu-24.04
     environment: production
     steps:
@@ -34,13 +28,16 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind workflow to approved tag and RC
+          ref: ${{ inputs.tag }}
+      - name: Verify exact tag and candidate input
         env:
-          EXPECTED_TAG: ${{ inputs.tag }}
-          EXPECTED_RC_DIGEST: ${{ inputs.rc_digest }}
-          APPROVAL_OPERATION_ID: ${{ inputs.approval_operation_id }}
-          GITHUB_REF_VALUE: ${{ github.ref }}
-        run: python3 profiles/strict-release/scripts/verify_publish_guard.py
+          TAG: ${{ inputs.tag }}
+          RC_DIGEST: ${{ inputs.rc_digest }}
+        run: |
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$RC_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$(git describe --tags --exact-match HEAD)" = "$TAG"
+          test "$(python3 -c 'import json; print(json.load(open(".codex-plugin/plugin.json"))["version"])')" = "${TAG#v}"
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: 1.26.5
@@ -48,34 +45,38 @@ jobs:
       - name: Test exact source
         working-directory: cli
         run: go test -race ./... && go vet ./...
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
-      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94
         with:
           distribution: goreleaser
           version: v2.17.0
           args: release --clean --skip=publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verify checksum signature and generate package manifests
+      - name: Render deterministic Plugin packages
         env:
           VERSION: ${{ inputs.tag }}
+          RELEASE_BASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download
         run: |
-          cosign verify-blob --certificate-identity-regexp 'https://github.com/.+/.+/.github/workflows/release.yml@refs/tags/.+' --certificate-oidc-issuer https://token.actions.githubusercontent.com --bundle dist/checksums.txt.sigstore.json dist/checksums.txt
-          python3 profiles/strict-release/scripts/generate_packages.py --root . --output dist/package-manifests --version "${VERSION#v}" --checksums dist/checksums.txt
-          python3 profiles/strict-release/scripts/verify_staged_release.py dist
+          python3 scripts/render_plugin_packages.py \
+            --root . \
+            --output dist/release-assets \
+            --version "${VERSION#v}" \
+            --base-url "$RELEASE_BASE_URL" \
+            --goreleaser-dist dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: approved-release-staging
+          name: verified-release-staging
           path: dist/
           if-no-files-found: error
-      - name: Publish immutable GitHub release
+      - name: Create draft GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
           RC_DIGEST: ${{ inputs.rc_digest }}
-          APPROVAL_OPERATION_ID: ${{ inputs.approval_operation_id }}
         run: |
-          gh release create "$TAG" dist/* --verify-tag --title "$TAG" --notes "RC digest: $RC_DIGEST
-          Approval operation: $APPROVAL_OPERATION_ID
-          Verify checksums and the Sigstore bundle before installation."
+          gh release create "$TAG" \
+            dist/release-assets/* \
+            --draft \
+            --verify-tag \
+            --title "$TAG" \
+            --notes "Release candidate: $RC_DIGEST
+
+          Verify checksums.txt before installing. Publishing this draft remains an explicit user action."
