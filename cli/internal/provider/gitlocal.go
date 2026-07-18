@@ -33,6 +33,8 @@ var (
 	ErrPostconditionMismatch  = errors.New("Git-local coordination postcondition mismatch")
 	coordinationIDPattern     = regexp.MustCompile(`^(claim|work)\.[a-z0-9]+(?:[.-][a-z0-9]+)*$`)
 	coordinationDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	handoffEvidencePattern    = regexp.MustCompile(`^evidence\.[0-9a-f]{24}$`)
+	handoffRefPattern         = regexp.MustCompile(`^[a-z][a-z0-9]*(?:\.[a-z0-9][a-z0-9-]*)+$`)
 	objectIDPattern           = regexp.MustCompile(`^[0-9a-f]{40}(?:[0-9a-f]{24})?$`)
 	branchNamePattern         = regexp.MustCompile(`^[a-z0-9][a-z0-9._/-]*$`)
 )
@@ -62,25 +64,55 @@ func (err *GitLocalError) Is(target error) bool {
 
 // GitLocalClaim is the normalized semantic scope published through Git-local coordination.
 type GitLocalClaim struct {
-	ID                    string    `json:"id"`
-	WorkID                string    `json:"work_id"`
-	DefinitionFingerprint string    `json:"definition_fingerprint"`
-	Owner                 string    `json:"owner"`
-	Branch                string    `json:"branch"`
-	Repository            string    `json:"repository"`
-	Workspace             string    `json:"workspace,omitempty"`
-	Paths                 []string  `json:"paths"`
-	PolicyIDs             []string  `json:"policy_ids"`
-	ScenarioIDs           []string  `json:"scenario_ids"`
-	ContractIDs           []string  `json:"contract_ids"`
-	DBEntities            []string  `json:"db_entities"`
-	MigrationSlots        []string  `json:"migration_slots"`
-	UIFlows               []string  `json:"ui_flows"`
-	DependencyMajors      []string  `json:"dependency_majors"`
-	StableIDs             []string  `json:"stable_ids"`
-	RootPointer           bool      `json:"root_pointer"`
-	StartsAt              time.Time `json:"starts_at"`
-	ExpiresAt             time.Time `json:"expires_at"`
+	ID                    string           `json:"id"`
+	WorkID                string           `json:"work_id"`
+	DefinitionFingerprint string           `json:"definition_fingerprint"`
+	Status                string           `json:"status,omitempty"`
+	Owner                 string           `json:"owner"`
+	Branch                string           `json:"branch"`
+	Repository            string           `json:"repository"`
+	Workspace             string           `json:"workspace,omitempty"`
+	Paths                 []string         `json:"paths"`
+	PolicyIDs             []string         `json:"policy_ids"`
+	ScenarioIDs           []string         `json:"scenario_ids"`
+	ContractIDs           []string         `json:"contract_ids"`
+	DBEntities            []string         `json:"db_entities"`
+	MigrationSlots        []string         `json:"migration_slots"`
+	UIFlows               []string         `json:"ui_flows"`
+	DependencyMajors      []string         `json:"dependency_majors"`
+	StableIDs             []string         `json:"stable_ids"`
+	RootPointer           bool             `json:"root_pointer"`
+	StartsAt              time.Time        `json:"starts_at"`
+	ExpiresAt             time.Time        `json:"expires_at"`
+	Handoff               *GitLocalHandoff `json:"handoff,omitempty"`
+}
+
+// GitLocalHandoff is the exact provider-side checkpoint for a real ownership change.
+type GitLocalHandoff struct {
+	FromOwner  string    `json:"from_owner"`
+	ToOwner    string    `json:"to_owner"`
+	Workspace  string    `json:"workspace"`
+	Branch     string    `json:"branch"`
+	Commit     string    `json:"commit"`
+	LocalOnly  bool      `json:"local_only"`
+	Evidence   []string  `json:"evidence"`
+	Blockers   []string  `json:"blockers"`
+	NextAction string    `json:"next_action"`
+	RecordedAt time.Time `json:"recorded_at"`
+}
+
+// GitLocalClaimActive reports whether a claim still reserves implementation scope.
+// An empty status is a backward-compatible in-progress claim from an older client.
+func GitLocalClaimActive(claim GitLocalClaim, now time.Time) bool {
+	if !claim.ExpiresAt.After(now) {
+		return false
+	}
+	switch claim.Status {
+	case "", "in_progress", "review", "blocked":
+		return true
+	default:
+		return false
+	}
 }
 
 // SnapshotSet is the complete live Git-local claim state at one remote revision.
@@ -361,6 +393,11 @@ func normalizeSnapshotSet(value SnapshotSet) SnapshotSet {
 		claim.UIFlows = normalizedCoordinationSet(claim.UIFlows)
 		claim.DependencyMajors = normalizedCoordinationSet(claim.DependencyMajors)
 		claim.StableIDs = normalizedCoordinationSet(claim.StableIDs)
+		if claim.Handoff != nil {
+			claim.Handoff.RecordedAt = claim.Handoff.RecordedAt.UTC()
+			claim.Handoff.Evidence = normalizedCoordinationSet(claim.Handoff.Evidence)
+			claim.Handoff.Blockers = normalizedCoordinationSet(claim.Handoff.Blockers)
+		}
 	}
 	sort.Slice(value.Claims, func(left, right int) bool { return value.Claims[left].ID < value.Claims[right].ID })
 	return value
@@ -409,8 +446,29 @@ func validateSnapshotSet(value SnapshotSet) error {
 		if !coordinationDigestPattern.MatchString(claim.DefinitionFingerprint) || strings.TrimSpace(claim.Owner) == "" || strings.TrimSpace(claim.Repository) == "" || gitx.ValidateBranch(claim.Branch) != nil {
 			return fmt.Errorf("claim identity, fingerprint, owner, repository, or branch is invalid")
 		}
+		switch claim.Status {
+		case "", "in_progress", "blocked", "review", "integrated", "done":
+		default:
+			return fmt.Errorf("claim lifecycle status is invalid")
+		}
 		if claim.StartsAt.IsZero() || !claim.ExpiresAt.After(claim.StartsAt) {
 			return fmt.Errorf("claim lease must have ordered start and expiry times")
+		}
+		if claim.Handoff != nil {
+			handoff := claim.Handoff
+			if strings.TrimSpace(handoff.FromOwner) == "" || strings.TrimSpace(handoff.ToOwner) == "" || handoff.FromOwner == handoff.ToOwner || handoff.ToOwner != claim.Owner || handoff.Branch != claim.Branch || !objectIDPattern.MatchString(handoff.Commit) || !strings.HasPrefix(handoff.Workspace, "workspace.") || strings.TrimSpace(handoff.NextAction) == "" || handoff.RecordedAt.IsZero() {
+				return fmt.Errorf("claim handoff identity is invalid")
+			}
+			for _, id := range handoff.Evidence {
+				if !handoffEvidencePattern.MatchString(id) {
+					return fmt.Errorf("claim handoff evidence is invalid")
+				}
+			}
+			for _, id := range handoff.Blockers {
+				if !handoffRefPattern.MatchString(id) {
+					return fmt.Errorf("claim handoff blocker is invalid")
+				}
+			}
 		}
 		for _, path := range claim.Paths {
 			clean := filepath.ToSlash(filepath.Clean(filepath.FromSlash(path)))

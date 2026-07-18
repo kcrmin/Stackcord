@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/project"
 	"github.com/stretchr/testify/require"
@@ -46,12 +45,4 @@ func TestStartWorkRejectsInvalidIdentityBranchAndLease(t *testing.T) {
 	require.Empty(t, plan.Files)
 	require.NotEmpty(t, plan.Blockers)
 	require.Equal(t, "work.request-invalid", plan.Blockers[0].Code)
-}
-
-func TestFinishWorkRequiresVerificationEvidence(t *testing.T) {
-	result := project.FinishWork(project.FinishWorkRequest{WorkID: "work.example"})
-	require.Equal(t, domain.StatusBlocked, result.Status)
-
-	result = project.FinishWork(project.FinishWorkRequest{WorkID: "work.example", Evidence: []string{"evidence.tdd", "evidence.integration"}})
-	require.Equal(t, domain.StatusPassed, result.Status)
 }

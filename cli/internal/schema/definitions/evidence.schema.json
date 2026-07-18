@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/evidence.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "kind", "work_id", "workspace_id", "started_at",
+    "finished_at", "exit_code", "commit", "definition_fingerprint",
+    "contract_fingerprint", "output_digest"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^evidence\\.[0-9a-f]{24}$" },
+    "kind": {
+      "enum": ["test", "review", "integration", "migration", "rollback", "user", "child-merge", "root-pointer", "security"]
+    },
+    "work_id": { "type": "string", "pattern": "^work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+    "workspace_id": { "type": "string", "pattern": "^workspace\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+    "command": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 8192 }
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "exit_code": { "type": "integer" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
+    "definition_fingerprint": { "$ref": "#/$defs/digest" },
+    "contract_fingerprint": { "$ref": "#/$defs/digest" },
+    "output_digest": { "$ref": "#/$defs/digest" },
+    "artifact_digests": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+      "additionalProperties": { "$ref": "#/$defs/digest" }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}

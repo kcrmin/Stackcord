@@ -93,6 +93,30 @@ func claimedBy(owner string) SnapshotSet {
 	}}}
 }
 
+func TestGitLocalClaimRejectsUnknownLifecycleStatus(t *testing.T) {
+	_, root, _ := newSharedRemote(t)
+	store := NewGitLocalStore(root, "origin", "coordination")
+	state := claimedBy("owner-a")
+	state.Claims[0].Status = "invented"
+
+	_, err := store.CompareAndSwap(context.Background(), "", state)
+	require.ErrorIs(t, err, ErrMalformedState)
+}
+
+func TestGitLocalClaimActiveExcludesIntegratedAndDone(t *testing.T) {
+	now := time.Date(2026, 7, 18, 12, 0, 0, 0, time.UTC)
+	claim := claimedBy("owner-a").Claims[0]
+	claim.ExpiresAt = now.Add(time.Hour)
+	for _, status := range []string{"", "in_progress", "review", "blocked"} {
+		claim.Status = status
+		require.True(t, GitLocalClaimActive(claim, now), status)
+	}
+	for _, status := range []string{"integrated", "done"} {
+		claim.Status = status
+		require.False(t, GitLocalClaimActive(claim, now), status)
+	}
+}
+
 func newSharedRemote(t *testing.T) (string, string, string) {
 	t.Helper()
 	base := t.TempDir()

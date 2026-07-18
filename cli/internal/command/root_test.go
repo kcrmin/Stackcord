@@ -122,7 +122,7 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		"project checkpoint", "project init", "project adopt",
 		"context audit", "context refresh",
 		"git inspect", "git sync-plan", "git sync", "git worktree-plan", "git worktree",
-		"work next", "work conflict", "work start", "work finish", "work handoff",
+		"work next", "work conflict", "work start", "work evidence", "work transition", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",
 		"db diff", "db diagram", "ui import", "integrate plan",
 		"release prepare", "release verify",
@@ -132,6 +132,13 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		require.NoError(t, err, path)
 		require.Equal(t, strings.Fields(path)[len(strings.Fields(path))-1], found.Name(), path)
 	}
+}
+
+func TestWorkFinishDoesNotAcceptStringOnlyEvidence(t *testing.T) {
+	cmd := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
+	finish, _, err := cmd.Find([]string{"work", "finish"})
+	require.NoError(t, err)
+	require.Nil(t, finish.Flags().Lookup("evidence"))
 }
 
 func TestCommandSurfaceOmitsRemovedPlatformCommands(t *testing.T) {

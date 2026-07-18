@@ -213,9 +213,18 @@ func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, req
 	if err != nil {
 		return writeResult(cmd, jsonOutput, gitLocalFailureResult(version, "provider.live-read-failed", "Live Git-local coordination could not be read safely.", err))
 	}
+	for _, claim := range current.Claims {
+		if claim.WorkID == request.WorkID && (claim.Status == "integrated" || claim.Status == "done") {
+			return writeResult(cmd, jsonOutput, domain.Result{
+				SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-terminal-read-only",
+				Status: domain.StatusBlocked, ExitCode: domain.ExitBlocked, Summary: "Completed or integrated work cannot be claimed again under the same stable ID.",
+				Blockers: []domain.Item{{Code: "work.already-terminal", Message: "Define a new work ID if additional product behavior is required.", Refs: []string{request.WorkID, claim.Status}}},
+			})
+		}
+	}
 	liveClaims := make([]provider.GitLocalClaim, 0, len(current.Claims))
 	for _, claim := range current.Claims {
-		if claim.ExpiresAt.After(request.Candidate.Now) {
+		if provider.GitLocalClaimActive(claim, request.Candidate.Now) {
 			liveClaims = append(liveClaims, claim)
 		}
 	}
@@ -256,7 +265,8 @@ func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, req
 func gitLocalClaimFromStart(request project.StartWorkRequest, definition work.Definition) provider.GitLocalClaim {
 	return provider.GitLocalClaim{
 		ID: request.ClaimID, WorkID: request.WorkID, DefinitionFingerprint: definition.Fingerprint,
-		Owner: request.Owner, Branch: request.Branch, Repository: request.Candidate.Repository, Workspace: request.Candidate.Workspace,
+		Status: "in_progress",
+		Owner:  request.Owner, Branch: request.Branch, Repository: request.Candidate.Repository, Workspace: request.Candidate.Workspace,
 		Paths: append([]string(nil), request.Candidate.Paths...), PolicyIDs: append([]string(nil), request.Candidate.PolicyIDs...), ScenarioIDs: append([]string(nil), request.Candidate.ScenarioIDs...),
 		ContractIDs: append([]string(nil), request.Candidate.ContractIDs...), DBEntities: append([]string(nil), request.Candidate.DBEntities...), MigrationSlots: append([]string(nil), request.Candidate.MigrationSlots...),
 		UIFlows: append([]string(nil), request.Candidate.UIFlows...), DependencyMajors: append([]string(nil), request.Candidate.DependencyMajors...), StableIDs: append([]string(nil), request.Candidate.StableIDs...),

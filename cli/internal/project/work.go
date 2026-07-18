@@ -1,7 +1,6 @@
 package project
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,12 +24,6 @@ type StartWorkRequest struct {
 	Candidate    policy.Candidate
 	ActiveClaims []policy.Claim
 	Snapshot     contextpkg.Snapshot
-}
-
-// FinishWorkRequest provides the verification evidence required to close work.
-type FinishWorkRequest struct {
-	WorkID   string
-	Evidence []string
 }
 
 // StartWork creates a reviewable claim and branch checkpoint plan after conflict preflight.
@@ -72,26 +65,6 @@ func StartWork(request StartWorkRequest) operation.Plan {
 	}
 	plan.InitialStateFingerprint = fingerprint
 	return plan
-}
-
-// FinishWork verifies evidence exists before a work item may enter done state.
-func FinishWork(request FinishWorkRequest) domain.Result {
-	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "work.finish", OperationID: "finish-" + request.WorkID, Status: domain.StatusBlocked, ExitCode: domain.ExitVerification, Summary: "Work cannot finish without verification evidence."}
-	if request.WorkID == "" {
-		result.ExitCode = domain.ExitInvalid
-		result.Blockers = []domain.Item{{Code: "work.id-required", Message: "Work ID is required."}}
-		return result
-	}
-	if len(request.Evidence) == 0 {
-		result.Blockers = []domain.Item{{Code: "work.evidence-required", Message: "Provide reproducible TDD, integration, or review evidence before finishing."}}
-		return result
-	}
-	result.Status, result.ExitCode, result.Summary = domain.StatusPassed, domain.ExitSuccess, "Work verification evidence is present and the item may be completed."
-	for _, evidence := range request.Evidence {
-		result.Evidence = append(result.Evidence, domain.Item{Code: "work.evidence", Message: evidence, Refs: []string{request.WorkID}})
-	}
-	result.NextActions = []domain.Item{{Code: "work.integrate", Message: fmt.Sprintf("Integrate %s using the approved change-bundle order.", request.WorkID)}}
-	return result
 }
 
 type claimDocument struct {

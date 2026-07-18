@@ -20,12 +20,11 @@ import (
 	workpkg "fullstack-orchestrator/cli/internal/work"
 	"fullstack-orchestrator/cli/internal/workspace"
 	"github.com/spf13/cobra"
-	"go.yaml.in/yaml/v3"
 )
 
 func newWorkCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent := &cobra.Command{Use: "work", Short: "Choose, claim, verify, and transfer collaborative work"}
-	parent.AddCommand(newWorkDefine(version, jsonOutput), newWorkProvider(version, jsonOutput), newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkFinish(version, jsonOutput), newWorkHandoff(version, jsonOutput))
+	parent.AddCommand(newWorkDefine(version, jsonOutput), newWorkProvider(version, jsonOutput), newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkEvidence(version, jsonOutput), newWorkTransition(version, jsonOutput, ""), newWorkTransition(version, jsonOutput, workpkg.Done), newWorkHandoff(version, jsonOutput))
 	return parent
 }
 
@@ -44,17 +43,21 @@ func newWorkNext(version string, jsonOutput *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		claims, err := loadClaims(cmd.Context(), root)
+		claims, liveStatuses, err := loadClaimsAndStatuses(cmd.Context(), root)
 		if err != nil {
 			return err
 		}
 		snapshot, issues := contextpkg.Refresh(cmd.Context(), root, contextpkg.ReadOnly)
 		done := map[string]bool{}
 		for _, item := range items {
-			done[item.ID] = item.Status == domain.WorkDone
+			state, observed := liveStatuses[item.ID]
+			done[item.ID] = item.Status == domain.WorkDone || (observed && (state == workpkg.Integrated || state == workpkg.Done))
 		}
 		var ready []domain.WorkItem
 		for _, item := range items {
+			if state, observed := liveStatuses[item.ID]; observed && state != workpkg.Proposed && state != workpkg.ReadyState {
+				continue
+			}
 			if item.Status != domain.WorkReady && item.Status != domain.WorkProposed {
 				continue
 			}
@@ -231,48 +234,6 @@ func refsUncertain(refs []string, snapshot contextpkg.Snapshot) bool {
 	return false
 }
 
-func newWorkFinish(version string, jsonOutput *bool) *cobra.Command {
-	var workID string
-	var evidence []string
-	command := &cobra.Command{Use: "finish", Short: "Verify reproducible evidence before completing work", RunE: func(cmd *cobra.Command, _ []string) error {
-		result := project.FinishWork(project.FinishWorkRequest{WorkID: workID, Evidence: evidence})
-		result.ToolVersion = version
-		return writeResult(cmd, *jsonOutput, result)
-	}}
-	command.Flags().StringVar(&workID, "work-id", "", "work ID")
-	command.Flags().StringSliceVar(&evidence, "evidence", nil, "verification receipt or command")
-	_ = command.MarkFlagRequired("work-id")
-	return command
-}
-
-func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
-	var root, workID, owner, current, next string
-	var evidence []string
-	var apply bool
-	command := &cobra.Command{Use: "handoff", Short: "Record an explicit ownership-transfer checkpoint", RunE: func(cmd *cobra.Command, _ []string) error {
-		content, _ := yaml.Marshal(map[string]any{"schema_version": 1, "work_id": workID, "receiving_owner": owner, "current_state": current, "next_action": next, "evidence": evidence})
-		plan := operation.Plan{ID: "handoff-" + strings.ReplaceAll(workID, ".", "-"), Root: root, Files: []operation.FileChange{{Path: filepath.ToSlash(filepath.Join(".harness", "work", "handoffs", workID+".yaml")), Content: content, Mode: 0o644}}}
-		plan.InitialStateFingerprint, _ = operation.StateFingerprint(plan)
-		if apply {
-			result := operation.Apply(cmd.Context(), plan)
-			result.ToolVersion, result.Command = version, "work.handoff"
-			return writeResult(cmd, *jsonOutput, result)
-		}
-		return writeResult(cmd, *jsonOutput, planResult(version, "work.handoff.plan", plan, "Ownership-transfer checkpoint plan is ready."))
-	}}
-	command.Flags().StringVar(&root, "root", ".", "project root")
-	command.Flags().StringVar(&workID, "work-id", "", "work ID")
-	command.Flags().StringVar(&owner, "owner", "", "receiving owner")
-	command.Flags().StringVar(&current, "current-state", "", "normalized current state")
-	command.Flags().StringVar(&next, "next-action", "", "one reproducible next action")
-	command.Flags().StringSliceVar(&evidence, "evidence", nil, "evidence receipt")
-	command.Flags().BoolVar(&apply, "apply", false, "write the reviewed handoff")
-	for _, flag := range []string{"work-id", "owner", "next-action"} {
-		_ = command.MarkFlagRequired(flag)
-	}
-	return command
-}
-
 func loadWorkItems(root string) ([]domain.WorkItem, error) {
 	definitions, err := workpkg.LoadDefinitions(root)
 	if err != nil {
@@ -322,16 +283,21 @@ func sortedWorkItems(items map[string]domain.WorkItem) []domain.WorkItem {
 }
 
 func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
+	claims, _, err := loadClaimsAndStatuses(ctx, root)
+	return claims, err
+}
+
+func loadClaimsAndStatuses(ctx context.Context, root string) ([]policy.Claim, map[string]workpkg.State, error) {
 	providerConfig, err := loadTaskProvider(root)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	directory := filepath.Join(root, ".harness", "work", "claims")
 	entries, err := os.ReadDir(directory)
 	if os.IsNotExist(err) {
 		entries = nil
 	} else if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	localClaims := []policy.Claim{}
 	if providerConfig.LiveStatusSource != "git-local" {
@@ -343,29 +309,33 @@ func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
 		}
 		claim, loadErr := loadYAML[policy.Claim](filepath.Join(directory, entry.Name()))
 		if loadErr != nil {
-			return nil, loadErr
+			return nil, nil, loadErr
 		}
 		if issues := schema.Validate("claim", claim); len(issues) > 0 {
-			return nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
+			return nil, nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
 		}
 		claim.Observable = false
 		localClaims = append(localClaims, claim)
 	}
 	if providerConfig.LiveStatusSource != "git-local" {
-		return localClaims, nil
+		return localClaims, map[string]workpkg.State{}, nil
 	}
 	observed, readErr := provider.NewGitLocalStore(root, providerConfig.Remote, providerConfig.CoordinationBranch).Read(ctx)
 	if errors.Is(readErr, provider.ErrNoRemote) {
-		return localClaims, nil
+		return localClaims, map[string]workpkg.State{}, nil
 	}
 	if readErr != nil {
-		return nil, readErr
+		return nil, nil, readErr
 	}
 	claims := make([]policy.Claim, 0, len(observed.Claims))
+	statuses := make(map[string]workpkg.State, len(observed.Claims))
 	for _, claim := range observed.Claims {
-		claims = append(claims, policyClaimFromGitLocal(claim))
+		statuses[claim.WorkID] = gitLocalWorkState(claim.Status)
+		if provider.GitLocalClaimActive(claim, time.Now().UTC()) {
+			claims = append(claims, policyClaimFromGitLocal(claim))
+		}
 	}
-	return claims, nil
+	return claims, statuses, nil
 }
 
 type taskProviderConfig struct {

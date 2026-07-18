@@ -710,7 +710,7 @@ git commit -m "feat(git): apply isolated workspace operations"
 - Produces `evidence.Record`, `evidence.Run(ctx, Request) (Record, domain.Result)`, and `evidence.VerifyCurrent(record, actual) []domain.Item`.
 - Produces `work.Transition(definition Definition, live LiveState, records []evidence.Record, target State) domain.Result`; `work.LiveState` is populated by the command adapter and does not import `provider`.
 
-- [ ] **Step 1: Write failing evidence and transition tests.**
+- [x] **Step 1: Write failing evidence and transition tests.**
 
 ```go
 func TestEvidenceBecomesStaleWhenWorkspaceHeadChanges(t *testing.T) {
@@ -729,13 +729,13 @@ func TestParentCannotBecomeDoneBeforeChildrenIntegrated(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/evidence ./internal/work ./internal/command -run 'Evidence|Transition|Finish' -v`
 
 Expected: FAIL because current finish accepts arbitrary strings and has no integrated state.
 
-- [ ] **Step 3: Define evidence records.**
+- [x] **Step 3: Define evidence records.**
 
 ```go
 type Record struct {
@@ -767,19 +767,19 @@ type LiveState struct {
 }
 ```
 
-- [ ] **Step 4: Implement restricted evidence execution.**
+- [x] **Step 4: Implement restricted evidence execution.**
 
 Commands come from the workspace’s approved command configuration, not issue free text. Capture bounded sanitized output, exact timing, exit status, current clean commit, and fingerprints. A dirty workspace cannot produce reusable release evidence.
 
-- [ ] **Step 5: Implement lifecycle invariants.**
+- [x] **Step 5: Implement lifecycle invariants.**
 
 Require current provider owner/revision for `in_progress`, current implementation evidence for `review`, child merge evidence for `integrated`, and all child/integration/root-pointer/user requirements for `done`. `handoff` is allowed only when ownership changes and records exact branch, commit, local-only risk, evidence, blocker, and next action.
 
-- [ ] **Step 6: Remove string-only finish and migrate commands.**
+- [x] **Step 6: Remove string-only finish and migrate commands.**
 
 `work finish` becomes a verified transition alias; `work transition` exposes the complete machine surface. Close or release the live claim only after provider transition and postcondition re-read succeed.
 
-- [ ] **Step 7: Run tests and commit.**
+- [x] **Step 7: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/evidence ./internal/work ./internal/provider ./internal/command -v
