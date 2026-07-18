@@ -4,19 +4,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/gitx"
+	providerpkg "fullstack-orchestrator/cli/internal/provider"
 	"fullstack-orchestrator/cli/internal/release"
 	"fullstack-orchestrator/cli/internal/schema"
+	workpkg "fullstack-orchestrator/cli/internal/work"
 	"fullstack-orchestrator/cli/internal/workspace"
 )
 
@@ -81,15 +83,15 @@ func Collect(ctx context.Context, start string, _ Options) Snapshot {
 	}
 	snapshot.CanonicalFingerprint = canonicalFingerprint(snapshot.ProjectID, contextSnapshot)
 
+	snapshot.ActiveWork, err = collectActiveWork(located.Path)
+	if err != nil {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: err.Error()})
+	}
 	snapshot.Provider, err = collectProvider(located.Path)
 	if err != nil {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.config-invalid", Message: err.Error(), Refs: []string{".harness/work/provider.yaml"}})
 	} else if snapshot.Provider.Confidence != Confirmed {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.live-unknown", Message: "The selected task provider has not been freshly reconciled.", Refs: []string{snapshot.Provider.Name}})
-	}
-	snapshot.ActiveWork, err = collectActiveWork(located.Path)
-	if err != nil {
-		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: err.Error()})
 	}
 	snapshot.Release = collectRelease(located.Path)
 	snapshot.Issues = normalizeIssues(snapshot.Issues)
@@ -207,20 +209,59 @@ func collectProvider(root string) (ProviderView, error) {
 		return ProviderView{Confidence: Unknown}, fmt.Errorf("task provider configuration is incomplete or has more than one live source")
 	}
 	view := ProviderView{Name: config.Provider, Confidence: Unknown}
-	cachePath := filepath.Join(root, ".harness", "local", "provider", "snapshot.json")
-	if data, readErr := os.ReadFile(cachePath); readErr == nil {
-		var cached struct {
-			ItemID   string `json:"item_id"`
-			Revision string `json:"revision"`
-			Owner    string `json:"owner"`
-			Status   string `json:"status"`
+	mappingDirectory := filepath.Join(root, ".harness", "work", "mappings")
+	entries, readErr := os.ReadDir(mappingDirectory)
+	if os.IsNotExist(readErr) {
+		return view, nil
+	}
+	if readErr != nil {
+		return view, readErr
+	}
+	sort.Slice(entries, func(left, right int) bool { return entries[left].Name() < entries[right].Name() })
+	definitions, definitionErr := workpkg.LoadDefinitions(root)
+	if definitionErr != nil {
+		return view, definitionErr
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || (filepath.Ext(entry.Name()) != ".yaml" && filepath.Ext(entry.Name()) != ".yml") {
+			continue
 		}
-		if json.Unmarshal(data, &cached) == nil {
-			view.ItemID, view.Revision, view.Owner, view.Status = cached.ItemID, cached.Revision, cached.Owner, cached.Status
-			view.Confidence = Stale
+		mapping, loadErr := providerpkg.LoadMapping(filepath.Join(mappingDirectory, entry.Name()))
+		if loadErr != nil {
+			return view, loadErr
 		}
+		if mapping.Provider != config.Provider {
+			return view, fmt.Errorf("provider mapping %s differs from selected provider %s", mapping.Provider, config.Provider)
+		}
+		definition, found := findWorkDefinition(definitions, mapping.WorkID)
+		if !found {
+			return view, fmt.Errorf("provider mapping references missing work definition %s", mapping.WorkID)
+		}
+		view.ItemID = mapping.ItemID
+		cachePath := filepath.Join(root, ".harness", "local", "providers", mapping.Provider, mapping.WorkID+".json")
+		cached, snapshotErr := providerpkg.LoadSnapshot(cachePath)
+		if os.IsNotExist(snapshotErr) {
+			return view, nil
+		}
+		if snapshotErr != nil {
+			return view, snapshotErr
+		}
+		cached.Source = "cache"
+		state := providerpkg.Reconcile(providerpkg.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, cached, time.Now().UTC())
+		view.Revision, view.Owner, view.Status = state.Revision, state.Owner, state.Status
+		view.Confidence = Stale
+		return view, nil
 	}
 	return view, nil
+}
+
+func findWorkDefinition(definitions []workpkg.Definition, id string) (workpkg.Definition, bool) {
+	for _, definition := range definitions {
+		if definition.ID == id {
+			return definition, true
+		}
+	}
+	return workpkg.Definition{}, false
 }
 
 func collectActiveWork(root string) ([]WorkView, error) {

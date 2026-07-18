@@ -24,7 +24,7 @@ import (
 
 func newWorkCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent := &cobra.Command{Use: "work", Short: "Choose, claim, verify, and transfer collaborative work"}
-	parent.AddCommand(newWorkDefine(version, jsonOutput), newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkFinish(version, jsonOutput), newWorkHandoff(version, jsonOutput))
+	parent.AddCommand(newWorkDefine(version, jsonOutput), newWorkProvider(version, jsonOutput), newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkFinish(version, jsonOutput), newWorkHandoff(version, jsonOutput))
 	return parent
 }
 

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/provider-snapshot.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "provider",
+    "item_id",
+    "revision",
+    "status",
+    "dependencies",
+    "capabilities",
+    "definition_fingerprint",
+    "fetched_at",
+    "source",
+    "raw_hash"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "item_id": { "type": "string", "minLength": 1 },
+    "revision": { "type": "string" },
+    "status": {
+      "enum": [
+        "proposed",
+        "ready",
+        "in_progress",
+        "blocked",
+        "review",
+        "integrated",
+        "done",
+        "closed"
+      ]
+    },
+    "owner": { "type": "string" },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["hierarchy", "dependencies", "claim", "revision"],
+      "properties": {
+        "hierarchy": { "type": "boolean" },
+        "dependencies": { "type": "boolean" },
+        "claim": { "enum": ["atomic", "verified", "advisory", "none"] },
+        "revision": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "definition_fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "fetched_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "enum": ["connector-live", "git-local-remote", "cache", "explicit-export"]
+    },
+    "raw_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "additionalProperties": false
+}

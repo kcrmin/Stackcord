@@ -486,7 +486,7 @@ git commit -m "feat(work): define executable project work"
 - Produces `provider.Reconcile(expectation Expectation, mapping Mapping, snapshot Snapshot, now time.Time) State`.
 - Adds `work provider reconcile --mapping --snapshot` and stable result codes.
 
-- [ ] **Step 1: Write failing freshness, drift, and capability tests.**
+- [x] **Step 1: Write failing freshness, drift, and capability tests.**
 
 ```go
 func TestReconcileRejectsCachedOrDriftedProviderState(t *testing.T) {
@@ -505,13 +505,13 @@ func TestReconcileRejectsCachedOrDriftedProviderState(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/provider ./internal/continuity ./internal/command -run Provider -v`
 
 Expected: FAIL because provider contracts do not exist.
 
-- [ ] **Step 3: Define strict provider data.**
+- [x] **Step 3: Define strict provider data.**
 
 ```go
 type Capabilities struct {
@@ -543,15 +543,15 @@ type Snapshot struct {
 }
 ```
 
-- [ ] **Step 4: Implement reconciliation.**
+- [x] **Step 4: Implement reconciliation.**
 
 Validate selected-provider identity, item ID, revision availability, current definition fingerprint, known normalized status, owner semantics, dependency mapping, freshness policy, source provenance, and raw hash. A local file alone never upgrades an external snapshot to live.
 
-- [ ] **Step 5: Add local-only snapshot placement.**
+- [x] **Step 5: Add local-only snapshot placement.**
 
 Provider connector output is accepted only from `.harness/local/providers/` or an explicit temporary input path. The CLI writes only the stable mapping to `.harness/work/mappings/`.
 
-- [ ] **Step 6: Run tests and commit.**
+- [x] **Step 6: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/provider ./internal/continuity ./internal/command ./internal/schema -v
