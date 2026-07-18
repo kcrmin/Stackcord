@@ -171,6 +171,7 @@ func PlanBaseline(ctx context.Context, request BaselineRequest) (Baseline, opera
 		add("ui.baseline-git-unknown", "UI workspace Git identity is unavailable.", request.WorkspaceID)
 		return Baseline{}, plan, warnings, nil
 	}
+	plan.ID = "ui-baseline-bind-" + strings.ReplaceAll(request.ID, ".", "-") + "-" + state.Head[:12]
 	remote, remoteErr := gitx.RemoteURL(ctx, workspaceRoot, "origin")
 	if remoteErr != nil || !gitx.SafeRemoteURL(remote) {
 		add("ui.baseline-remote-unsafe", "UI workspace needs a credential-free origin remote.", request.WorkspaceID)
