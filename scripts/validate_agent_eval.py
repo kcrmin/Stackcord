@@ -22,6 +22,7 @@ REQUIRED_SCENARIOS = {
     "small-private-change",
     "local-only-work",
     "release-candidate-mismatch",
+    "current-tool-selection",
 }
 REQUIRED_SKILLS = {
     "start-project",
@@ -68,6 +69,7 @@ def _validate_action_map(errors: list[str], label: str, value: object) -> set[st
             "command_or_response",
             "successful_command",
             "successful_command_or_response",
+            "web_search_and_response",
             "response",
         }:
             errors.append(f"rubric action {name} has unsupported kind")

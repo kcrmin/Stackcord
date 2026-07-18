@@ -55,11 +55,18 @@ def _status_precedes_mutation(commands: list[str], patterns: list[str]) -> bool:
         (
             index
             for index, command in enumerate(commands)
-            if _contains(command, MUTATING_COMMANDS)
+            if _contains(command, MUTATING_COMMANDS) and not _is_help_only(command)
         ),
         None,
     )
     return first_mutation is None or status_index < first_mutation
+
+
+def _is_help_only(command: str) -> bool:
+    folded = command.casefold()
+    if "--help" not in folded and not folded.rstrip(" '\"").endswith(" -h"):
+        return False
+    return not any(operator in command for operator in ("&&", "||", ";", "\n"))
 
 
 def score_transcript(
@@ -68,6 +75,7 @@ def score_transcript(
     commands: list[str],
     response: str,
     successful_commands: list[str] | None = None,
+    web_searches: list[str] | None = None,
 ) -> dict[str, Any]:
     command_text = "\n".join(commands)
     successful_command_text = "\n".join(successful_commands or [])
@@ -89,6 +97,11 @@ def score_transcript(
         elif kind == "successful_command_or_response":
             matches = _contains(f"{successful_command_text}\n{response}", patterns)
             passed = len(set(matches)) >= int(rule.get("min_matches", 1))
+        elif kind == "web_search_and_response":
+            matches = _contains(response, patterns)
+            passed = bool(web_searches) and len(set(matches)) >= int(rule.get("min_matches", 1))
+            if web_searches:
+                matches.append(f"observed_web_searches:{len(web_searches)}")
         else:
             haystack = response if kind == "response" else combined
             matches = _contains(haystack, patterns)
@@ -198,6 +211,26 @@ def extract_successful_commands(events_path: pathlib.Path) -> list[str]:
     return commands
 
 
+def extract_web_searches(events_path: pathlib.Path) -> list[str]:
+    searches: list[str] = []
+    for line in events_path.read_text(encoding="utf-8").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item") if isinstance(event, dict) else None
+        if (
+            event.get("type") != "item.completed"
+            or not isinstance(item, dict)
+            or item.get("type") != "web_search"
+        ):
+            continue
+        observation = json.dumps(item, ensure_ascii=False, sort_keys=True)
+        if observation not in searches:
+            searches.append(observation)
+    return searches
+
+
 def score_saved_transcript(
     scenario: dict[str, Any],
     rubric: dict[str, Any],
@@ -209,6 +242,7 @@ def score_saved_transcript(
         raise ValueError(f"missing saved transcript for {scenario['id']}")
     commands = extract_commands(events_path)
     successful_commands = extract_successful_commands(events_path)
+    web_searches = extract_web_searches(events_path)
     response = final_path.read_text(encoding="utf-8")
     score = score_transcript(
         scenario,
@@ -216,6 +250,7 @@ def score_saved_transcript(
         commands,
         response,
         successful_commands=successful_commands,
+        web_searches=web_searches,
     )
     previous_path = scenario_output / "result.json"
     previous = (
@@ -231,6 +266,7 @@ def score_saved_transcript(
         "stderr": str(previous.get("stderr", "")),
         "commands": commands,
         "successful_commands": successful_commands,
+        "web_search_count": len(web_searches),
         **score,
     }
     if exit_code != 0:
@@ -370,12 +406,14 @@ def run(args: argparse.Namespace) -> int:
                 response = final_path.read_text(encoding="utf-8") if final_path.is_file() else ""
                 commands = extract_commands(events_path)
                 successful_commands = extract_successful_commands(events_path)
+                web_searches = extract_web_searches(events_path)
                 score = score_transcript(
                     scenario,
                     rubric,
                     commands,
                     response,
                     successful_commands=successful_commands,
+                    web_searches=web_searches,
                 )
                 result = {
                     "id": scenario["id"],
@@ -384,6 +422,7 @@ def run(args: argparse.Namespace) -> int:
                     "stderr": completed.stderr[-4000:],
                     "commands": commands,
                     "successful_commands": successful_commands,
+                    "web_search_count": len(web_searches),
                     **score,
                 }
                 if completed.returncode != 0:

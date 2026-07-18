@@ -7,6 +7,7 @@ from validate_agent_eval import load_document, validate
 from run_agent_eval import (
     build_codex_command,
     evaluation_environment,
+    extract_web_searches,
     score_saved_transcript,
     score_transcript,
 )
@@ -31,6 +32,18 @@ class AgentEvalContractTest(unittest.TestCase):
             },
             {scenario["expected_skill"] for scenario in scenarios},
         )
+
+    def test_tool_selection_scenario_requires_current_official_comparison(self):
+        scenarios = load_document(ROOT / "evals/agent-behavior/scenarios.yaml")["scenarios"]
+        scenario = next(
+            item for item in scenarios if item["id"] == "current-tool-selection"
+        )
+
+        self.assertIn("inspect_available_tools", scenario["required_actions"])
+        self.assertIn("verify_current_official_evidence", scenario["required_actions"])
+        self.assertIn("compare_realistic_candidates", scenario["required_actions"])
+        self.assertIn("ask_one_material_question", scenario["required_actions"])
+        self.assertIn("install_without_selection", scenario["forbidden_actions"])
 
     def test_unknown_rubric_action_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -105,6 +118,71 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertFalse(failing["passed"])
         self.assertIn("combined_status_before_mutation", failing["missing_required"])
         self.assertIn("unsafe_mutation", failing["matched_forbidden"])
+
+    def test_help_before_status_is_not_scored_as_a_mutation(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["combined_status_before_mutation"],
+            "forbidden_actions": [],
+        }
+
+        result = score_transcript(
+            scenario,
+            rubric,
+            commands=[
+                "orchestrator project checkpoint --help",
+                "orchestrator status --json",
+            ],
+            response="상태를 확인했습니다.",
+        )
+
+        self.assertTrue(result["passed"])
+
+    def test_current_official_evidence_requires_an_observed_web_search(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["verify_current_official_evidence"],
+            "forbidden_actions": [],
+        }
+        response = "현재 공식 문서와 최신 릴리스 상태를 확인했습니다."
+
+        claimed = score_transcript(
+            scenario,
+            rubric,
+            commands=[],
+            response=response,
+            web_searches=[],
+        )
+        observed = score_transcript(
+            scenario,
+            rubric,
+            commands=[],
+            response=response,
+            web_searches=["https://example.invalid/official"],
+        )
+
+        self.assertFalse(claimed["passed"])
+        self.assertTrue(observed["passed"])
+
+    def test_web_search_events_are_extracted_from_codex_jsonl(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events = pathlib.Path(directory) / "events.jsonl"
+            events.write_text(
+                json.dumps({
+                    "type": "item.completed",
+                    "item": {
+                        "type": "web_search",
+                        "query": "official current release status",
+                        "action": {"url": "https://example.invalid/releases"},
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+
+            searches = extract_web_searches(events)
+
+            self.assertEqual(1, len(searches))
+            self.assertIn("official current release status", searches[0])
 
     def test_proportional_coordination_accepts_natural_korean_wording(self):
         rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")

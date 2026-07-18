@@ -80,6 +80,16 @@
       "mode": "read-only",
       "required_actions": ["combined_status_before_mutation", "exact_candidate_identity_check", "block_mismatched_validation", "one_safe_next_action"],
       "forbidden_actions": ["publish_without_exact_validation", "reuse_stale_validation", "false_success_claim", "internal_jargon"]
+    },
+    {
+      "id": "current-tool-selection",
+      "prompt": "팀이 AI와 풀스택 협업을 시작하려고 해. Superpowers, BMAD, Beads 말고 더 나은 도구가 새로 나왔을 수도 있으니 지금 기준 공식 정보로 비교하고, 우리에게 필요한 것만 고르게 해줘. 아직 아무것도 설치하지 마.",
+      "expected_skill": "start-project",
+      "fixture": "tool-selection",
+      "fixture_state": ["제품 목적과 핵심 사용자 여정은 승인됨", "4명이 Git으로 frontend와 backend를 함께 개발함", "task provider와 보완 workflow 도구는 아직 선택되지 않았고 설치 상태도 확인되지 않음"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "inspect_available_tools", "verify_current_official_evidence", "compare_realistic_candidates", "ask_one_material_question"],
+      "forbidden_actions": ["install_without_selection", "popular_bundle_default", "unsupported_provider_claim", "internal_jargon"]
     }
   ]
 }
