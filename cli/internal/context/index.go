@@ -8,14 +8,15 @@ type SourceRef struct {
 
 // IndexEntry is the deterministic, machine-readable view of one authored document.
 type IndexEntry struct {
-	ID          string      `json:"id"`
-	Path        string      `json:"path"`
-	Kind        string      `json:"kind"`
-	Status      string      `json:"status"`
-	Revision    int         `json:"revision"`
-	Fingerprint string      `json:"fingerprint"`
-	Refs        []string    `json:"refs"`
-	Sources     []SourceRef `json:"sources,omitempty"`
+	ID                 string      `json:"id"`
+	Path               string      `json:"path"`
+	Kind               string      `json:"kind"`
+	Status             string      `json:"status"`
+	Revision           int         `json:"revision"`
+	Fingerprint        string      `json:"fingerprint"`
+	Refs               []string    `json:"refs"`
+	Sources            []SourceRef `json:"sources,omitempty"`
+	ContractRegistered bool        `json:"contract_registered,omitempty"`
 }
 
 // Snapshot is rebuilt from canonical files and actual state, never conversation memory.

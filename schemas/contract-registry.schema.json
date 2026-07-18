@@ -5,16 +5,60 @@
   "required": ["schema_version", "contracts"],
   "properties": {
     "schema_version": { "const": 1 },
-    "contracts": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "status", "revision", "path", "providers", "consumers", "refs"], "properties": {
-      "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
-      "kind": { "enum": ["api", "event", "data", "service", "error", "authentication"] },
-      "status": { "enum": ["draft", "proposed", "approved", "deprecated", "stale", "unknown"] },
-      "revision": { "type": "integer", "minimum": 1 },
-      "path": { "type": "string", "minLength": 1 },
-      "providers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-      "consumers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-      "refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
-    }, "additionalProperties": false } }
+    "contracts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "stable_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stable_id" },
+      "uniqueItems": true
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          { "pattern": "^(?:/|\\\\)" },
+          { "pattern": "(?:^|[/\\\\])\\.\\.(?:$|[/\\\\])" },
+          { "const": "registry.yaml" }
+        ]
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "id", "kind", "status", "revision", "source", "compatibility", "providers",
+        "consumers", "product_ids", "scenario_ids", "data_ids", "ui_ids",
+        "migration_ids", "work_ids", "test_ids", "refs", "fingerprint"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/stable_id" },
+        "kind": { "enum": ["product", "business", "behavior", "interface", "data"] },
+        "status": { "enum": ["draft", "proposed", "approved", "deprecated", "stale", "unknown"] },
+        "revision": { "type": "integer", "minimum": 1 },
+        "source": { "$ref": "#/$defs/source" },
+        "compatibility": { "enum": ["additive", "coordinated", "breaking"] },
+        "providers": { "$ref": "#/$defs/stable_ids" },
+        "consumers": { "$ref": "#/$defs/stable_ids" },
+        "product_ids": { "$ref": "#/$defs/stable_ids" },
+        "scenario_ids": { "$ref": "#/$defs/stable_ids" },
+        "data_ids": { "$ref": "#/$defs/stable_ids" },
+        "ui_ids": { "$ref": "#/$defs/stable_ids" },
+        "migration_ids": { "$ref": "#/$defs/stable_ids" },
+        "work_ids": { "$ref": "#/$defs/stable_ids" },
+        "test_ids": { "$ref": "#/$defs/stable_ids" },
+        "refs": { "$ref": "#/$defs/stable_ids" },
+        "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

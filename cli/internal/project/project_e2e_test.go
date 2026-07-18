@@ -29,7 +29,7 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 		"AGENTS.md", ".agents/skills/use-project-harness/SKILL.md", ".agents/skills/use-project-harness/references/fallback.md",
 		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/workspaces.yaml",
 		"specs/index.md", "specs/product/summary.md", "specs/policies/policy.account.recovery-proof.md", "specs/scenarios/scenario.account.recovery-success.md",
-		"contracts/registry.yaml", "docs/index.md",
+		"contracts/registry.yaml", "contracts/product/index.md", "contracts/business/index.md", "contracts/behaviors/index.md", "contracts/interfaces/index.md", "contracts/data/index.md", "docs/index.md",
 	} {
 		require.FileExists(t, filepath.Join(root, filepath.FromSlash(path)))
 	}

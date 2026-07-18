@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"fullstack-orchestrator/cli/internal/contract"
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
@@ -90,8 +91,11 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 		}
 	}
 
-	snapshot.Impact = buildImpact(snapshot.Index)
-	staleSeeds := map[string]struct{}{}
+	registryEdges, registryStale, registryUnknown, registryIssues := contractRegistryContext(root, snapshot.Index)
+	issues = append(issues, registryIssues...)
+	snapshot.Unknown = append(snapshot.Unknown, registryUnknown...)
+	snapshot.Impact = buildImpact(snapshot.Index, registryEdges)
+	staleSeeds := registryStale
 	for _, entry := range snapshot.Index {
 		for _, source := range entry.Sources {
 			current, exists := snapshot.Index[source.Source]
@@ -163,7 +167,17 @@ func parseDocument(path string) (documentMetadata, string, error) {
 		return documentMetadata{}, "", fmt.Errorf("decode metadata in %s: %w", path, err)
 	}
 	if metadata.ID != "" {
-		if issues := schema.Validate("spec", raw); len(issues) > 0 {
+		validationValue := raw
+		if contractKind(metadata.Kind) {
+			validationValue = map[string]any{
+				"schema_version": metadata.SchemaVersion, "id": metadata.ID, "kind": metadata.Kind,
+				"status": metadata.Status, "revision": metadata.Revision, "refs": metadata.Refs,
+			}
+			if len(metadata.Sources) > 0 {
+				validationValue["sources"] = metadata.Sources
+			}
+		}
+		if issues := schema.Validate("spec", validationValue); len(issues) > 0 {
 			return documentMetadata{}, "", fmt.Errorf("schema validation failed for %s: %s", path, issues[0].Message)
 		}
 	}
@@ -172,6 +186,72 @@ func parseDocument(path string) (documentMetadata, string, error) {
 		return documentMetadata{}, "", fmt.Errorf("fingerprint %s: %w", path, err)
 	}
 	return metadata, fingerprint, nil
+}
+
+func contractRegistryContext(root string, index map[string]IndexEntry) (map[string][]string, map[string]struct{}, []string, []domain.Item) {
+	edges := map[string][]string{}
+	stale := map[string]struct{}{}
+	unknown := []string{}
+	manifest, manifestErr := schema.LoadYAML[map[string]any](filepath.Join(root, ".harness", "manifest.yaml"))
+	contractsRoot := "contracts"
+	if manifestErr == nil {
+		if paths, ok := manifest["paths"].(map[string]any); ok {
+			if configured, ok := paths["contracts"].(string); ok && configured != "" {
+				contractsRoot = filepath.ToSlash(filepath.Clean(filepath.FromSlash(configured)))
+			}
+		}
+	}
+	path := filepath.Join(root, filepath.FromSlash(contractsRoot), "registry.yaml")
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
+		return edges, stale, unknown, nil
+	} else if err != nil {
+		return edges, stale, unknown, []domain.Item{{Code: "context.error.contract-registry", Message: err.Error(), Refs: []string{"contracts/registry.yaml"}}}
+	}
+	registry, drift, err := contract.LoadRegistryWithDrift(root)
+	if err != nil {
+		return edges, stale, unknown, []domain.Item{{Code: "context.error.contract-registry", Message: err.Error(), Refs: []string{"contracts/registry.yaml"}}}
+	}
+	drifted := map[string]bool{}
+	for _, item := range drift {
+		drifted[item.ID] = true
+		stale[item.ID] = struct{}{}
+	}
+	for _, entry := range registry.Contracts {
+		indexed, exists := index[entry.ID]
+		expectedPath := filepath.ToSlash(filepath.Join(contractsRoot, filepath.FromSlash(entry.Source)))
+		if !exists || indexed.Path != expectedPath {
+			unknown = append(unknown, entry.ID+".source-missing")
+			continue
+		}
+		if indexed.Kind != string(entry.Kind) || indexed.Status != string(entry.Status) || indexed.Revision != entry.Revision {
+			unknown = append(unknown, entry.ID+".metadata-mismatch")
+		}
+		indexed.Kind, indexed.Status, indexed.Revision, indexed.Fingerprint, indexed.ContractRegistered = string(entry.Kind), string(entry.Status), entry.Revision, entry.Fingerprint, true
+		index[entry.ID] = indexed
+		impact := contract.Impact(registry, entry.ID)
+		edges[entry.ID] = append(edges[entry.ID], impact.Dependents...)
+		if entry.Status == contract.Stale || entry.Status == contract.Unknown {
+			unknown = append(unknown, entry.ID+".registry-status")
+		}
+		if drifted[entry.ID] {
+			unknown = append(unknown, entry.ID+".fingerprint-drift")
+		}
+	}
+	for source := range edges {
+		sort.Strings(edges[source])
+		edges[source] = unique(edges[source])
+	}
+	sort.Strings(unknown)
+	return edges, stale, unique(unknown), nil
+}
+
+func contractKind(value string) bool {
+	switch value {
+	case string(contract.Product), string(contract.Business), string(contract.Behavior), string(contract.Interface), string(contract.Data):
+		return true
+	default:
+		return false
+	}
 }
 
 func frontmatter(data []byte) ([]byte, error) {

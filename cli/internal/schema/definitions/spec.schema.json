@@ -6,7 +6,7 @@
   "properties": {
     "schema_version": { "const": 1 },
     "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" },
-    "kind": { "enum": ["role", "capability", "journey", "policy", "scenario", "decision", "quality", "architecture", "ui", "contract"] },
+    "kind": { "enum": ["role", "capability", "journey", "policy", "scenario", "decision", "quality", "architecture", "ui", "contract", "product", "business", "behavior", "interface", "data"] },
     "status": { "enum": ["draft", "proposed", "approved", "deprecated", "rejected", "stale", "unknown"] },
     "revision": { "type": "integer", "minimum": 1 },
     "owners": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$" }, "uniqueItems": true },

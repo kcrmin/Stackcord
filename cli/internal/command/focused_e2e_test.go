@@ -3,6 +3,8 @@ package command_test
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -92,6 +94,12 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	contractYAML := "id: contract.identity.recovery.v1\nfields:\n  account_id:\n    type: string\n    required: true\nerrors:\n  RATE_LIMITED: retry later\nretry: safe\nidempotency: required\ntimeout: 5s\npartial_failure: reject\ncompensation: not-required\n"
 	require.NoError(t, os.WriteFile(contractPath, []byte(contractYAML), 0o600))
 	require.Contains(t, runFocusedCommand(t, "contract", "check", "--file", contractPath, "--json"), `"status":"passed"`)
+	contractSource := []byte("---\nschema_version: 1\nid: contract.identity.recovery.v1\nkind: interface\nstatus: approved\nrevision: 1\nrefs: []\n---\n\nAccount recovery interface obligations.\n")
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "contracts", "interfaces"), 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "contracts", "interfaces", "recovery.md"), contractSource, 0o600))
+	contractHash := sha256.Sum256(contractSource)
+	registry := "schema_version: 1\ncontracts:\n  - id: contract.identity.recovery.v1\n    kind: interface\n    status: approved\n    revision: 1\n    source: interfaces/recovery.md\n    compatibility: coordinated\n    providers: []\n    consumers: []\n    product_ids: []\n    scenario_ids: []\n    data_ids: []\n    ui_ids: []\n    migration_ids: []\n    work_ids: []\n    test_ids: []\n    refs: []\n    fingerprint: sha256:" + hex.EncodeToString(contractHash[:]) + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(root, "contracts", "registry.yaml"), []byte(registry), 0o600))
 
 	beforeDBML := filepath.Join(parent, "before.dbml")
 	afterDBML := filepath.Join(parent, "after.dbml")

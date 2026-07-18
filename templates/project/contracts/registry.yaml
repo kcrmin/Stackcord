@@ -1,2 +1,4 @@
 schema_version: 1
+# product, business, behavior, interface, and data obligations are registered here.
+# The source file is canonical; fingerprint drift marks every declared dependent stale.
 contracts: []

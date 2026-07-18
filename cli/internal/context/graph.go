@@ -2,7 +2,7 @@ package context
 
 import "sort"
 
-func buildImpact(index map[string]IndexEntry) map[string][]string {
+func buildImpact(index map[string]IndexEntry, extra map[string][]string) map[string][]string {
 	sets := map[string]map[string]struct{}{}
 	for id, entry := range index {
 		for _, dependency := range entry.Refs {
@@ -13,6 +13,11 @@ func buildImpact(index map[string]IndexEntry) map[string][]string {
 		}
 		if _, exists := sets[id]; !exists {
 			sets[id] = map[string]struct{}{}
+		}
+	}
+	for source, targets := range extra {
+		for _, target := range targets {
+			addEdge(sets, source, target)
 		}
 	}
 	result := make(map[string][]string, len(sets))

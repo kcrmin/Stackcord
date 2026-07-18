@@ -34,7 +34,12 @@ func render(request InitRequest) ([]operation.FileChange, error) {
 		".harness/workspaces.yaml":                                  fmt.Sprintf("schema_version: 1\nproject_id: %s\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n", request.ProjectID),
 		".harness/work/provider.yaml":                               "schema_version: 1\nprovider: git-local\nlive_status_source: git-local\nremote: origin\ncoordination_branch: coordination\n",
 		"specs/index.md":                                            "# Product specifications\n\nApproved intent, roles, capabilities, journeys, policies, scenarios, quality, architecture, and UI baselines live here.\n",
-		"contracts/registry.yaml":                                   "schema_version: 1\ncontracts: []\n",
+		"contracts/registry.yaml":                                   "schema_version: 1\n# product, business, behavior, interface, and data obligations are registered here.\n# The source file is canonical; fingerprint drift marks every declared dependent stale.\ncontracts: []\n",
+		"contracts/product/index.md":                                "# Product obligations\n\nService commitments, boundaries, and explicit non-goals.\n",
+		"contracts/business/index.md":                               "# Business obligations\n\nEligibility, rules, invariants, rejection, and failure behavior.\n",
+		"contracts/behaviors/index.md":                              "# Behavior obligations\n\nObservable success, rejection, and failure behavior.\n",
+		"contracts/interfaces/index.md":                             "# Interface obligations\n\nAPI, event, error, timeout, retry, and compatibility behavior.\n",
+		"contracts/data/index.md":                                   "# Data obligations\n\nOwnership, classification, retention, deletion, and migration behavior.\n",
 		"docs/index.md":                                             "# Project documentation\n\nGuides, runbooks, troubleshooting, and generated summaries live here.\n",
 	}
 	if request.DraftRoot != "" {

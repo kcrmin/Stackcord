@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/project"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,7 @@ func TestStartWorkCreatesClaimAndBranchCheckpoint(t *testing.T) {
 		Owner: "alex", Branch: "feature/GH-142-account-recovery",
 		ExpiresAt: time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC),
 		Candidate: policy.Candidate{Repository: "root", Workspace: "workspace.identity", ContractIDs: []string{"contract.identity.recovery.v1"}, Now: time.Date(2026, 7, 16, 0, 0, 0, 0, time.UTC)},
+		Snapshot:  contextpkg.Snapshot{Index: map[string]contextpkg.IndexEntry{"contract.identity.recovery.v1": {ID: "contract.identity.recovery.v1", Kind: "interface", Status: "approved", ContractRegistered: true}}},
 	}
 	plan := project.StartWork(request)
 	require.Empty(t, plan.Blockers)
@@ -28,6 +30,7 @@ func TestStartWorkBlocksSharedContractConflict(t *testing.T) {
 		Root: t.TempDir(), WorkID: "work.new", ClaimID: "claim.new", Owner: "sam", Branch: "feature/shared-change",
 		ExpiresAt: time.Now().Add(time.Hour), Candidate: policy.Candidate{Repository: "root", ContractIDs: []string{"contract.shared.v1"}, Now: time.Now()},
 		ActiveClaims: []policy.Claim{{ID: "claim.existing", Repository: "root", ContractIDs: []string{"contract.shared.v1"}, Observable: true, ExpiresAt: time.Now().Add(time.Hour)}},
+		Snapshot:     contextpkg.Snapshot{Index: map[string]contextpkg.IndexEntry{"contract.shared.v1": {ID: "contract.shared.v1", Kind: "behavior", Status: "approved", ContractRegistered: true}}},
 	}
 	plan := project.StartWork(request)
 	require.Empty(t, plan.Files)

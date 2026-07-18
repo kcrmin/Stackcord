@@ -810,7 +810,7 @@ git commit -m "feat(work): verify lifecycle evidence"
 - Produces typed contract kinds `product`, `business`, `behavior`, `interface`, and `data`.
 - Produces `contract.LoadRegistry(root) (Registry, error)` and `contract.Impact(registry, id) Impact`.
 
-- [ ] **Step 1: Write failing obligation and impact tests.**
+- [x] **Step 1: Write failing obligation and impact tests.**
 
 ```go
 func TestBusinessContractRequiresObservableRejectedAndFailureBehavior(t *testing.T) {
@@ -826,25 +826,25 @@ func TestContractImpactIncludesUIDataMigrationAndActiveWork(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/contract ./internal/context ./internal/policy -run Contract -v`
 
 Expected: FAIL because the current contract definition only covers a narrower behavior shape.
 
-- [ ] **Step 3: Define registry entries and obligations.**
+- [x] **Step 3: Define registry entries and obligations.**
 
 Each entry contains kind, source, status, providers, consumers, related product/scenario/data/UI IDs, compatibility mode, and fingerprint. Kind-specific documents define purpose/non-goals, eligibility/invariants, observable outcomes, interfaces, or data lifecycle.
 
-- [ ] **Step 4: Build deterministic impact edges.**
+- [x] **Step 4: Build deterministic impact edges.**
 
 Index registry and document refs once. Mark dependent UI, interface, DBML, migration, tests, and work definitions stale when the contract fingerprint changes.
 
-- [ ] **Step 5: Upgrade conflict severity.**
+- [x] **Step 5: Upgrade conflict severity.**
 
 The same business, behavior, or migration contract is `block`; overlapping compatible consumer work is `coordinate`; missing or stale registry evidence is `unknown`.
 
-- [ ] **Step 6: Run tests and commit.**
+- [x] **Step 6: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/contract ./internal/context ./internal/policy ./internal/command -v
