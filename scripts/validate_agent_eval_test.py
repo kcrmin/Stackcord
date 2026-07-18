@@ -122,6 +122,38 @@ class AgentEvalContractTest(unittest.TestCase):
 
         self.assertTrue(result["passed"])
 
+    def test_provider_boundary_accepts_natural_korean_live_state_wording(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["provider_truth_boundary"],
+            "forbidden_actions": [],
+        }
+
+        result = score_transcript(
+            scenario,
+            rubric,
+            commands=[],
+            response="하네스가 없어 라이브 작업 상태는 이 클론에서 복구되지 않습니다.",
+        )
+
+        self.assertTrue(result["passed"])
+
+    def test_contract_first_accepts_approval_before_workspace_slices(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["contract_first_resolution"],
+            "forbidden_actions": [],
+        }
+
+        result = score_transcript(
+            scenario,
+            rubric,
+            commands=[],
+            response="공통 규칙을 정하고 API 계약 승인 후 UI와 API 작업을 나눕니다.",
+        )
+
+        self.assertTrue(result["passed"])
+
     def test_failed_checkpoint_command_does_not_prove_persisted_product_meaning(self):
         rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
         scenario = {

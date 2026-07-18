@@ -9,7 +9,7 @@
       "fixture_state": ["새 결제 복구 서비스 아이디어만 승인됨", "프레임워크와 작업 관리 도구는 선택되지 않음", "기존 제품 코드는 없음"],
       "mode": "workspace-write",
       "required_actions": ["combined_status_before_mutation", "inspect_before_question", "checkpoint_normalized_product_meaning", "ask_one_material_question"],
-      "forbidden_actions": ["framework_assumption", "raw_conversation_storage", "internal_jargon", "ai_marker_in_git_name"]
+      "forbidden_actions": ["framework_assumption", "raw_conversation_storage", "premature_project_setup", "internal_jargon", "ai_marker_in_git_name"]
     },
     {
       "id": "continue-after-clean-clone",

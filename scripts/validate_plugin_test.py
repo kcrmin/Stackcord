@@ -62,6 +62,13 @@ class PluginContractTest(unittest.TestCase):
         self.assertIn("initial product request", text)
         self.assertIn("successful apply", text)
 
+    def test_discovery_defers_project_setup_until_the_boundary_is_known(self):
+        text = (ROOT / "skills" / "start-project" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("existing product files already establish", text)
+        self.assertIn("first high-impact scope answer", text)
+
     def test_manifest_points_to_bundled_hooks(self):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
