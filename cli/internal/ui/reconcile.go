@@ -7,7 +7,10 @@ import (
 	"sort"
 	"strings"
 
+	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/schema"
+	"fullstack-orchestrator/cli/internal/work"
+	"go.yaml.in/yaml/v3"
 )
 
 // ReconcileState describes authority-aware effects without changing canonical UI code.
@@ -16,6 +19,52 @@ type ReconcileState struct {
 	RequiresApproval bool     `json:"requires_approval"`
 	StaleRefs        []string `json:"stale_refs"`
 	Blockers         []string `json:"blockers"`
+}
+
+// AcceptIntegratedBaseline plans the tracked acknowledgement included with implemented UI work.
+func AcceptIntegratedBaseline(root, id string, definition work.Definition) (Registration, operation.Plan, error) {
+	registration, err := LoadRegistration(root, id)
+	if err != nil {
+		return Registration{}, operation.Plan{}, err
+	}
+	if registration.Authority != "seed" && registration.Authority != "canonical" {
+		return Registration{}, operation.Plan{}, fmt.Errorf("reference-only UI sources have no canonical baseline to accept")
+	}
+	if definition.Readiness != work.Ready || !definition.Evidence.IntegrationRequired || !strings.HasPrefix(definition.ID, "work.") {
+		return Registration{}, operation.Plan{}, fmt.Errorf("UI baseline acceptance requires ready work with integration evidence")
+	}
+	uiScope := append(append([]string(nil), definition.Scope.UIFlows...), definition.Refs...)
+	consumerScope := append(append([]string(nil), definition.Workspaces...), definition.Refs...)
+	for _, ref := range registration.MappedRefs {
+		if !containsUIValue(uiScope, ref) {
+			return Registration{}, operation.Plan{}, fmt.Errorf("UI mapping %s is outside work scope", ref)
+		}
+	}
+	for _, consumer := range registration.Consumers {
+		if !containsUIValue(consumerScope, consumer) {
+			return Registration{}, operation.Plan{}, fmt.Errorf("UI consumer %s is outside work scope", consumer)
+		}
+	}
+	if registration.BaselineFingerprint == registration.ContentHash {
+		return Registration{}, operation.Plan{}, fmt.Errorf("UI source baseline is already current")
+	}
+	registration.BaselineFingerprint = registration.ContentHash
+	data, err := yaml.Marshal(registration)
+	if err != nil {
+		return Registration{}, operation.Plan{}, err
+	}
+	plan := operation.Plan{ID: "ui-integrate-" + strings.ReplaceAll(id, ".", "-"), Root: root, Files: []operation.FileChange{{Path: filepath.ToSlash(filepath.Join(".harness", "sources", "ui", id+".yaml")), Content: data, Mode: 0o644}}}
+	plan.InitialStateFingerprint, err = operation.StateFingerprint(plan)
+	return registration, plan, err
+}
+
+func containsUIValue(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 // Reconcile compares stable registrations. Authority can only change as a separate product decision.

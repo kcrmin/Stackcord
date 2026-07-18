@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"fullstack-orchestrator/cli/internal/command"
 	"fullstack-orchestrator/cli/internal/project"
@@ -88,7 +87,10 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	require.Contains(t, dirtyInspect, `"git.submodule.dirty","message":"true"`)
 	require.Contains(t, dirtyInspect, `"git.submodule-dirty"`)
 	require.NoError(t, os.WriteFile(filepath.Join(root, "workspaces", "backend", "README.md"), []byte("backend\n"), 0o600))
-	require.Contains(t, runFocusedCommand(t, "integrate", "plan", "--root", root, "--json"), "additive contract, providers, consumers, UI connection")
+	integrationPlan := runFocusedCommand(t, "integrate", "plan", "--root", root, "--json")
+	require.Contains(t, integrationPlan, `"status":"blocked"`)
+	require.Contains(t, integrationPlan, "integrate.provider-unknown")
+	require.Contains(t, integrationPlan, "integrate.remote-unknown")
 
 	contractPath := filepath.Join(parent, "contract.yaml")
 	contractYAML := "id: contract.identity.recovery.v1\nfields:\n  account_id:\n    type: string\n    required: true\nerrors:\n  RATE_LIMITED: retry later\nretry: safe\nidempotency: required\ntimeout: 5s\npartial_failure: reject\ncompensation: not-required\n"
@@ -136,6 +138,9 @@ func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *te
 		Version:             "1.0.0",
 		RootCommit:          strings.Repeat("a", 40),
 		WorkspaceCommits:    map[string]string{"workspace.root": strings.Repeat("a", 40)},
+		WorkspaceRemotes:    map[string]string{"workspace.root": "https://example.invalid/root.git"},
+		ProviderRevisions:   map[string]string{"work.release": "provider-r1"},
+		ToolVersions:        map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
 		ArtifactDigests:     map[string]string{"archive": focusedDigest("a")},
 		ProductFingerprint:  focusedDigest("b"),
 		DocsFingerprint:     focusedDigest("c"),
@@ -148,20 +153,21 @@ func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *te
 	prepared := runFocusedCommand(t, "release", "prepare", "--root", root, "--input", inputPath, "--apply", "--json")
 	require.Contains(t, prepared, `"status":"passed"`)
 
-	candidatePath := filepath.Join(root, ".harness", "state", "release-candidate.json")
+	candidatePath := filepath.Join(root, ".harness", "local", "release", "candidate.json")
 	var candidate release.Candidate
 	require.NoError(t, json.Unmarshal([]byte(focusedRead(t, candidatePath)), &candidate))
-	validation := release.UserValidation{SchemaVersion: 1, CandidateDigest: candidate.Digest, Confirmed: true, EvidenceDigest: focusedDigest("1"), VerifiedAt: time.Now().UTC().Format(time.RFC3339)}
-	validationPath := filepath.Join(root, "user-validation.json")
-	focusedWriteJSON(t, validationPath, validation)
+	validationEvidence := filepath.Join(root, "user-validation.txt")
+	require.NoError(t, os.WriteFile(validationEvidence, []byte("target environment passed\n"), 0o600))
+	validated := runFocusedCommand(t, "release", "validate", "--root", root, "--evidence", validationEvidence, "--confirm", "--apply", "--json")
+	require.Contains(t, validated, `"status":"passed"`)
 
-	verified := runFocusedCommand(t, "release", "verify", "--candidate", candidatePath, "--input", inputPath, "--validation", validationPath, "--json")
+	verified := runFocusedCommand(t, "release", "verify", "--root", root, "--input", inputPath, "--json")
 	require.Contains(t, verified, `"status":"passed"`)
 	require.Contains(t, verified, candidate.Digest)
 
 	input.ProductFingerprint = focusedDigest("2")
 	focusedWriteJSON(t, inputPath, input)
-	changed := runFocusedCommand(t, "release", "verify", "--candidate", candidatePath, "--input", inputPath, "--validation", validationPath, "--json")
+	changed := runFocusedCommand(t, "release", "verify", "--root", root, "--input", inputPath, "--json")
 	require.Contains(t, changed, `"status":"blocked"`)
 	require.Contains(t, changed, "product_fingerprint")
 }
@@ -194,6 +200,9 @@ func TestFocusedJourneyNativeBinaryInitializesAdoptsRecoversAndVerifiesRelease(t
 		Version:             "1.0.0",
 		RootCommit:          commit,
 		WorkspaceCommits:    map[string]string{"workspace.root": commit},
+		WorkspaceRemotes:    map[string]string{"workspace.root": "https://example.invalid/root.git"},
+		ProviderRevisions:   map[string]string{"work.release": "provider-r1"},
+		ToolVersions:        map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
 		ArtifactDigests:     map[string]string{"archive": focusedDigest("a")},
 		ProductFingerprint:  focusedDigest("b"),
 		DocsFingerprint:     focusedDigest("c"),
@@ -204,18 +213,13 @@ func TestFocusedJourneyNativeBinaryInitializesAdoptsRecoversAndVerifiesRelease(t
 	inputPath := filepath.Join(parent, "release-input.json")
 	focusedWriteJSON(t, inputPath, input)
 	require.Contains(t, focusedNative(t, binary, "release", "prepare", "--root", root, "--input", inputPath, "--apply", "--json"), `"status":"passed"`)
-	candidatePath := filepath.Join(root, ".harness", "state", "release-candidate.json")
+	candidatePath := filepath.Join(root, ".harness", "local", "release", "candidate.json")
 	var candidate release.Candidate
 	require.NoError(t, json.Unmarshal([]byte(focusedRead(t, candidatePath)), &candidate))
-	validationPath := filepath.Join(parent, "user-validation.json")
-	focusedWriteJSON(t, validationPath, release.UserValidation{
-		SchemaVersion:   1,
-		CandidateDigest: candidate.Digest,
-		Confirmed:       true,
-		EvidenceDigest:  focusedDigest("1"),
-		VerifiedAt:      time.Now().UTC().Format(time.RFC3339),
-	})
-	require.Contains(t, focusedNative(t, binary, "release", "verify", "--candidate", candidatePath, "--input", inputPath, "--validation", validationPath, "--json"), `"status":"passed"`)
+	validationEvidence := filepath.Join(parent, "user-validation.txt")
+	require.NoError(t, os.WriteFile(validationEvidence, []byte("native target passed\n"), 0o600))
+	require.Contains(t, focusedNative(t, binary, "release", "validate", "--root", root, "--evidence", validationEvidence, "--confirm", "--apply", "--json"), `"status":"passed"`)
+	require.Contains(t, focusedNative(t, binary, "release", "verify", "--root", root, "--input", inputPath, "--json"), `"status":"passed"`)
 }
 
 func focusedCheckpoint() project.DiscoveryCheckpoint {

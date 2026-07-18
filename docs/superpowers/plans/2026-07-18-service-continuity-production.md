@@ -939,7 +939,7 @@ git commit -m "feat(boundaries): reconcile database and UI sources"
 - Produces `release.CollectInput(ctx, root, evidenceStore) (Input, []domain.Item)`.
 - Removes the requirement for users to hand-author release input JSON in normal use.
 
-- [ ] **Step 1: Write failing exact-state tests.**
+- [x] **Step 1: Write failing exact-state tests.**
 
 ```go
 func TestIntegrationRequiresProviderConsumerAndRootPointerOrder(t *testing.T) {
@@ -957,29 +957,29 @@ func TestCollectedReleaseInputRejectsPointerMismatchAndStaleEvidence(t *testing.
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/integration ./internal/release ./internal/command -run 'Integration|CollectInput|Release' -v`
 
 Expected: FAIL because integration is fixed text and release input is user-authored.
 
-- [ ] **Step 3: Implement work-driven integration planning.**
+- [x] **Step 3: Implement work-driven integration planning.**
 
 Topologically order shared contract, providers, consumers/mocks, UI connection, migration/rollback, and root pointer. Detect cycles, missing child merge evidence, stale provider state, overlapping pointer ownership, and compatibility-mode violations.
 
-- [ ] **Step 4: Verify exact integration.**
+- [x] **Step 4: Verify exact integration.**
 
 Bind every step to work-definition, contract, provider revision, workspace remote, merge commit, and evidence. A child PR can reach `integrated`; the parent reaches `done` only after root pointers and cross-repository tests match.
 
-- [ ] **Step 5: Collect release inputs from actual state.**
+- [x] **Step 5: Collect release inputs from actual state.**
 
 Read root HEAD and gitlinks, child repository remotes/HEADs, canonical fingerprints, artifact digests, current evidence, profile, and tool versions. Block dirty, diverged, mismatched, unknown-provider, and stale-evidence state before creating a candidate.
 
-- [ ] **Step 6: Preserve same-candidate user validation.**
+- [x] **Step 6: Preserve same-candidate user validation.**
 
 Technical collection and checks create the digest first. User validation references that digest. Any root, child, contract, data, artifact, evidence, profile, or tool identity change invalidates it.
 
-- [ ] **Step 7: Run tests and commit.**
+- [x] **Step 7: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/integration ./internal/release ./internal/evidence ./internal/workspace ./internal/command -v

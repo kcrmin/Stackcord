@@ -1,7 +1,10 @@
 package release
 
 import (
+	"net/url"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"fullstack-orchestrator/cli/internal/domain"
@@ -44,6 +47,9 @@ func validateInput(input Input) []domain.Item {
 		{"version", input.Version != ""},
 		{"root_commit", isGitObjectID(input.RootCommit)},
 		{"workspace_commits", gitObjectIDMap(input.WorkspaceCommits)},
+		{"workspace_remotes", safeRemoteMap(input.WorkspaceRemotes)},
+		{"provider_revisions", nonEmptyMap(input.ProviderRevisions)},
+		{"tool_versions", nonEmptyMap(input.ToolVersions)},
 		{"artifact_digests", digestMap(input.ArtifactDigests)},
 		{"product_fingerprint", isDigest(input.ProductFingerprint)},
 		{"docs_fingerprint", isDigest(input.DocsFingerprint)},
@@ -86,6 +92,33 @@ func validateInput(input Input) []domain.Item {
 		}
 	}
 	return blockers
+}
+
+func safeRemoteMap(values map[string]string) bool {
+	if !nonEmptyMap(values) {
+		return false
+	}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if strings.ContainsAny(value, "\x00\r\n") || strings.HasPrefix(value, "-") || filepath.IsAbs(value) || strings.HasPrefix(strings.ToLower(value), "file:") {
+			return false
+		}
+		parsed, err := url.Parse(value)
+		if err != nil {
+			return false
+		}
+		if parsed.Scheme != "" {
+			if parsed.Scheme != "https" && parsed.Scheme != "ssh" {
+				return false
+			}
+			if parsed.User != nil {
+				if _, hasPassword := parsed.User.Password(); hasPassword {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 func validateUserValidation(validation UserValidation, candidateDigest string) []domain.Item {
@@ -137,6 +170,18 @@ func gitObjectIDMap(values map[string]string) bool {
 	}
 	for key, value := range values {
 		if key == "" || !isGitObjectID(value) {
+			return false
+		}
+	}
+	return true
+}
+
+func nonEmptyMap(values map[string]string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	for key, value := range values {
+		if key == "" || value == "" {
 			return false
 		}
 	}

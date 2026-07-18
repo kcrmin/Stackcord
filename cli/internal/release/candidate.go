@@ -16,6 +16,9 @@ type Input struct {
 	Version             string            `json:"version"`
 	RootCommit          string            `json:"root_commit"`
 	WorkspaceCommits    map[string]string `json:"workspace_commits"`
+	WorkspaceRemotes    map[string]string `json:"workspace_remotes"`
+	ProviderRevisions   map[string]string `json:"provider_revisions"`
+	ToolVersions        map[string]string `json:"tool_versions"`
 	ArtifactDigests     map[string]string `json:"artifact_digests"`
 	ProductFingerprint  string            `json:"product_fingerprint"`
 	DocsFingerprint     string            `json:"docs_fingerprint"`
@@ -58,14 +61,7 @@ func CreateCandidate(input Input) (Candidate, domain.Result) {
 // VerifyCandidate verifies current technical identities and user confirmation against one digest.
 func VerifyCandidate(candidate Candidate, current Input, validation UserValidation) domain.Result {
 	result := domain.Result{SchemaVersion: "1.0", ToolVersion: "dev", Command: "release.verify", OperationID: operationID("release-verify", candidate.Input.Version, candidate.Digest), Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Technical and user validation reference the same release candidate."}
-	result.Blockers = append(result.Blockers, validateInput(candidate.Input)...)
-	if candidate.SchemaVersion != 1 {
-		result.Blockers = append(result.Blockers, changed("schema_version"))
-	}
-	expectedDigest, err := candidateDigest(candidate)
-	if err != nil || candidate.Digest != expectedDigest {
-		result.Blockers = append(result.Blockers, changed("digest"))
-	}
+	result.Blockers = append(result.Blockers, ValidateCandidate(candidate)...)
 	fields := []struct {
 		name string
 		same bool
@@ -73,6 +69,9 @@ func VerifyCandidate(candidate Candidate, current Input, validation UserValidati
 		{"version", candidate.Input.Version == current.Version},
 		{"root_commit", candidate.Input.RootCommit == current.RootCommit},
 		{"workspace_commits", reflect.DeepEqual(candidate.Input.WorkspaceCommits, current.WorkspaceCommits)},
+		{"workspace_remotes", reflect.DeepEqual(candidate.Input.WorkspaceRemotes, current.WorkspaceRemotes)},
+		{"provider_revisions", reflect.DeepEqual(candidate.Input.ProviderRevisions, current.ProviderRevisions)},
+		{"tool_versions", reflect.DeepEqual(candidate.Input.ToolVersions, current.ToolVersions)},
 		{"artifact_digests", reflect.DeepEqual(candidate.Input.ArtifactDigests, current.ArtifactDigests)},
 		{"product_fingerprint", candidate.Input.ProductFingerprint == current.ProductFingerprint},
 		{"docs_fingerprint", candidate.Input.DocsFingerprint == current.DocsFingerprint},
@@ -99,6 +98,19 @@ func VerifyCandidate(candidate Candidate, current Input, validation UserValidati
 	return result
 }
 
+// ValidateCandidate rejects incomplete or tampered candidate identity before user confirmation.
+func ValidateCandidate(candidate Candidate) []domain.Item {
+	blockers := validateInput(candidate.Input)
+	if candidate.SchemaVersion != 1 {
+		blockers = append(blockers, changed("schema_version"))
+	}
+	expectedDigest, err := candidateDigest(candidate)
+	if err != nil || candidate.Digest != expectedDigest {
+		blockers = append(blockers, changed("digest"))
+	}
+	return blockers
+}
+
 func changed(field string) domain.Item {
 	return domain.Item{Code: "release.candidate-changed", Message: "Release candidate input changed.", Refs: []string{field}}
 }
@@ -116,6 +128,9 @@ func candidateDigest(candidate Candidate) (string, error) {
 func cloneInput(input Input) Input {
 	copy := input
 	copy.WorkspaceCommits = cloneMap(input.WorkspaceCommits)
+	copy.WorkspaceRemotes = cloneMap(input.WorkspaceRemotes)
+	copy.ProviderRevisions = cloneMap(input.ProviderRevisions)
+	copy.ToolVersions = cloneMap(input.ToolVersions)
 	copy.ArtifactDigests = cloneMap(input.ArtifactDigests)
 	copy.TDDEvidence = cloneMap(input.TDDEvidence)
 	copy.IntegrationEvidence = cloneMap(input.IntegrationEvidence)

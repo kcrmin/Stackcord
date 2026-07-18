@@ -117,6 +117,19 @@ func TestGitLocalClaimActiveExcludesIntegratedAndDone(t *testing.T) {
 	}
 }
 
+func TestClaimRevisionChangesOnlyWithThatClaimIdentity(t *testing.T) {
+	claim := claimedBy("alex").Claims[0]
+	revision := ClaimRevision(claim)
+
+	other := claimedBy("sam").Claims[0]
+	other.ID, other.WorkID = "claim.unrelated", "work.unrelated"
+	require.Equal(t, revision, ClaimRevision(claim), "an unrelated claim cannot affect this item revision")
+	require.NotEqual(t, revision, ClaimRevision(other))
+
+	claim.Owner = "jordan"
+	require.NotEqual(t, revision, ClaimRevision(claim))
+}
+
 func newSharedRemote(t *testing.T) (string, string, string) {
 	t.Helper()
 	base := t.TempDir()

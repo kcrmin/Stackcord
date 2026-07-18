@@ -68,3 +68,23 @@ func Inspect(ctx context.Context, root string) (State, error) {
 	state.Submodules, err = inspectSubmodules(ctx, git, top)
 	return state, err
 }
+
+// RemoteURL returns one configured Git remote without network access.
+func RemoteURL(ctx context.Context, root, name string) (string, error) {
+	if name == "" {
+		name = "origin"
+	}
+	if strings.ContainsAny(name, "\x00\r\n") || strings.HasPrefix(name, "-") {
+		return "", fmt.Errorf("invalid Git remote name")
+	}
+	return runner{}.read(ctx, root, "remote", "get-url", name)
+}
+
+// CommitPublished reports whether any existing remote-tracking branch contains the commit.
+func CommitPublished(ctx context.Context, root, commit string) bool {
+	if commit == "" || strings.ContainsAny(commit, "\x00\r\n") || strings.HasPrefix(commit, "-") {
+		return false
+	}
+	value, err := runner{}.read(ctx, root, "branch", "-r", "--contains", commit)
+	return err == nil && strings.TrimSpace(value) != ""
+}

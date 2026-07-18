@@ -87,6 +87,13 @@ type GitLocalClaim struct {
 	Handoff               *GitLocalHandoff `json:"handoff,omitempty"`
 }
 
+// ClaimRevision fingerprints one normalized live item so unrelated coordination changes do not invalidate it.
+func ClaimRevision(claim GitLocalClaim) string {
+	data, _ := json.Marshal(claim)
+	digest := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
+
 // GitLocalHandoff is the exact provider-side checkpoint for a real ownership change.
 type GitLocalHandoff struct {
 	FromOwner  string    `json:"from_owner"`

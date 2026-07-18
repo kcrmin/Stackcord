@@ -525,6 +525,7 @@ The candidate identity contains:
 
 - orchestration root commit;
 - every required child repository URL and commit;
+- selected release work and its fresh provider-item revision;
 - product, contract, and data fingerprints;
 - artifact digests;
 - required TDD, integration, review, migration, rollback, security, and operational evidence;
@@ -559,9 +560,9 @@ The CLI returns a stable machine-readable result and domain exit code. The final
 - `change plan`
 - `contract check|impact`
 - `db diff|diagram|reconcile`
-- `ui import|reconcile`
+- `ui import|reconcile|integrate`
 - `integrate plan|verify`
-- `release prepare|verify`
+- `release prepare|validate|verify`
 - `doctor`
 
 Mutation commands use internal plans and postcondition verification. Users do not type `--apply` in the normal Skill-driven flow.

@@ -311,7 +311,7 @@ func collectActiveWork(root string) ([]WorkView, error) {
 }
 
 func collectRelease(root string) ReleaseView {
-	for _, relative := range []string{filepath.Join(".harness", "release", "candidate.json"), filepath.Join(".harness", "state", "release-candidate.json")} {
+	for _, relative := range []string{filepath.Join(".harness", "local", "release", "candidate.json"), filepath.Join(".harness", "release", "candidate.json"), filepath.Join(".harness", "state", "release-candidate.json")} {
 		data, err := os.ReadFile(filepath.Join(root, relative))
 		if err != nil {
 			continue

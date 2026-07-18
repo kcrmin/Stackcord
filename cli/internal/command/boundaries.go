@@ -309,7 +309,40 @@ func newUICommand(version string, jsonOutput *bool) *cobra.Command {
 	reconcile.Flags().BoolVar(&reconcileApply, "apply", false, "update reviewed source registration and quarantine only")
 	_ = reconcile.MarkFlagRequired("id")
 	_ = reconcile.MarkFlagRequired("archive")
-	parent.AddCommand(importCommand, reconcile)
+	var integrateRoot, integrateID, integrateWorkID string
+	var integrateApply bool
+	integrate := &cobra.Command{Use: "integrate", RunE: func(cmd *cobra.Command, _ []string) error {
+		definition, found, err := loadStartDefinition(integrateRoot, integrateWorkID)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "ui.integrate", "work.definition-required", "UI baseline integration requires executable work scope.", integrateWorkID))
+		}
+		registration, plan, err := uiimport.AcceptIntegratedBaseline(integrateRoot, integrateID, definition)
+		if err != nil {
+			return err
+		}
+		if !integrateApply {
+			result := planResult(version, "ui.integrate.plan", plan, "UI baseline acknowledgement is ready to commit with the implemented work.")
+			result.Facts = []domain.Item{{Code: "ui.baseline", Message: registration.ContentHash, Refs: []string{registration.ID, integrateWorkID}}}
+			return writeResult(cmd, *jsonOutput, result)
+		}
+		result := operation.Apply(cmd.Context(), plan)
+		result.ToolVersion, result.Command = version, "ui.integrate"
+		if result.Status == domain.StatusPassed {
+			result.Summary = "UI baseline is acknowledged inside the executable work scope; commit it with implementation, then record integration evidence."
+			result.Facts = []domain.Item{{Code: "ui.baseline", Message: registration.ContentHash, Refs: []string{registration.ID, integrateWorkID}}}
+		}
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	integrate.Flags().StringVar(&integrateRoot, "root", ".", "project root")
+	integrate.Flags().StringVar(&integrateID, "id", "", "registered external UI stable ID")
+	integrate.Flags().StringVar(&integrateWorkID, "work-id", "", "ready work definition covering every UI mapping and consumer")
+	integrate.Flags().BoolVar(&integrateApply, "apply", false, "write the reviewed baseline acknowledgement for the implementation commit")
+	_ = integrate.MarkFlagRequired("id")
+	_ = integrate.MarkFlagRequired("work-id")
+	parent.AddCommand(importCommand, reconcile, integrate)
 	return parent
 }
 

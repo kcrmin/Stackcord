@@ -124,8 +124,8 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		"git inspect", "git sync-plan", "git sync", "git worktree-plan", "git worktree",
 		"work next", "work conflict", "work start", "work evidence", "work transition", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",
-		"db diff", "db diagram", "db diagram prepare", "db diagram reconcile", "ui import", "ui reconcile", "integrate plan",
-		"release prepare", "release verify",
+		"db diff", "db diagram", "db diagram prepare", "db diagram reconcile", "ui import", "ui reconcile", "ui integrate", "integrate plan", "integrate verify",
+		"release prepare", "release validate", "release verify",
 	}
 	for _, path := range paths {
 		found, _, err := cmd.Find(strings.Fields(path))
