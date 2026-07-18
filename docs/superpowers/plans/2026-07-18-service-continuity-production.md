@@ -1070,7 +1070,7 @@ Git-local uses the CLI. GitHub uses an installed GitHub connector or authenticat
 
 - [x] **Step 6: Run Skill drill evaluations.**
 
-Use the official Skill validator and a real Codex drill through `scripts/run_agent_eval.py`. The runner invokes the installed `codex` command in read-only or workspace-write fixtures according to each scenario, writes transcripts only under `.harness/local/evals/`, and scores them with the checked-in rubric. Absence of a working Codex command is a local release blocker, not a skipped pass. Capture transcripts for: new project, clean-clone resume, forgotten context, semantic conflict, provider unavailable, local-only work, and release mismatch. The rubric fails repeated questions, unsafe mutation, false claim, internal jargon, and unsupported provider claims.
+Use the official Skill validator and a real Codex drill through `scripts/run_agent_eval.py`. The runner invokes the installed `codex` command in read-only or workspace-write fixtures according to each scenario, writes transcripts only under `.harness/local/evals/`, and scores them with the checked-in rubric. Absence of a working Codex command is a local release blocker, not a skipped pass. Capture transcripts for: new project, clean-clone resume, forgotten context, semantic conflict, provider unavailable, proportional small work, local-only work, release mismatch, and current official-tool selection. The last drill requires an observed web search, comparison of realistic candidates, one A/B/C choice, and no installation. The rubric fails repeated questions, unsafe mutation, false claim, internal jargon, and unsupported provider claims.
 
 Run:
 
@@ -1084,7 +1084,7 @@ python3 scripts/run_agent_eval.py \
 
 Expected: all required scenarios produce transcripts and a passing rubric report; no transcript is committed.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```sh
 git add skills references templates/project/.agents testdata/plugin evals scripts/validate_agent_eval*
@@ -1186,7 +1186,7 @@ git commit -m "feat(distribution): bootstrap verified CLI builds"
 - Executes the installed CLI and repo-local Skill flow without modifying product source.
 - Produces reproducible machine results and a human-readable comparison report.
 
-- [ ] **Step 1: Write the failing production scenario contract.**
+- [x] **Step 1: Write the failing production scenario contract.**
 
 The scenario must create:
 
@@ -1200,25 +1200,25 @@ orchestration root
 
 It must simulate two owners, provider/consumer work, a path-disjoint shared behavior conflict, a Git-local claim race, contract-first resolution, frontend mock and backend provider evidence, child merges, pointer integration, clean clone, local-only warning, context recovery, and exact RC verification.
 
-- [ ] **Step 2: Run the empty scenario and verify failure.**
+- [x] **Step 2: Run the empty scenario and verify failure.**
 
 Run: `bash dogfood/run.sh`
 
 Expected: FAIL until all commands and expected result codes exist.
 
-- [ ] **Step 3: Implement POSIX and PowerShell runners using temporary directories.**
+- [x] **Step 3: Implement POSIX and PowerShell runners using temporary directories.**
 
 Both runners use ordinary Git commands only to construct fixtures; all product behavior is invoked through `orchestrator`. They compare stable JSON codes and do not depend on a public provider account.
 
-- [ ] **Step 4: Run the product on itself.**
+- [x] **Step 4: Run the product on itself.**
 
 Adopt this repository with the completed Skills and CLI, generate a combined status, define the remaining documentation/release work, exercise Git-local coordination on a temporary remote, and capture privacy-safe evidence in `dogfood/report.md`. Do not alter the product’s main history through the dogfood fixture.
 
-- [ ] **Step 5: Add baseline metrics.**
+- [x] **Step 5: Add baseline metrics.**
 
 Compare manual Git + static docs against the harness for clean-clone next-action time, repeated material questions, false live claims, missed semantic conflicts, wrong-workspace edits, pointer drift, local-only misclassification, and invalid RC combinations. Report raw scenario counts and limitations; do not invent performance numbers.
 
-- [ ] **Step 6: Run production E2E and score tests.**
+- [x] **Step 6: Run production E2E and score tests.**
 
 Run:
 
@@ -1230,7 +1230,7 @@ cd .. && python3 evals/baseline/score_test.py -v
 
 Expected: PASS and a report whose values are derived from captured machine results.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```sh
 git add dogfood evals/baseline cli/internal/command/production_e2e_test.go
@@ -1262,7 +1262,7 @@ git commit -m "test(product): prove multi-repository continuity"
 - Documentation explains generated files, collaboration, recovery, provider choices, core/strict release, installation, and troubleshooting in Korean and English parity.
 - CI proves native macOS/Windows behavior where hosted runners are available and cross-builds every supported target.
 
-- [ ] **Step 1: Strengthen documentation and security tests before rewriting docs.**
+- [x] **Step 1: Strengthen documentation and security tests before rewriting docs.**
 
 Add assertions for:
 
@@ -1276,29 +1276,29 @@ all embedded commands exist in CLI help
 all generated paths match the actual project fixture
 ```
 
-- [ ] **Step 2: Run validators and verify failure against old docs.**
+- [x] **Step 2: Run validators and verify failure against old docs.**
 
 Run: `python3 scripts/validate_docs.py && python3 scripts/security_scan.py .`
 
 Expected: FAIL on old command names, old generated layout, or missing provider/recovery descriptions.
 
-- [ ] **Step 3: Rewrite bilingual docs around actual user journeys.**
+- [x] **Step 3: Rewrite bilingual docs around actual user journeys.**
 
 Cover start/adopt, continue, plan/claim, contract/DB/UI/integration, and recover/release. Include external tool detection and selection, Git-local/GitHub/Jira/Beads capability differences, root-child bridge, dirty/diverged recovery, plugin-less behavior, and strict-release differences. Keep CLI reference secondary.
 
-- [ ] **Step 4: Expand the threat model.**
+- [x] **Step 4: Expand the threat model.**
 
 Cover provider and Memory prompt injection, malicious archives/DBML, coordination-branch race, unsafe submodule URLs, symlinks, command allow-listing, output limits, stale snapshots, local-only false recovery, bootstrap checksums, diagnostic redaction, and exact-RC tampering.
 
-- [ ] **Step 5: Upgrade CI and validation.**
+- [x] **Step 5: Upgrade CI and validation.**
 
 Run unit/integration tests, race on supported native runners, fuzz smoke, static analysis, vulnerability scan, secret/security scan, official Plugin/Skill validation, hook behavior, plugin-less E2E, dogfood, docs parity, strict profile, snapshot packaging, and macOS/Windows cross-builds. Hosted external provider writes remain an explicitly named manual release check.
 
-- [ ] **Step 6: Remove temporary review notes after coverage audit.**
+- [x] **Step 6: Remove temporary review notes after coverage audit.**
 
 Verify every retained requirement from the working note is represented in the final design, plan, code, or user docs. Delete only the temporary working note created for the long review; keep the final design and implementation plan.
 
-- [ ] **Step 7: Run the full local release matrix.**
+- [x] **Step 7: Run the full local release matrix.**
 
 Run:
 
@@ -1310,27 +1310,31 @@ go vet ./...
 go test ./internal/context -run '^$' -fuzz FuzzFingerprint -fuzztime 15s
 go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 cd ..
-python3 scripts/validate_plugin_test.py -v
+PYTHONPATH=scripts python3 -m unittest discover -s scripts -p '*_test.py' -v
 python3 scripts/validate_plugin.py .
-python3 scripts/validate_agent_eval_test.py -v
 python3 scripts/validate_agent_eval.py .
 python3 scripts/validate_docs.py
 python3 scripts/security_scan.py .
 python3 scripts/validate_release_config.py .
 python3 -m unittest discover -s profiles/strict-release/scripts -p '*_test.py' -v
 go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/*.yml
-go run github.com/goreleaser/goreleaser/v2@latest check
+for skill in skills/* templates/project/.agents/skills/use-project-harness; do
+  .tools/skill-validator/bin/python "$CODEX_HOME/skills/.system/skill-creator/scripts/quick_validate.py" "$skill"
+done
+# Run these from a clean temporary clone with an origin remote.
+go run github.com/goreleaser/goreleaser/v2@v2.17.0 check
+go run github.com/goreleaser/goreleaser/v2@v2.17.0 release --snapshot --clean
 bash dogfood/run.sh
 git diff --check
 ```
 
 Expected: every command exits zero. Any unavailable network or hosted-account check is recorded as unverified rather than passed.
 
-- [ ] **Step 8: Perform a requirement-by-requirement completion audit.**
+- [x] **Step 8: Perform a requirement-by-requirement completion audit.**
 
 For every item in Design §21, record authoritative evidence: test name/output, dogfood step, generated artifact, rendered doc, or external blocker. A passing umbrella script is insufficient without scenario coverage.
 
-- [ ] **Step 9: Commit local release readiness.**
+- [x] **Step 9: Commit local release readiness.**
 
 ```sh
 git add README.md README.ko.md docs scripts .github profiles
