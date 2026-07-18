@@ -4,6 +4,23 @@ import validate_docs
 
 
 class DocumentationValidatorTest(unittest.TestCase):
+    def test_repository_keeps_only_current_design_records(self):
+        root = validate_docs.ROOT
+
+        self.assertEqual([], list((root / "docs/superpowers/plans").glob("*.md")))
+        self.assertFalse(
+            (root / "docs/superpowers/specs/2026-07-17-focused-product-design.md").exists()
+        )
+        self.assertFalse((root / "compatibility.json").exists())
+        self.assertFalse((root / "testdata/releases/valid-input.json").exists())
+
+        agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertNotIn("docs/superpowers/plans/", agents)
+
+        design_index = (root / "docs/design/index.md").read_text(encoding="utf-8")
+        self.assertIn("2026-07-18-service-continuity-harness-design.md", design_index)
+        self.assertIn("2026-07-18-ui-baseline-submodule-design.md", design_index)
+
     def test_extracts_documented_cli_paths_without_arguments(self):
         text = """
 Run `orchestrator status --json`, then:

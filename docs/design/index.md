@@ -21,6 +21,9 @@ Unused provider registries, claims of unsupported Jira/Linear/Beads adapters, du
 ## Authoritative design records
 
 - [Service continuity harness specification](../superpowers/specs/2026-07-18-service-continuity-harness-design.md)
-- [Service continuity production plan](../superpowers/plans/2026-07-18-service-continuity-production.md)
+- [Editable UI workspace specification](../superpowers/specs/2026-07-18-ui-baseline-submodule-design.md)
 - [Core concepts](../concepts/en.md)
 - [Korean core concepts](../concepts/ko.md)
+
+Completed implementation history lives in Git. Historical plans are not active
+product instructions.

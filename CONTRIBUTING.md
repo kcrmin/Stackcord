@@ -11,9 +11,18 @@
 
 ## Local verification
 
+During development, run the changed package or validator first:
+
 ```sh
 cd cli
-go test -race ./...
+go test ./internal/<package> -run <test> -v
+```
+
+Before a pull request, run the deterministic repository checks:
+
+```sh
+cd cli
+go test ./...
 go vet ./...
 cd ..
 python3 scripts/validate_docs.py
@@ -22,7 +31,28 @@ python3 scripts/validate_release_config.py
 python3 scripts/security_scan.py .
 ```
 
-Use `go test ./internal/<package> -run <test> -v` to show the red and green cycle. A pull request describes objective, stable spec/contract references, conflict scope, implementation and merge order, tests/evidence, risk, rollback, and generated changes. Breaking contracts require side-by-side versions or an explicitly approved maintenance plan.
+Run `go test -race ./...` for concurrency changes, scheduled verification, and
+release checks rather than for every local edit.
+
+CI and normal releases do not invoke Codex. If Skill behavior changes, explicitly
+run one relevant scenario:
+
+```sh
+python3 scripts/run_agent_eval.py \
+  --scenarios evals/agent-behavior/scenarios.yaml \
+  --rubric evals/agent-behavior/rubric.yaml \
+  --output .harness/local/evals/skill-change \
+  --scenario continue-after-clean-clone
+```
+
+The complete nine-scenario evaluation is a manual audit and requires both `--all`
+and `--allow-external-research`. It consumes AI tokens and is never an automatic
+CI gate.
+
+A pull request describes objective, stable spec/contract references, conflict
+scope, implementation and merge order, tests/evidence, risk, rollback, and
+generated changes. Breaking contracts require side-by-side versions or an
+explicitly approved maintenance plan.
 
 ## Review
 

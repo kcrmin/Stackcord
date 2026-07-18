@@ -83,23 +83,6 @@ codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
 
 Plugin 없이도 생성된 저장소의 `.agents/skills/use-project-harness/`와 Markdown fallback으로 계속할 수 있습니다.
 
-## 현실적인 검증 정책
-
-- 일반 개발에서는 바뀐 Go package나 Python validator만 실행합니다.
-- Pull Request는 macOS ARM과 Windows x64에서 전체 Go 테스트를 실행하고, 빠른 validator·dogfood·네 플랫폼 cross-build를 병렬로 확인합니다.
-- race와 fuzz는 매 PR에서 반복하지 않고 정기 보안 검사와 release에서 확인합니다.
-- CI와 일반 release는 실제 Codex를 실행하지 않습니다. Skill 동작을 바꿨을 때만 관련 scenario를 명시적으로 하나 선택합니다.
-
-```bash
-python3 scripts/run_agent_eval.py \
-  --scenarios evals/agent-behavior/scenarios.yaml \
-  --rubric evals/agent-behavior/rubric.yaml \
-  --output .harness/local/evals/skill-change \
-  --scenario continue-after-clean-clone
-```
-
-전체 9개는 `--all --allow-external-research`를 함께 지정해야만 실행됩니다. 외부 도구 검색 scenario는 실제 도구 선택이 필요한 때에만 사용합니다. 이 검사는 AI 토큰을 사용하므로 자동 CI gate가 아닙니다.
-
 ## 실제 프로젝트 흐름
 
 1. 저장소와 도구를 진단하고 중요한 제품 답변을 checkpoint합니다.
@@ -147,5 +130,6 @@ project/
 - [DBML과 dbdiagram](./docs/guides/dbdiagram-ko.md)
 - [Release](./docs/guides/release-ko.md)
 - [문제 해결](./docs/guides/troubleshooting-ko.md)
+- [개발과 검증 정책](./CONTRIBUTING.md)
 
 실제 공개 전에는 최종 이름·identifier, 공개 저장소/account, 필요한 경우 signing 소유권, 되돌릴 수 없는 배포 승인만 결정하면 됩니다.

@@ -1,9 +1,0 @@
-{
-  "schema_version": 1,
-  "plugin": "fullstack-orchestrator",
-  "cli_result_schema": "1.0",
-  "harness_schema": 1,
-  "operating_systems": ["darwin-arm64", "darwin-amd64", "windows-arm64", "windows-amd64"],
-  "requires": { "git": "2.40.0" },
-  "optional": ["dbdiagram-cli", "github", "jira", "linear", "beads"]
-}
