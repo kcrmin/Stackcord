@@ -61,6 +61,23 @@ func TestCollectedReleaseInputRejectsPointerMismatchAndStaleEvidence(t *testing.
 	require.Contains(t, releaseIssueCodes(staleIssues), "release.evidence-stale")
 }
 
+func TestCollectedReleaseInputIgnoresProcessGitConfigInjection(t *testing.T) {
+	fixture := newReleaseFixture(t)
+	store := &fixtureEvidenceStore{}
+	options := release.CollectOptions{Version: "1.0.0", Profile: release.ProfileCore, EvidenceStore: store, ProviderReader: fixtureProviderReader{states: fixture.providerStates}, WorkIDs: []string{"work.release"}}
+	initial, _ := release.CollectInput(context.Background(), fixture.root, options)
+	store.records = fixture.records(initial.ContractFingerprint)
+
+	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_KEY_0", "url.file:///tmp/untrusted-release-rewrite/.insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_0", "https://example.test/")
+
+	collected, issues := release.CollectInput(context.Background(), fixture.root, options)
+	require.Empty(t, issues)
+	require.Equal(t, "https://example.test/root.git", collected.WorkspaceRemotes["workspace.root"])
+	require.Equal(t, "https://example.test/backend.git", collected.WorkspaceRemotes["workspace.backend"])
+}
+
 type releaseFixture struct {
 	root, child, rootHead, childHead string
 	definition                       work.Definition
@@ -96,7 +113,7 @@ func newReleaseFixture(t *testing.T) releaseFixture {
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "manifest.yaml"), []byte("schema_version: 1\nid: project.release-fixture\nlocale: en\n"), 0o600))
 	workspaces := "schema_version: 1\nproject_id: project.release-fixture\nroot_remote: https://example.test/root.git\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    remote: https://example.test/root.git\n    responsibilities: [orchestration]\n    dependencies: []\n  - id: workspace.backend\n    kind: submodule\n    path: backend\n    remote: https://example.test/backend.git\n    responsibilities: [backend]\n    dependencies: [workspace.root]\n"
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "workspaces.yaml"), []byte(workspaces), 0o600))
-	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "profile.yaml"), []byte("schema_version: 1\nrelease: core\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "profile.yaml"), []byte("schema_version: 1\ntdd: default\ngit:\n  collaboration: strongly_recommended\n  release: required\ntask_source: git-local\nrelease: core\n"), 0o600))
 	contractContent := []byte("---\nschema_version: 1\nid: contract.interface.accounts\nkind: interface\nstatus: approved\nrevision: 1\nrefs: []\n---\n\n# Accounts interface\n\nAccount recovery remains backward compatible.\n")
 	require.NoError(t, os.WriteFile(filepath.Join(root, "contracts", "interfaces", "accounts.md"), contractContent, 0o600))
 	contractDigest := sha256.Sum256(contractContent)

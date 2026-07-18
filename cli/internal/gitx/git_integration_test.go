@@ -96,6 +96,16 @@ func TestInspectReportsExistingWorktrees(t *testing.T) {
 	require.Contains(t, state.Worktrees, gitx.Worktree{Path: resolvedTarget, Head: runGit(t, target, "rev-parse", "HEAD"), Branch: "feature/account-recovery"})
 }
 
+func TestRemoteIdentityAndPublishedCommitUseNarrowReadOnlyCommands(t *testing.T) {
+	root, remote := repositoryFixture(t)
+	head := runGit(t, root, "rev-parse", "HEAD")
+
+	actualRemote, err := gitx.RemoteURL(context.Background(), root, "origin")
+	require.NoError(t, err)
+	require.Equal(t, remote, actualRemote)
+	require.True(t, gitx.CommitPublished(context.Background(), root, head))
+}
+
 func TestPlanWorkspaceSyncBlocksUnsafeOrLocallyChangedSubmodules(t *testing.T) {
 	state := gitx.State{Root: t.TempDir(), Submodules: []gitx.Submodule{
 		{Path: "services/unsafe", URL: "file:///tmp/unsafe", UnsafeURL: true},

@@ -33,6 +33,9 @@ type WorkView struct {
 	ID                    string `json:"id"`
 	Title                 string `json:"title,omitempty"`
 	State                 string `json:"state,omitempty"`
+	Owner                 string `json:"owner,omitempty"`
+	Branch                string `json:"branch,omitempty"`
+	LiveRevision          string `json:"live_revision,omitempty"`
 	DefinitionFingerprint string `json:"definition_fingerprint"`
 }
 

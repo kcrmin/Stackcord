@@ -3,13 +3,17 @@ package command_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"fullstack-orchestrator/cli/internal/command"
+	"fullstack-orchestrator/cli/internal/evidence"
 	"fullstack-orchestrator/cli/internal/provider"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestWorkEvidenceAndTransitionUseApprovedCommandAndLiveRevision(t *testing.T) {
@@ -19,6 +23,8 @@ func TestWorkEvidenceAndTransitionUseApprovedCommandAndLiveRevision(t *testing.T
 	require.NoError(t, init.Execute())
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "workspaces.yaml"), []byte("schema_version: 1\nproject_id: project.lifecycle\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n    commands_path: .harness/commands.yaml\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "commands.yaml"), []byte("schema_version: 1\nworkspace_id: workspace.root\ncommands:\n  - id: command.test\n    kind: test\n    argv: [git, status, --porcelain=v2]\n    timeout_seconds: 30\n"), 0o600))
+	artifact := []byte("verified service artifact\n")
+	require.NoError(t, os.WriteFile(filepath.Join(root, "service.bin"), artifact, 0o600))
 	defineCommandWork(t, root, "work.account-recovery", "services/identity/**")
 	commandGit(t, root, "add", ".")
 	commandGit(t, root, "commit", "-m", "chore: initialize lifecycle harness")
@@ -36,13 +42,19 @@ func TestWorkEvidenceAndTransitionUseApprovedCommandAndLiveRevision(t *testing.T
 
 	var evidenceOutput bytes.Buffer
 	record := command.New("1.0.0", &evidenceOutput, &bytes.Buffer{})
-	record.SetArgs([]string{"work", "evidence", "--root", worktree, "--work-id", "work.account-recovery", "--workspace", "workspace.root", "--command-id", "command.test", "--apply", "--json"})
+	record.SetArgs([]string{"work", "evidence", "--root", worktree, "--work-id", "work.account-recovery", "--workspace", "workspace.root", "--command-id", "command.test", "--artifact", "service=service.bin", "--apply", "--json"})
 	require.NoError(t, record.Execute())
 	require.Equal(t, 0, command.ExitCode(record), evidenceOutput.String())
 	require.Contains(t, evidenceOutput.String(), "evidence.verified")
 	entries, err := os.ReadDir(filepath.Join(worktree, ".harness", "local", "evidence", "work.account-recovery"))
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
+	recordData, err := os.ReadFile(filepath.Join(worktree, ".harness", "local", "evidence", "work.account-recovery", entries[0].Name()))
+	require.NoError(t, err)
+	var stored evidence.Record
+	require.NoError(t, yaml.Unmarshal(recordData, &stored))
+	digest := sha256.Sum256(artifact)
+	require.Equal(t, "sha256:"+hex.EncodeToString(digest[:]), stored.ArtifactDigests["service"])
 	require.Empty(t, commandGit(t, worktree, "status", "--porcelain=v2", "--untracked-files=all"))
 
 	var transitionOutput bytes.Buffer

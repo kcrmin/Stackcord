@@ -287,24 +287,23 @@ func authoredReleasePath(root, key, fallback string) (string, error) {
 	return filepath.ToSlash(clean), nil
 }
 
-type releaseProfileFile struct {
-	SchemaVersion int     `yaml:"schema_version"`
-	Release       Profile `yaml:"release"`
-}
-
 func loadReleaseProfile(root string) (Profile, error) {
 	path := filepath.Join(root, ".harness", "profile.yaml")
-	profile, err := schema.LoadYAML[releaseProfileFile](path)
+	profile, err := schema.LoadYAML[map[string]any](path)
 	if errors.Is(err, os.ErrNotExist) {
 		return ProfileCore, nil
 	}
 	if err != nil {
 		return "", err
 	}
-	if profile.SchemaVersion != 1 || (profile.Release != ProfileCore && profile.Release != ProfileStrictRelease) {
-		return "", fmt.Errorf("committed release profile is invalid")
+	if issues := schema.Validate("profile", profile); len(issues) > 0 {
+		return "", fmt.Errorf("committed release profile is invalid: %s", issues[0].Message)
 	}
-	return profile.Release, nil
+	releaseValue, ok := profile["release"].(string)
+	if !ok {
+		return "", fmt.Errorf("committed release profile has no release mode")
+	}
+	return Profile(releaseValue), nil
 }
 
 func collectReleaseWorkspaces(ctx context.Context, root string, manifest workspace.Manifest, rootGit gitx.State, input *Input) ([]integration.WorkspaceState, []domain.Item) {
@@ -606,7 +605,7 @@ func hashReleaseSources(root string, sources []string) (string, error) {
 }
 
 func releaseRemote(ctx context.Context, root string) (string, error) {
-	value, err := commandOutput(ctx, root, "git", "remote", "get-url", "origin")
+	value, err := gitx.RemoteURL(ctx, root, "origin")
 	if err != nil || strings.TrimSpace(value) == "" {
 		return "", fmt.Errorf("origin remote is unavailable")
 	}
@@ -628,8 +627,7 @@ func releaseRemote(ctx context.Context, root string) (string, error) {
 }
 
 func releaseCommitPublished(ctx context.Context, root, commit string) bool {
-	value, err := commandOutput(ctx, root, "git", "branch", "-r", "--contains", commit)
-	return err == nil && strings.TrimSpace(value) != ""
+	return gitx.CommitPublished(ctx, root, commit)
 }
 
 func commandOutput(ctx context.Context, root, program string, args ...string) (string, error) {

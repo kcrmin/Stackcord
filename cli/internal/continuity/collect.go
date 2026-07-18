@@ -87,12 +87,14 @@ func Collect(ctx context.Context, start string, _ Options) Snapshot {
 	if err != nil {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: err.Error()})
 	}
-	snapshot.Provider, err = collectProvider(located.Path)
+	var liveClaims map[string]providerpkg.GitLocalClaim
+	snapshot.Provider, liveClaims, err = collectProvider(ctx, located.Path)
 	if err != nil {
-		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.config-invalid", Message: err.Error(), Refs: []string{".harness/work/provider.yaml"}})
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.live-unknown", Message: "The selected task provider could not be read safely.", Refs: []string{snapshot.Provider.Name}})
 	} else if snapshot.Provider.Confidence != Confirmed {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.live-unknown", Message: "The selected task provider has not been freshly reconciled.", Refs: []string{snapshot.Provider.Name}})
 	}
+	snapshot.ActiveWork = mergeLiveWork(snapshot.ActiveWork, liveClaims)
 	snapshot.Release = collectRelease(located.Path)
 	snapshot.Issues = normalizeIssues(snapshot.Issues)
 	snapshot.Overall = overallConfidence(snapshot.Issues)
@@ -165,16 +167,17 @@ func evaluateGitState(entry workspace.Entry, state gitx.State) []domain.Item {
 	}
 	refs := []string{entry.ID, entry.Path}
 	issues := []domain.Item{}
+	rootPinnedSubmodule := entry.Kind == "submodule" && state.Detached
 	if state.Diverged {
 		issues = append(issues, domain.Item{Code: "workspace.diverged", Message: "The workspace branch diverged from its upstream.", Refs: refs})
 	}
 	if state.Dirty {
 		issues = append(issues, domain.Item{Code: "workspace.dirty", Message: "The workspace has uncommitted changes.", Refs: refs})
 	}
-	if state.Upstream == "" || state.Ahead > 0 {
+	if (state.Upstream == "" || state.Ahead > 0) && !rootPinnedSubmodule {
 		issues = append(issues, domain.Item{Code: "workspace.local-only", Message: "Some workspace state is not recoverable from an upstream branch.", Refs: refs})
 	}
-	if state.Detached {
+	if state.Detached && !rootPinnedSubmodule {
 		issues = append(issues, domain.Item{Code: "workspace.detached", Message: "The workspace is on a detached HEAD.", Refs: refs})
 	}
 	return issues
@@ -198,31 +201,54 @@ type providerConfig struct {
 	CoordinationBranch string `yaml:"coordination_branch,omitempty"`
 }
 
-func collectProvider(root string) (ProviderView, error) {
+func collectProvider(ctx context.Context, root string) (ProviderView, map[string]providerpkg.GitLocalClaim, error) {
 	path := filepath.Join(root, ".harness", "work", "provider.yaml")
 	config, err := schema.LoadYAML[providerConfig](path)
 	if errors.Is(err, os.ErrNotExist) {
-		return ProviderView{Name: "git-local", Confidence: Unknown}, nil
+		return ProviderView{Name: "git-local", Confidence: Unknown}, nil, nil
 	}
 	if err != nil {
-		return ProviderView{Confidence: Unknown}, err
+		return ProviderView{Confidence: Unknown}, nil, err
 	}
 	if config.SchemaVersion != 1 || config.Provider == "" || config.LiveStatusSource != config.Provider {
-		return ProviderView{Confidence: Unknown}, fmt.Errorf("task provider configuration is incomplete or has more than one live source")
+		return ProviderView{Confidence: Unknown}, nil, fmt.Errorf("task provider configuration is incomplete or has more than one live source")
 	}
 	view := ProviderView{Name: config.Provider, Confidence: Unknown}
+	if config.Provider == "git-local" {
+		remote := config.Remote
+		if remote == "" {
+			remote = "origin"
+		}
+		branch := config.CoordinationBranch
+		if branch == "" {
+			branch = "coordination"
+		}
+		observed, readErr := providerpkg.NewGitLocalStore(root, remote, branch).Read(ctx)
+		if errors.Is(readErr, providerpkg.ErrNoRemote) {
+			return view, nil, nil
+		}
+		if readErr != nil {
+			return view, nil, readErr
+		}
+		view.Confidence, view.Revision = Confirmed, observed.Revision
+		claims := make(map[string]providerpkg.GitLocalClaim, len(observed.Claims))
+		for _, claim := range observed.Claims {
+			claims[claim.WorkID] = claim
+		}
+		return view, claims, nil
+	}
 	mappingDirectory := filepath.Join(root, ".harness", "work", "mappings")
 	entries, readErr := os.ReadDir(mappingDirectory)
 	if os.IsNotExist(readErr) {
-		return view, nil
+		return view, nil, nil
 	}
 	if readErr != nil {
-		return view, readErr
+		return view, nil, readErr
 	}
 	sort.Slice(entries, func(left, right int) bool { return entries[left].Name() < entries[right].Name() })
 	definitions, definitionErr := workpkg.LoadDefinitions(root)
 	if definitionErr != nil {
-		return view, definitionErr
+		return view, nil, definitionErr
 	}
 	for _, entry := range entries {
 		if entry.IsDir() || (filepath.Ext(entry.Name()) != ".yaml" && filepath.Ext(entry.Name()) != ".yml") {
@@ -230,31 +256,51 @@ func collectProvider(root string) (ProviderView, error) {
 		}
 		mapping, loadErr := providerpkg.LoadMapping(filepath.Join(mappingDirectory, entry.Name()))
 		if loadErr != nil {
-			return view, loadErr
+			return view, nil, loadErr
 		}
 		if mapping.Provider != config.Provider {
-			return view, fmt.Errorf("provider mapping %s differs from selected provider %s", mapping.Provider, config.Provider)
+			return view, nil, fmt.Errorf("provider mapping %s differs from selected provider %s", mapping.Provider, config.Provider)
 		}
 		definition, found := findWorkDefinition(definitions, mapping.WorkID)
 		if !found {
-			return view, fmt.Errorf("provider mapping references missing work definition %s", mapping.WorkID)
+			return view, nil, fmt.Errorf("provider mapping references missing work definition %s", mapping.WorkID)
 		}
 		view.ItemID = mapping.ItemID
 		cachePath := filepath.Join(root, ".harness", "local", "providers", mapping.Provider, mapping.WorkID+".json")
 		cached, snapshotErr := providerpkg.LoadSnapshot(cachePath)
 		if os.IsNotExist(snapshotErr) {
-			return view, nil
+			return view, nil, nil
 		}
 		if snapshotErr != nil {
-			return view, snapshotErr
+			return view, nil, snapshotErr
 		}
 		cached.Source = "cache"
 		state := providerpkg.Reconcile(providerpkg.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}, mapping, cached, time.Now().UTC())
 		view.Revision, view.Owner, view.Status = state.Revision, state.Owner, state.Status
 		view.Confidence = Stale
-		return view, nil
+		return view, nil, nil
 	}
-	return view, nil
+	return view, nil, nil
+}
+
+func mergeLiveWork(values []WorkView, claims map[string]providerpkg.GitLocalClaim) []WorkView {
+	result := make([]WorkView, 0, len(values))
+	for _, value := range values {
+		if claim, found := claims[value.ID]; found {
+			value.State = claim.Status
+			if value.State == "" {
+				value.State = "in_progress"
+			}
+			value.Owner = claim.Owner
+			value.Branch = claim.Branch
+			value.LiveRevision = providerpkg.ClaimRevision(claim)
+		}
+		if value.State == "done" || value.State == "closed" || value.State == "released" {
+			continue
+		}
+		result = append(result, value)
+	}
+	return result
 }
 
 func findWorkDefinition(definitions []workpkg.Definition, id string) (workpkg.Definition, bool) {
@@ -297,6 +343,9 @@ func collectActiveWork(root string) ([]WorkView, error) {
 			state, _ := value["status"].(string)
 			if state == "" {
 				state, _ = value["state"].(string)
+			}
+			if state == "" {
+				state, _ = value["readiness"].(string)
 			}
 			if state == "done" || state == "closed" || state == "released" {
 				continue

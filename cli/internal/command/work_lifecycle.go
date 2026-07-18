@@ -1,10 +1,14 @@
 package command
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +27,7 @@ import (
 
 func newWorkEvidence(version string, jsonOutput *bool) *cobra.Command {
 	var root, workID, workspaceID, commandID string
+	var artifacts []string
 	var apply bool
 	command := &cobra.Command{Use: "evidence", Short: "Run one reviewed workspace command and bind its result to current meaning", RunE: func(cmd *cobra.Command, _ []string) error {
 		located, err := workspace.FindRoot(cmd.Context(), root)
@@ -44,20 +49,31 @@ func newWorkEvidence(version string, jsonOutput *bool) *cobra.Command {
 		if loadErr != nil {
 			return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.evidence", "evidence.command-unapproved", loadErr.Error(), commandID))
 		}
+		workspacePath := filepath.Join(located.Path, filepath.FromSlash(entry.Path))
+		repositoryPath := workspacePath
+		if entry.Kind == "root" || entry.Kind == "directory" {
+			repositoryPath = located.Path
+		}
+		artifactValues, artifactErr := collectArtifactDigests(workspacePath, artifacts)
+		if artifactErr != nil {
+			return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.evidence", "evidence.artifact-invalid", artifactErr.Error()))
+		}
 		if !apply {
-			result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.evidence.plan", OperationID: "evidence-plan-" + strings.ReplaceAll(workID, ".", "-"), Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Reviewed evidence command is ready to run on a clean workspace.", Facts: []domain.Item{{Code: "evidence.command", Message: approved.ID, Refs: approved.Argv}, {Code: "evidence.workspace", Message: workspaceID}}, NextActions: []domain.Item{{Code: "work.evidence.apply", Message: "Run the exact reviewed command and record its commit-bound digest."}}}
+			facts := []domain.Item{{Code: "evidence.command", Message: approved.ID, Refs: approved.Argv}, {Code: "evidence.workspace", Message: workspaceID}}
+			for name := range artifactValues {
+				facts = append(facts, domain.Item{Code: "evidence.artifact", Message: name})
+			}
+			sort.Slice(facts, func(left, right int) bool {
+				return facts[left].Code+facts[left].Message < facts[right].Code+facts[right].Message
+			})
+			result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.evidence.plan", OperationID: "evidence-plan-" + strings.ReplaceAll(workID, ".", "-"), Status: domain.StatusPassed, ExitCode: domain.ExitSuccess, Summary: "Reviewed evidence command and artifact inputs are ready to run on a clean workspace.", Facts: facts, NextActions: []domain.Item{{Code: "work.evidence.apply", Message: "Run the exact reviewed command and record its commit-bound digests."}}}
 			return writeResult(cmd, *jsonOutput, result)
 		}
 		contractFingerprint, err := currentContractFingerprint(located.Path)
 		if err != nil {
 			return writeResult(cmd, *jsonOutput, lifecycleBlocked(version, "work.evidence", "evidence.contract-unavailable", err.Error()))
 		}
-		workspacePath := filepath.Join(located.Path, filepath.FromSlash(entry.Path))
-		repositoryPath := workspacePath
-		if entry.Kind == "root" || entry.Kind == "directory" {
-			repositoryPath = located.Path
-		}
-		record, result := evidence.Run(cmd.Context(), evidence.Request{Workspace: workspacePath, Repository: repositoryPath, WorkspaceID: workspaceID, WorkID: workID, DefinitionFingerprint: definition.Fingerprint, ContractFingerprint: contractFingerprint, Command: approved})
+		record, result := evidence.Run(cmd.Context(), evidence.Request{Workspace: workspacePath, Repository: repositoryPath, WorkspaceID: workspaceID, WorkID: workID, DefinitionFingerprint: definition.Fingerprint, ContractFingerprint: contractFingerprint, Command: approved, ArtifactDigests: artifactValues})
 		result.ToolVersion = version
 		if result.Status != domain.StatusPassed {
 			return writeResult(cmd, *jsonOutput, result)
@@ -87,11 +103,68 @@ func newWorkEvidence(version string, jsonOutput *bool) *cobra.Command {
 	command.Flags().StringVar(&workID, "work-id", "", "work stable ID")
 	command.Flags().StringVar(&workspaceID, "workspace", "", "workspace stable ID")
 	command.Flags().StringVar(&commandID, "command-id", "", "approved command stable ID")
+	command.Flags().StringSliceVar(&artifacts, "artifact", nil, "verified artifact name=workspace-relative-path")
 	command.Flags().BoolVar(&apply, "apply", false, "run and record the reviewed command")
 	for _, flag := range []string{"work-id", "workspace", "command-id"} {
 		_ = command.MarkFlagRequired(flag)
 	}
 	return command
+}
+
+const maxEvidenceArtifactBytes = 64 << 20
+
+var evidenceArtifactNamePattern = regexp.MustCompile(`^[a-z0-9]+(?:[.-][a-z0-9]+)*$`)
+
+func collectArtifactDigests(workspacePath string, values []string) (map[string]string, error) {
+	result := map[string]string{}
+	workspace, err := filepath.EvalSymlinks(workspacePath)
+	if err != nil {
+		return nil, fmt.Errorf("artifact workspace is unavailable")
+	}
+	for _, value := range values {
+		name, relative, found := strings.Cut(value, "=")
+		name, relative = strings.TrimSpace(name), strings.TrimSpace(relative)
+		if !found || name == "" || relative == "" {
+			return nil, fmt.Errorf("artifact must use name=relative-path")
+		}
+		if !evidenceArtifactNamePattern.MatchString(name) {
+			return nil, fmt.Errorf("artifact name must be a lowercase stable identifier: %s", name)
+		}
+		if _, duplicate := result[name]; duplicate {
+			return nil, fmt.Errorf("artifact name is duplicated: %s", name)
+		}
+		if filepath.IsAbs(relative) {
+			return nil, fmt.Errorf("artifact path must be workspace-relative: %s", relative)
+		}
+		clean := filepath.Clean(filepath.FromSlash(relative))
+		if clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("artifact path escapes the workspace: %s", relative)
+		}
+		path := filepath.Join(workspace, clean)
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() == 0 || info.Size() > maxEvidenceArtifactBytes {
+			return nil, fmt.Errorf("artifact must be a non-empty regular file within the size limit: %s", relative)
+		}
+		canonical, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return nil, fmt.Errorf("artifact cannot be resolved safely: %s", relative)
+		}
+		if inside, err := filepath.Rel(workspace, canonical); err != nil || inside == ".." || strings.HasPrefix(inside, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("artifact resolves outside the workspace: %s", relative)
+		}
+		file, err := os.Open(canonical)
+		if err != nil {
+			return nil, fmt.Errorf("artifact cannot be read: %s", relative)
+		}
+		hash := sha256.New()
+		_, copyErr := io.Copy(hash, io.LimitReader(file, maxEvidenceArtifactBytes+1))
+		closeErr := file.Close()
+		if copyErr != nil || closeErr != nil {
+			return nil, fmt.Errorf("artifact cannot be hashed: %s", relative)
+		}
+		result[name] = "sha256:" + hex.EncodeToString(hash.Sum(nil))
+	}
+	return result, nil
 }
 
 func newWorkTransition(version string, jsonOutput *bool, aliasTarget workpkg.State) *cobra.Command {

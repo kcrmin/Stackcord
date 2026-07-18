@@ -35,7 +35,7 @@ func validateReadArgs(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("git command is required")
 	}
-	allowed := map[string]bool{"rev-parse": true, "status": true, "rev-list": true, "ls-tree": true, "for-each-ref": true, "cat-file": true, "worktree": true}
+	allowed := map[string]bool{"rev-parse": true, "status": true, "rev-list": true, "ls-tree": true, "for-each-ref": true, "cat-file": true, "worktree": true, "remote": true, "branch": true}
 	allowed["config"] = true
 	if !allowed[args[0]] {
 		return fmt.Errorf("git command %q is outside the read-only allowlist", args[0])
@@ -47,6 +47,12 @@ func validateReadArgs(args []string) error {
 		if len(args) != 3 || args[1] != "--get" || !safeSubmoduleConfigKey(args[2]) {
 			return fmt.Errorf("only an exact submodule URL lookup is allowed")
 		}
+	}
+	if args[0] == "remote" && (len(args) != 3 || args[1] != "get-url" || args[2] == "" || strings.HasPrefix(args[2], "-") || strings.ContainsAny(args[2], "\x00\r\n")) {
+		return fmt.Errorf("only an exact Git remote URL lookup is allowed")
+	}
+	if args[0] == "branch" && (len(args) != 4 || args[1] != "-r" || args[2] != "--contains" || !objectIDPatternForMutation(args[3])) {
+		return fmt.Errorf("only an exact remote-branch containment lookup is allowed")
 	}
 	for _, argument := range args {
 		lower := strings.ToLower(argument)
