@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"fullstack-orchestrator/cli/internal/contract"
 	"fullstack-orchestrator/cli/internal/domain"
@@ -94,6 +95,15 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 	registryEdges, registryStale, registryUnknown, registryIssues := contractRegistryContext(root, snapshot.Index)
 	issues = append(issues, registryIssues...)
 	snapshot.Unknown = append(snapshot.Unknown, registryUnknown...)
+	uiEdges, uiStale, uiUnknown, uiIssues := externalUIContext(root, snapshot.Index)
+	issues = append(issues, uiIssues...)
+	snapshot.Unknown = append(snapshot.Unknown, uiUnknown...)
+	for source, targets := range uiEdges {
+		registryEdges[source] = append(registryEdges[source], targets...)
+	}
+	for id := range uiStale {
+		registryStale[id] = struct{}{}
+	}
 	snapshot.Impact = buildImpact(snapshot.Index, registryEdges)
 	staleSeeds := registryStale
 	for _, entry := range snapshot.Index {
@@ -119,6 +129,86 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 		}
 	}
 	return snapshot, issues
+}
+
+func externalUIContext(root string, index map[string]IndexEntry) (map[string][]string, map[string]struct{}, []string, []domain.Item) {
+	edges := map[string][]string{}
+	stale := map[string]struct{}{}
+	unknown := []string{}
+	issues := []domain.Item{}
+	directory := filepath.Join(root, ".harness", "sources", "ui")
+	if info, statErr := os.Lstat(directory); statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return edges, stale, unknown, []domain.Item{{Code: "context.error.ui-sources", Message: "UI source directory cannot be a symlink.", Refs: []string{".harness/sources/ui"}}}
+	}
+	entries, err := os.ReadDir(directory)
+	if os.IsNotExist(err) {
+		return edges, stale, unknown, issues
+	}
+	if err != nil {
+		return edges, stale, unknown, []domain.Item{{Code: "context.error.ui-sources", Message: err.Error(), Refs: []string{".harness/sources/ui"}}}
+	}
+	for _, file := range entries {
+		if file.IsDir() || (filepath.Ext(file.Name()) != ".yaml" && filepath.Ext(file.Name()) != ".yml") {
+			continue
+		}
+		id := strings.TrimSuffix(strings.TrimSuffix(file.Name(), ".yaml"), ".yml")
+		path := filepath.Join(directory, file.Name())
+		info, statErr := os.Lstat(path)
+		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			issues = append(issues, domain.Item{Code: "context.error.ui-source", Message: "UI registration must be a regular non-symlink file.", Refs: []string{filepath.ToSlash(filepath.Join(".harness", "sources", "ui", file.Name()))}})
+			continue
+		}
+		registration, loadErr := schema.LoadYAML[externalUIRegistration](path)
+		if loadErr == nil {
+			if registration.BaselineFingerprint == "" {
+				registration.BaselineFingerprint = registration.ContentHash
+			}
+			if schemaIssues := schema.Validate("external-source", registration); len(schemaIssues) > 0 {
+				loadErr = fmt.Errorf("validate UI registration: %s", schemaIssues[0].Message)
+			}
+		}
+		if loadErr != nil {
+			issues = append(issues, domain.Item{Code: "context.error.ui-source", Message: loadErr.Error(), Refs: []string{filepath.ToSlash(filepath.Join(".harness", "sources", "ui", file.Name()))}})
+			continue
+		}
+		if registration.ID != id {
+			issues = append(issues, domain.Item{Code: "context.error.ui-source", Message: "UI registration filename and stable ID differ.", Refs: []string{id, registration.ID}})
+			continue
+		}
+		if _, duplicate := index[registration.ID]; duplicate {
+			issues = append(issues, domain.Item{Code: "context.error.duplicate-id", Message: "External UI source ID duplicates authored product context.", Refs: []string{registration.ID}})
+			continue
+		}
+		index[registration.ID] = IndexEntry{ID: registration.ID, Path: filepath.ToSlash(filepath.Join(".harness", "sources", "ui", file.Name())), Kind: "external-ui", Status: "approved", Revision: 1, Fingerprint: registration.ContentHash, Refs: []string{}}
+		edges[registration.ID] = uniqueSorted(append(append([]string(nil), registration.MappedRefs...), registration.Consumers...))
+		if (registration.Authority == "seed" || registration.Authority == "canonical") && registration.BaselineFingerprint != registration.ContentHash {
+			stale[registration.ID] = struct{}{}
+			unknown = append(unknown, registration.ID+".reconciliation-required")
+		}
+	}
+	sort.Strings(unknown)
+	return edges, stale, unique(unknown), issues
+}
+
+type externalUIRegistration struct {
+	SchemaVersion       int       `json:"schema_version" yaml:"schema_version"`
+	ID                  string    `json:"id" yaml:"id"`
+	Kind                string    `json:"kind" yaml:"kind"`
+	Authority           string    `json:"authority" yaml:"authority"`
+	Source              string    `json:"source" yaml:"source"`
+	SourceVersion       string    `json:"source_version" yaml:"source_version"`
+	License             string    `json:"license" yaml:"license"`
+	ContentHash         string    `json:"content_hash" yaml:"content_hash"`
+	BaselineFingerprint string    `json:"baseline_fingerprint" yaml:"baseline_fingerprint"`
+	FetchedAt           time.Time `json:"fetched_at" yaml:"fetched_at"`
+	MappedRefs          []string  `json:"mapped_refs" yaml:"mapped_refs"`
+	Consumers           []string  `json:"consumers" yaml:"consumers"`
+}
+
+func uniqueSorted(values []string) []string {
+	values = append([]string(nil), values...)
+	sort.Strings(values)
+	return unique(values)
 }
 
 func manifestAuthoredRoots(manifest map[string]any) ([]string, error) {

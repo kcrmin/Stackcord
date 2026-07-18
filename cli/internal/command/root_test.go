@@ -124,7 +124,7 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 		"git inspect", "git sync-plan", "git sync", "git worktree-plan", "git worktree",
 		"work next", "work conflict", "work start", "work evidence", "work transition", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",
-		"db diff", "db diagram", "ui import", "integrate plan",
+		"db diff", "db diagram", "db diagram prepare", "db diagram reconcile", "ui import", "ui reconcile", "integrate plan",
 		"release prepare", "release verify",
 	}
 	for _, path := range paths {

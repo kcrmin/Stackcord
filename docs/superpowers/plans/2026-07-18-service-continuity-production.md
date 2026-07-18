@@ -873,7 +873,7 @@ git commit -m "feat(contract): model service obligations"
 - Produces `ui.Register`, `ui.Reconcile`, and authority-aware stale results.
 - Adds `db diagram prepare|reconcile` and `ui import|reconcile` command paths.
 
-- [ ] **Step 1: Write failing reconciliation tests.**
+- [x] **Step 1: Write failing reconciliation tests.**
 
 ```go
 func TestDBDiagramPullCannotOverwriteCanonicalDBML(t *testing.T) {
@@ -891,25 +891,25 @@ func TestCanonicalUIChangeMarksMappedFlowsStale(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/database ./internal/ui ./internal/command -run 'Reconcile|Proposal|Authority' -v`
 
 Expected: FAIL because current code stops at isolated preparation/import.
 
-- [ ] **Step 3: Implement dbdiagram proposal provenance.**
+- [x] **Step 3: Implement dbdiagram proposal provenance.**
 
 Record canonical fingerprint, proposal hash, official CLI identity/version, project ID, action, fetch time, and semantic diff under `.harness/local/`. The Skill runs the selected official CLI explicitly; the CLI never prints or persists the token.
 
-- [ ] **Step 4: Implement DB reconciliation.**
+- [x] **Step 4: Implement DB reconciliation.**
 
 Reject stale base fingerprints and malformed DBML. Return contract, entity, migration-order, test, and rollback impact. Apply to canonical Git DBML only through an atomic reviewed plan.
 
-- [ ] **Step 5: Implement authority-aware UI reconciliation.**
+- [x] **Step 5: Implement authority-aware UI reconciliation.**
 
 Keep ZIP traversal, symlink, bomb, license, and size protections. `reference` has no automatic authority, `seed` can evolve after initial import, and `canonical` changes mark mapped UI flows and consumers stale.
 
-- [ ] **Step 6: Run tests and commit.**
+- [x] **Step 6: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/database ./internal/ui ./internal/context ./internal/command -v

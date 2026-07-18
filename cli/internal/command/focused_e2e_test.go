@@ -108,7 +108,7 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	require.Contains(t, runFocusedCommand(t, "db", "diff", "--before", beforeDBML, "--after", afterDBML, "--json"), "users.email")
 	dbEntry := filepath.Join(root, "schema.dbml")
 	require.NoError(t, os.WriteFile(dbEntry, []byte("Table users {\n id int [pk]\n}\n"), 0o600))
-	diagramPlan := runFocusedCommand(t, "db", "diagram", "--root", root, "--operation", "01JDBE2E", "--action", "push", "--entry", "schema.dbml", "--project-id", "diagram-1", "--apply", "--json")
+	diagramPlan := runFocusedCommand(t, "db", "diagram", "prepare", "--root", root, "--operation", "01JDBE2E", "--action", "push", "--entry", "schema.dbml", "--tool-version", "1.4.2", "--project-id", "diagram-1", "--apply", "--json")
 	require.Contains(t, diagramPlan, ".harness/local/dbdiagram")
 	require.Contains(t, diagramPlan, "dbdiagram init --entry candidate.dbml --diagram-id diagram-1")
 	require.Contains(t, diagramPlan, "dbdiagram push")

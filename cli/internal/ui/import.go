@@ -12,22 +12,66 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"fullstack-orchestrator/cli/internal/operation"
+	"fullstack-orchestrator/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
 )
 
 const maxImportBytes = 64 << 20
+const maxImportEntries = 4096
 
 var secretPattern = regexp.MustCompile(`(?i)(api[_-]?token|password|secret|private[_-]?key)\s*[:=]\s*[A-Za-z0-9_\-]{16,}`)
-var sourceIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
+var sourceIDPattern = regexp.MustCompile(`^ui\.[a-z0-9]+(?:[.-][a-z0-9]+)*$`)
 var windowsAbsolutePath = regexp.MustCompile(`^[A-Za-z]:/`)
 
 // Source describes an external UI artifact and its authority.
-type Source struct{ Root, Archive, ID, Kind, Authority, Version, License string }
+type Source struct {
+	Root, Archive, ID, Kind, Authority, Version, License string
+	MappedRefs, Consumers                                []string
+	FetchedAt                                            time.Time
+	BaselineFingerprint                                  string
+}
+
+// Registration is committed source identity; quarantined archive content remains local.
+type Registration struct {
+	SchemaVersion       int       `json:"schema_version" yaml:"schema_version"`
+	ID                  string    `json:"id" yaml:"id"`
+	Kind                string    `json:"kind" yaml:"kind"`
+	Authority           string    `json:"authority" yaml:"authority"`
+	Source              string    `json:"source" yaml:"source"`
+	SourceVersion       string    `json:"source_version" yaml:"source_version"`
+	License             string    `json:"license" yaml:"license"`
+	ContentHash         string    `json:"content_hash" yaml:"content_hash"`
+	BaselineFingerprint string    `json:"baseline_fingerprint" yaml:"baseline_fingerprint"`
+	FetchedAt           time.Time `json:"fetched_at" yaml:"fetched_at"`
+	MappedRefs          []string  `json:"mapped_refs" yaml:"mapped_refs"`
+	Consumers           []string  `json:"consumers" yaml:"consumers"`
+}
+
+// Register validates one archive and returns both stable identity and exact quarantine plan.
+func Register(source Source) (Registration, operation.Plan, error) {
+	plan, err := registerPlan(source)
+	if err != nil {
+		return Registration{}, operation.Plan{}, err
+	}
+	for _, file := range plan.Files {
+		if filepath.ToSlash(file.Path) == filepath.ToSlash(filepath.Join(".harness", "sources", "ui", source.ID+".yaml")) {
+			registration, decodeErr := schema.DecodeYAML[Registration](file.Content)
+			return registration, plan, decodeErr
+		}
+	}
+	return Registration{}, operation.Plan{}, fmt.Errorf("UI registration was not produced")
+}
 
 // ImportPlan validates and quarantines an archive before any canonical UI change.
 func ImportPlan(source Source) (operation.Plan, error) {
+	_, plan, err := Register(source)
+	return plan, err
+}
+
+func registerPlan(source Source) (operation.Plan, error) {
 	if !sourceIDPattern.MatchString(source.ID) || !map[string]bool{"reference": true, "seed": true, "canonical": true}[source.Authority] {
 		return operation.Plan{}, fmt.Errorf("source ID and authority reference|seed|canonical are required")
 	}
@@ -36,6 +80,9 @@ func ImportPlan(source Source) (operation.Plan, error) {
 		return operation.Plan{}, err
 	}
 	defer reader.Close()
+	if len(reader.File) > maxImportEntries {
+		return operation.Plan{}, fmt.Errorf("archive exceeds %d entries", maxImportEntries)
+	}
 	licenseFound := source.License != ""
 	licenseValue := source.License
 	total := int64(0)
@@ -87,26 +134,59 @@ func ImportPlan(source Source) (operation.Plan, error) {
 			}
 		}
 		_, _ = hash.Write([]byte(name))
+		_, _ = hash.Write([]byte{0})
 		_, _ = hash.Write(data)
+		_, _ = hash.Write([]byte{0})
 		files = append(files, operation.FileChange{Path: filepath.ToSlash(filepath.Join(".harness", "local", "imports", source.ID, name)), Content: data, Mode: 0o600})
 	}
 	if !licenseFound {
 		return operation.Plan{}, fmt.Errorf("UI source license is required")
 	}
-	manifest, err := yaml.Marshal(struct {
-		SchemaVersion int    `yaml:"schema_version"`
-		ID            string `yaml:"id"`
-		Kind          string `yaml:"kind"`
-		Authority     string `yaml:"authority"`
-		Version       string `yaml:"version"`
-		License       string `yaml:"license"`
-		Hash          string `yaml:"hash"`
-	}{1, source.ID, source.Kind, source.Authority, source.Version, licenseValue, "sha256:" + hex.EncodeToString(hash.Sum(nil))})
+	if source.Kind == "" {
+		source.Kind = "mockup"
+	}
+	if source.Version == "" {
+		source.Version = "unversioned"
+	}
+	if source.FetchedAt.IsZero() {
+		if info, statErr := os.Stat(source.Archive); statErr == nil {
+			source.FetchedAt = info.ModTime().UTC()
+		} else {
+			source.FetchedAt = time.Now().UTC()
+		}
+	}
+	contentHash := "sha256:" + hex.EncodeToString(hash.Sum(nil))
+	if source.BaselineFingerprint == "" {
+		source.BaselineFingerprint = contentHash
+	}
+	registration := Registration{
+		SchemaVersion: 1, ID: source.ID, Kind: source.Kind, Authority: source.Authority, Source: "archive", SourceVersion: source.Version,
+		License: licenseValue, ContentHash: contentHash, BaselineFingerprint: source.BaselineFingerprint, FetchedAt: source.FetchedAt.UTC(),
+		MappedRefs: normalizedUIRefs(source.MappedRefs), Consumers: normalizedUIRefs(source.Consumers),
+	}
+	if issues := schema.Validate("external-source", registration); len(issues) > 0 {
+		return operation.Plan{}, fmt.Errorf("validate UI registration: %s", issues[0].Message)
+	}
+	manifest, err := yaml.Marshal(registration)
 	if err != nil {
 		return operation.Plan{}, fmt.Errorf("encode UI source manifest: %w", err)
 	}
 	files = append(files, operation.FileChange{Path: filepath.ToSlash(filepath.Join(".harness", "local", "imports", source.ID, "source.yaml")), Content: manifest, Mode: 0o600})
-	plan := operation.Plan{ID: "ui-import-" + strings.ReplaceAll(source.ID, ".", "-"), Root: source.Root, Files: files}
+	files = append(files, operation.FileChange{Path: filepath.ToSlash(filepath.Join(".harness", "sources", "ui", source.ID+".yaml")), Content: manifest, Mode: 0o644})
+	plan := operation.Plan{ID: "ui-import-" + strings.ReplaceAll(source.ID, ".", "-") + "-" + strings.TrimPrefix(contentHash, "sha256:")[:12], Root: source.Root, Files: files}
 	plan.InitialStateFingerprint, err = operation.StateFingerprint(plan)
 	return plan, err
+}
+
+func normalizedUIRefs(values []string) []string {
+	result, seen := []string{}, map[string]bool{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && !seen[value] {
+			seen[value] = true
+			result = append(result, value)
+		}
+	}
+	sort.Strings(result)
+	return result
 }

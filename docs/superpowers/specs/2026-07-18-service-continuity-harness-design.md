@@ -484,7 +484,7 @@ Resolution uses the smallest safe choice: extract and merge a common contract fi
 
 Git DBML is canonical. dbdiagram receives an isolated copy for visualization. A direct dbdiagram change returns as a proposal, receives semantic diff, asks for rationale only when material, and updates Git DBML only after contract and migration impact is accepted.
 
-The DB diff understands tables, columns, relations, indexes, and notes. When an actual migration is created, the selected stack adapter validates its ordering, compatibility, and rollback evidence against the approved data contract.
+The DB diff understands tables, columns, relations, indexes, notes, and supported top-level DBML definitions such as enums and table groups. When an actual migration is created, the selected stack adapter validates its ordering, compatibility, and rollback evidence against the approved data contract.
 
 External UI input is quarantined before use. It is registered as:
 

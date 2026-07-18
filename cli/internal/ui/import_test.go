@@ -44,9 +44,15 @@ func TestImportPlanQuarantinesValidReference(t *testing.T) {
 	plan, err := uiimport.ImportPlan(uiimport.Source{Root: root, Archive: archive, ID: "ui.external.recovery", Kind: "mockup", Authority: "reference"})
 	require.NoError(t, err)
 	require.NotEmpty(t, plan.Files)
+	registrationFound := false
 	for _, file := range plan.Files {
+		if file.Path == ".harness/sources/ui/ui.external.recovery.yaml" {
+			registrationFound = true
+			continue
+		}
 		require.Contains(t, file.Path, ".harness/local/imports/")
 	}
+	require.True(t, registrationFound)
 }
 
 func zipFixture(t *testing.T, files map[string]string) string {

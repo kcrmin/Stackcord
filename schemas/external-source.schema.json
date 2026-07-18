@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/external-source.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "kind", "authority", "source", "source_version",
+    "content_hash", "fetched_at", "mapped_refs", "consumers"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "$ref": "#/$defs/stable_id" },
+    "kind": { "enum": ["dbml", "mockup", "design", "prototype"] },
+    "authority": { "enum": ["proposal", "reference", "seed", "canonical"] },
+    "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "source_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "license": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "content_hash": { "$ref": "#/$defs/digest" },
+    "baseline_fingerprint": { "$ref": "#/$defs/digest" },
+    "base_fingerprint": { "$ref": "#/$defs/digest" },
+    "fetched_at": { "type": "string", "format": "date-time" },
+    "mapped_refs": { "$ref": "#/$defs/stable_ids" },
+    "consumers": { "$ref": "#/$defs/stable_ids" },
+    "canonical_path": { "$ref": "#/$defs/relative_path" },
+    "project_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "action": { "enum": ["pull", "push"] },
+    "tool": { "type": "string", "const": "dbdiagram" },
+    "diff": { "$ref": "#/$defs/diff" },
+    "impact": { "$ref": "#/$defs/impact" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "dbml" } }, "required": ["kind"] },
+      "then": {
+        "required": ["base_fingerprint", "canonical_path", "project_id", "action", "tool", "diff", "impact"],
+        "properties": { "authority": { "const": "proposal" }, "source": { "const": "dbdiagram" } }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "enum": ["mockup", "design", "prototype"] } }, "required": ["kind"] },
+      "then": {
+        "required": ["license", "baseline_fingerprint"],
+        "properties": { "authority": { "enum": ["reference", "seed", "canonical"] } }
+      }
+    }
+  ],
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "stable_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stable_id" },
+      "uniqueItems": true
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          { "pattern": "^(?:/|\\\\)" },
+          { "pattern": "(?:^|[/\\\\])\\.\\.(?:$|[/\\\\])" }
+        ]
+      }
+    },
+    "strings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "diff": {
+      "type": "object",
+      "required": [
+        "added_tables", "removed_tables", "added_columns", "removed_columns",
+        "changed_columns", "added_relations", "removed_relations", "added_indexes",
+        "removed_indexes", "added_notes", "removed_notes", "added_definitions",
+        "removed_definitions", "changed_definitions"
+      ],
+      "properties": {
+        "added_tables": { "$ref": "#/$defs/strings" },
+        "removed_tables": { "$ref": "#/$defs/strings" },
+        "added_columns": { "$ref": "#/$defs/strings" },
+        "removed_columns": { "$ref": "#/$defs/strings" },
+        "changed_columns": { "$ref": "#/$defs/strings" },
+        "added_relations": { "$ref": "#/$defs/strings" },
+        "removed_relations": { "$ref": "#/$defs/strings" },
+        "added_indexes": { "$ref": "#/$defs/strings" },
+        "removed_indexes": { "$ref": "#/$defs/strings" },
+        "added_notes": { "$ref": "#/$defs/strings" },
+        "removed_notes": { "$ref": "#/$defs/strings" },
+        "added_definitions": { "$ref": "#/$defs/strings" },
+        "removed_definitions": { "$ref": "#/$defs/strings" },
+        "changed_definitions": { "$ref": "#/$defs/strings" }
+      },
+      "additionalProperties": false
+    },
+    "impact": {
+      "type": "object",
+      "required": ["contracts", "entities", "migration_order", "tests", "rollback"],
+      "properties": {
+        "contracts": { "$ref": "#/$defs/stable_ids" },
+        "entities": { "$ref": "#/$defs/strings" },
+        "migration_order": { "$ref": "#/$defs/stable_ids" },
+        "tests": { "$ref": "#/$defs/stable_ids" },
+        "rollback": { "$ref": "#/$defs/stable_ids" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
