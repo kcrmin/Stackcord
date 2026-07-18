@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"fullstack-orchestrator/cli/internal/domain"
@@ -28,6 +29,15 @@ func TestDefinitionFingerprintChangesWhenSemanticScopeExpands(t *testing.T) {
 	after := before
 	after.Scope.DBEntities = append([]string(nil), before.Scope.DBEntities...)
 	after.Scope.DBEntities = append(after.Scope.DBEntities, "account_recovery")
+
+	require.NotEqual(t, Fingerprint(before), Fingerprint(after))
+}
+
+func TestDefinitionFingerprintBindsExactUIBaseline(t *testing.T) {
+	before := validDefinition()
+	before.UIBaselines = map[string]string{"ui.baseline.checkout": "sha256:" + strings.Repeat("a", 64)}
+	after := before
+	after.UIBaselines = map[string]string{"ui.baseline.checkout": "sha256:" + strings.Repeat("b", 64)}
 
 	require.NotEqual(t, Fingerprint(before), Fingerprint(after))
 }

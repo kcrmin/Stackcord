@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/ui-baseline.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "id", "workspace_id", "workspace_commit", "workspace_remote",
+    "source_ids", "mapped_refs", "consumers", "fingerprint"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^ui\\.baseline\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+    "workspace_id": { "$ref": "#/$defs/stable_id" },
+    "workspace_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "workspace_remote": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "source_ids": { "$ref": "#/$defs/stable_ids" },
+    "mapped_refs": { "$ref": "#/$defs/stable_ids", "minItems": 1 },
+    "consumers": { "$ref": "#/$defs/stable_ids", "minItems": 1 },
+    "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "stable_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stable_id" },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

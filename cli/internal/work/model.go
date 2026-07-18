@@ -56,5 +56,6 @@ type Definition struct {
 	MergeOrder       []string             `json:"merge_order" yaml:"merge_order"`
 	FirstFailingTest string               `json:"first_failing_test" yaml:"first_failing_test"`
 	Evidence         EvidenceRequirements `json:"evidence" yaml:"evidence"`
+	UIBaselines      map[string]string    `json:"ui_baselines,omitempty" yaml:"ui_baselines,omitempty"`
 	Fingerprint      string               `json:"fingerprint,omitempty" yaml:"fingerprint,omitempty"`
 }

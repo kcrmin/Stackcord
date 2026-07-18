@@ -53,6 +53,11 @@ func ValidateDefinition(definition Definition) []domain.Item {
 	for _, duplicate := range duplicateValues(definition.Refs, definition.Workspaces, definition.Dependencies, definition.Scope.Repositories, definition.Scope.Paths, definition.Scope.PolicyIDs, definition.Scope.ScenarioIDs, definition.Scope.ContractIDs, definition.Scope.DBEntities, definition.Scope.MigrationSlots, definition.Scope.UIFlows, definition.Scope.DependencyMajors, definition.Scope.RootPointers, definition.Evidence.Kinds) {
 		add("work.duplicate-scope", "Work definition contains a duplicate set value.", duplicate)
 	}
+	for id, fingerprint := range definition.UIBaselines {
+		if !strings.HasPrefix(id, "ui.baseline.") || !stableIDPattern.MatchString(id) || !digestPattern.MatchString(fingerprint) {
+			add("work.ui-baseline-invalid", "UI baseline bindings need a stable baseline ID and exact digest.", id, fingerprint)
+		}
+	}
 	acceptanceIDs := make([]string, 0, len(definition.Acceptance))
 	for _, acceptance := range definition.Acceptance {
 		acceptanceIDs = append(acceptanceIDs, acceptance.ID)
@@ -237,6 +242,13 @@ func normalize(definition Definition) Definition {
 	definition.Scope.DependencyMajors = normalizedSet(definition.Scope.DependencyMajors)
 	definition.Scope.RootPointers = normalizedSet(definition.Scope.RootPointers)
 	definition.Evidence.Kinds = normalizedSet(definition.Evidence.Kinds)
+	if len(definition.UIBaselines) > 0 {
+		baselines := make(map[string]string, len(definition.UIBaselines))
+		for id, fingerprint := range definition.UIBaselines {
+			baselines[strings.TrimSpace(id)] = strings.TrimSpace(fingerprint)
+		}
+		definition.UIBaselines = baselines
+	}
 	definition.Acceptance = append([]AcceptanceScenario(nil), definition.Acceptance...)
 	for index := range definition.Acceptance {
 		definition.Acceptance[index].Given = strings.TrimSpace(definition.Acceptance[index].Given)
