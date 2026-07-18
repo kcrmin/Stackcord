@@ -3,7 +3,6 @@ package command
 import (
 	"io"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -36,6 +35,7 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 		Use:   "doctor",
 		Short: "Inspect the local environment",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			facts, warnings := doctorFacts(cmd.Context(), doctorRoot, version)
 			result := domain.Result{
 				SchemaVersion: "1.0",
 				ToolVersion:   version,
@@ -44,11 +44,12 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 				Status:        domain.StatusPassed,
 				ExitCode:      domain.ExitSuccess,
 				Summary:       "Environment inspection completed.",
-				Facts: []domain.Item{
-					{Code: "environment.os", Message: runtime.GOOS},
-					{Code: "environment.arch", Message: runtime.GOARCH},
-					{Code: "environment.go", Message: runtime.Version()},
-				},
+				Facts:         facts,
+				Warnings:      warnings,
+			}
+			if len(warnings) > 0 {
+				result.Status = domain.StatusWarning
+				result.Summary = "Environment inspection completed with reduced-verification warnings."
 			}
 			if diagnosticPath != "" {
 				home, _ := os.UserHomeDir()
@@ -56,7 +57,7 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				exportErr := diagnostic.Export(file, diagnostic.Input{Versions: map[string]string{"cli": version, "go": runtime.Version(), "os": runtime.GOOS + "-" + runtime.GOARCH}, Root: doctorRoot, Home: home, State: map[string]string{"root": doctorRoot}, Receipts: []string{}})
+				exportErr := diagnostic.Export(file, diagnostic.Input{Versions: map[string]string{"cli": version, "go": factValue(facts, "environment.go"), "os": factValue(facts, "environment.os") + "-" + factValue(facts, "environment.arch")}, Root: doctorRoot, Home: home, State: map[string]string{"root": doctorRoot}, Receipts: []string{}})
 				closeErr := file.Close()
 				if exportErr != nil {
 					_ = os.Remove(diagnosticPath)
@@ -74,6 +75,8 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	doctor.Flags().StringVar(&doctorRoot, "root", ".", "project path for redacted diagnostics")
 	doctor.Flags().StringVar(&diagnosticPath, "export", "", "write a privacy-safe diagnostic ZIP")
 	root.AddCommand(doctor)
+	root.AddCommand(newStatusCommand(&jsonOutput))
+	root.AddCommand(newHookCommand())
 	root.AddCommand(newContextCommand(version, &jsonOutput))
 	root.AddCommand(newProjectCommand(version, &jsonOutput))
 	root.AddCommand(newGitCommand(version, &jsonOutput))
@@ -85,6 +88,15 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	root.AddCommand(newIntegrateCommand(version, &jsonOutput))
 	root.AddCommand(newReleaseCommand(version, &jsonOutput))
 	return root
+}
+
+func factValue(items []domain.Item, code string) string {
+	for _, item := range items {
+		if item.Code == code {
+			return item.Message
+		}
+	}
+	return "unknown"
 }
 
 func writeResult(cmd *cobra.Command, jsonOutput bool, result domain.Result) error {

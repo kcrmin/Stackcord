@@ -301,8 +301,8 @@ It distinguishes `confirmed`, `warning`, `stale`, `unknown`, `local-only`, and `
 
 ### 8.3 Compaction and new sessions
 
-- `PostCompact` performs read-only status and injects a small packet through the correct Codex hook response.
-- `SessionStart` locates the root and injects current project identity and next-action guidance.
+- `PostCompact` performs read-only status and returns a short `systemMessage`, which is the only context-related output supported by that event in the current Codex hook schema.
+- `SessionStart` locates the root and injects current project identity and next-action guidance through `hookSpecificOutput.additionalContext`; the `compact` start source completes post-compaction recovery.
 - A repo-local Skill performs the same preflight when hooks are unavailable.
 - Markdown fallback states the reduced verification level on unsupported clients.
 

@@ -2,7 +2,7 @@ package command_test
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"fullstack-orchestrator/cli/internal/command"
+	"fullstack-orchestrator/cli/internal/domain"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
@@ -23,18 +24,24 @@ func TestDoctorWritesStableJSON(t *testing.T) {
 
 	require.NoError(t, cmd.Execute())
 	require.Empty(t, stderr.String())
-	require.JSONEq(t, fmt.Sprintf(`{
-		"schema_version":"1.0",
-		"tool_version":"1.0.0",
-		"command":"doctor",
-		"operation_id":"doctor-read-only",
-		"status":"passed",
-		"exit_code":0,
-		"summary":"Environment inspection completed.",
-		"facts":[{"code":"environment.os","message":%q},{"code":"environment.arch","message":%q},{"code":"environment.go","message":%q}],"warnings":[],"blockers":[],"changes":[],"evidence":[],"next_actions":[],
-		"approval":{"required":false,"class":"A","reason":""},
-		"timing_ms":0
-	}`, runtime.GOOS, runtime.GOARCH, runtime.Version()), stdout.String())
+	var result domain.Result
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	require.Equal(t, domain.StatusPassed, result.Status)
+	require.Equal(t, runtime.GOOS, factMessage(result.Facts, "environment.os"))
+	require.Equal(t, runtime.GOARCH, factMessage(result.Facts, "environment.arch"))
+	require.Equal(t, runtime.Version(), factMessage(result.Facts, "environment.go"))
+	require.NotEmpty(t, factMessage(result.Facts, "environment.cli-path"))
+	require.NotEmpty(t, factMessage(result.Facts, "environment.git-version"))
+	require.Contains(t, []string{"true", "false"}, factMessage(result.Facts, "environment.dbdiagram-available"))
+}
+
+func factMessage(items []domain.Item, code string) string {
+	for _, item := range items {
+		if item.Code == code {
+			return item.Message
+		}
+	}
+	return ""
 }
 
 func TestContextAuditInspectsProjectWithoutWriting(t *testing.T) {

@@ -73,7 +73,7 @@ Command files are split by responsibility instead of extending the current large
 - Produces `validate_hook_document(value: object) -> list[str]` in the repository validator.
 - Points every product agent to the final design and this plan.
 
-- [ ] **Step 1: Add failing tests for current hook structure and live documentation links.**
+- [x] **Step 1: Add failing tests for current hook structure and live documentation links.**
 
 ```python
 def test_hooks_use_current_command_schema(self):
@@ -90,13 +90,13 @@ def test_agent_entry_links_exist(self):
         self.assertTrue((ROOT / path).is_file(), path)
 ```
 
-- [ ] **Step 2: Run the tests and verify failure.**
+- [x] **Step 2: Run the tests and verify failure.**
 
 Run: `python3 scripts/validate_plugin_test.py -v`
 
 Expected: FAIL because hooks are an event list with message-only entries and `AGENTS.md` points to deleted files.
 
-- [ ] **Step 3: Replace the hook document with command hooks.**
+- [x] **Step 3: Replace the hook document with command hooks.**
 
 ```json
 {
@@ -120,7 +120,7 @@ docs/superpowers/specs/2026-07-18-service-continuity-harness-design.md
 docs/superpowers/plans/2026-07-18-service-continuity-production.md
 ```
 
-- [ ] **Step 4: Make the local validator reject the old shape and malformed command hooks.**
+- [x] **Step 4: Make the local validator reject the old shape and malformed command hooks.**
 
 ```python
 def validate_hook_document(value):
@@ -139,7 +139,7 @@ def validate_hook_document(value):
     return errors
 ```
 
-- [ ] **Step 5: Run repository and official validators.**
+- [x] **Step 5: Run repository and official validators.**
 
 Run:
 
@@ -150,7 +150,7 @@ python3 scripts/validate_plugin.py .
 
 Expected: PASS locally; the official Plugin validator must also accept the manifest and hook resource before this task is complete.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```sh
 git add AGENTS.md docs/design/index.md .codex-plugin/plugin.json hooks scripts testdata/plugin
@@ -182,7 +182,7 @@ git commit -m "fix(plugin): validate lifecycle hooks"
 - Produces `workspace.FindRoot(ctx, start) (Root, error)` and `workspace.Load(root) (Manifest, error)`.
 - Canonical manifests are committed; `.harness/local/**` is ignored and never indexed.
 
-- [ ] **Step 1: Write failing unit and E2E tests.**
+- [x] **Step 1: Write failing unit and E2E tests.**
 
 ```go
 func TestFindRootFromSubmoduleUsesActualSuperproject(t *testing.T) {
@@ -201,13 +201,13 @@ func TestGeneratedLocalStateIsIgnoredAndAbsent(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run focused tests and verify failure.**
+- [x] **Step 2: Run focused tests and verify failure.**
 
 Run: `cd cli && go test ./internal/workspace ./internal/project -run 'Root|LocalState|Submodule' -v`
 
 Expected: FAIL because `workspace` does not exist and generated context state is currently tracked.
 
-- [ ] **Step 3: Define focused models.**
+- [x] **Step 3: Define focused models.**
 
 ```go
 type Entry struct {
@@ -248,21 +248,21 @@ type State struct {
 }
 ```
 
-- [ ] **Step 4: Implement root discovery and bridge validation.**
+- [x] **Step 4: Implement root discovery and bridge validation.**
 
 Use `git rev-parse --show-superproject-working-tree` first, then walk ancestors for `.harness/project.yaml`. Reject project-ID, root-remote, workspace-ID, and contract-fingerprint disagreement. A child-only clone returns a typed incomplete-context issue rather than success.
 
-- [ ] **Step 5: Replace generated state with canonical manifests and local ignore rules.**
+- [x] **Step 5: Replace generated state with canonical manifests and local ignore rules.**
 
 Generated files retain the compact `AGENTS.md`, repo-local Skill, project/profile/source/workspace manifests, specs index, contract registry, and docs index. Remove tracked generated context index and impact graph from new projects; regenerate them under `.harness/local/context/`.
 
-- [ ] **Step 6: Verify non-destructive adoption.**
+- [x] **Step 6: Verify non-destructive adoption.**
 
 Run: `cd cli && go test -race ./internal/workspace ./internal/project -v`
 
 Expected: PASS, including preservation of existing README, AGENTS sections, and authored specs/contracts.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```sh
 git add cli/internal/workspace cli/internal/project templates/project schemas cli/internal/schema/definitions
@@ -290,7 +290,7 @@ git commit -m "feat(project): connect root and child workspaces"
 - Produces `hook.Render(event string, snapshot continuity.Snapshot) ([]byte, error)`.
 - Adds `orchestrator status --root --json` and `orchestrator hook session-start|post-compact`.
 
-- [ ] **Step 1: Write failing combined-state tests.**
+- [x] **Step 1: Write failing combined-state tests.**
 
 ```go
 func TestCollectDistinguishesConfirmedStaleUnknownAndLocalOnly(t *testing.T) {
@@ -309,13 +309,13 @@ func TestCollectDistinguishesConfirmedStaleUnknownAndLocalOnly(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/continuity ./internal/hook ./internal/command -run 'Continuity|Status|Hook' -v`
 
 Expected: FAIL because packages and commands do not exist.
 
-- [ ] **Step 3: Define the snapshot.**
+- [x] **Step 3: Define the snapshot.**
 
 ```go
 type Confidence string
@@ -353,25 +353,25 @@ type ReleaseView struct {
 }
 ```
 
-- [ ] **Step 4: Implement collection in evidence order.**
+- [x] **Step 4: Implement collection in evidence order.**
 
 Collect actual Git/workspaces first, approved canonical context second, currently observable provider/work files third, release state next, and generated cache last. The initial provider view reports external state as unknown until Task 5 supplies a freshly reconciled snapshot. Task 5 and Task 8 populate the stable `ProviderView` and `WorkView` without changing the status JSON contract. Do not let missing optional cache lower confirmed source evidence. Sort all outputs for stable JSON.
 
-- [ ] **Step 5: Render compact hooks without writes.**
+- [x] **Step 5: Render compact hooks without writes.**
 
-Hook JSON includes project ID, canonical fingerprint, active work IDs, related source paths, blockers, and one next action. It excludes full documents, issue free text, raw Git status, and credentials. If the CLI is unavailable the hook command may fail; Skills must still run the repo-local preflight.
+The `SessionStart` JSON uses `hookSpecificOutput.additionalContext` and includes project ID, canonical fingerprint, active work IDs, related source paths, blocker codes/refs, and one next action. `PostCompact` uses only the supported `systemMessage`; the following `SessionStart` with source `compact` injects the packet. Output excludes full documents, issue free text, raw Git status, and credentials. If the CLI is unavailable the hook command may fail; Skills must still run the repo-local preflight.
 
-- [ ] **Step 6: Upgrade doctor to report actionable tool readiness.**
+- [x] **Step 6: Upgrade doctor to report actionable tool readiness.**
 
 Add Git version, root discovery, CLI path/version, selected provider type, connector availability facts supplied by local detection, dbdiagram presence, and reduced-verification warnings. Detection remains read-only and does not install.
 
-- [ ] **Step 7: Run tests.**
+- [x] **Step 7: Run tests.**
 
 Run: `cd cli && go test -race ./internal/continuity ./internal/hook ./internal/command ./internal/workspace ./internal/gitx ./internal/context -v`
 
 Expected: PASS with no tracked `.harness` mutation from status or hooks.
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```sh
 git add cli/internal/continuity cli/internal/hook cli/internal/command

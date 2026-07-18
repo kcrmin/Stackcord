@@ -1,0 +1,320 @@
+package continuity
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	contextpkg "fullstack-orchestrator/cli/internal/context"
+	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/gitx"
+	"fullstack-orchestrator/cli/internal/release"
+	"fullstack-orchestrator/cli/internal/schema"
+	"fullstack-orchestrator/cli/internal/workspace"
+)
+
+// Collect rebuilds one service continuity snapshot from actual and canonical repository state.
+func Collect(ctx context.Context, start string, _ Options) Snapshot {
+	snapshot := Snapshot{
+		SchemaVersion: 1,
+		Overall:       Blocked,
+		Context: contextpkg.Snapshot{
+			SchemaVersion: 1,
+			Index:         map[string]contextpkg.IndexEntry{},
+			Impact:        map[string][]string{},
+			Stale:         []string{},
+			Unknown:       []string{},
+		},
+		Workspaces:  []workspace.State{},
+		Provider:    ProviderView{Confidence: Unknown},
+		ActiveWork:  []WorkView{},
+		Release:     ReleaseView{Confidence: Unknown},
+		Issues:      []domain.Item{},
+		NextActions: []domain.Item{},
+	}
+	located, err := workspace.FindRoot(ctx, start)
+	if err != nil {
+		code := "project.not-found"
+		var incomplete *workspace.IncompleteContextError
+		if errors.As(err, &incomplete) {
+			code = "project.root-unavailable"
+			snapshot.ProjectID = incomplete.ProjectID
+			snapshot.CurrentWorkspaceID = incomplete.WorkspaceID
+		}
+		snapshot.Issues = []domain.Item{{Code: code, Message: err.Error()}}
+		snapshot.NextActions = nextActions(snapshot)
+		return snapshot
+	}
+	snapshot.ProjectID = located.Manifest.ProjectID
+	snapshot.Root = located.Path
+	snapshot.CurrentWorkspaceID = located.CurrentWorkspaceID
+
+	rootGit, gitErr := gitx.Inspect(ctx, located.Path)
+	if gitErr != nil {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "workspace.git-unknown", Message: "Git state is unavailable for the orchestration root.", Refs: []string{"workspace.root"}})
+	}
+	states, workspaceIssues := collectWorkspaceStates(ctx, located.Path, located.Manifest, rootGit)
+	snapshot.Workspaces = states
+	snapshot.Issues = append(snapshot.Issues, workspaceIssues...)
+
+	contextSnapshot, contextIssues := contextpkg.Refresh(ctx, located.Path, contextpkg.ReadOnly)
+	snapshot.Context = contextSnapshot
+	for _, item := range contextIssues {
+		confidenceCode := "context.warning"
+		if strings.HasPrefix(item.Code, "context.error") {
+			confidenceCode = item.Code
+		}
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: confidenceCode, Message: item.Message, Refs: item.Refs})
+	}
+	if len(contextSnapshot.Stale) > 0 {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "context.stale", Message: "Canonical dependents are stale.", Refs: contextSnapshot.Stale})
+	}
+	if len(contextSnapshot.Unknown) > 0 {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "context.unknown", Message: "Canonical context has unresolved references or semantic state.", Refs: contextSnapshot.Unknown})
+	}
+	snapshot.CanonicalFingerprint = canonicalFingerprint(snapshot.ProjectID, contextSnapshot)
+
+	snapshot.Provider, err = collectProvider(located.Path)
+	if err != nil {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.config-invalid", Message: err.Error(), Refs: []string{".harness/work/provider.yaml"}})
+	} else if snapshot.Provider.Confidence != Confirmed {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "provider.live-unknown", Message: "The selected task provider has not been freshly reconciled.", Refs: []string{snapshot.Provider.Name}})
+	}
+	snapshot.ActiveWork, err = collectActiveWork(located.Path)
+	if err != nil {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: err.Error()})
+	}
+	snapshot.Release = collectRelease(located.Path)
+	snapshot.Issues = normalizeIssues(snapshot.Issues)
+	snapshot.Overall = overallConfidence(snapshot.Issues)
+	snapshot.NextActions = nextActions(snapshot)
+	return snapshot
+}
+
+func collectWorkspaceStates(ctx context.Context, root string, manifest workspace.Manifest, rootGit gitx.State) ([]workspace.State, []domain.Item) {
+	states := make([]workspace.State, 0, len(manifest.Workspaces))
+	issues := []domain.Item{}
+	for _, entry := range manifest.Workspaces {
+		state := workspace.State{Entry: entry, Confidence: string(Confirmed), Issues: []domain.Item{}}
+		workspaceRoot := filepath.Join(root, filepath.FromSlash(entry.Path))
+		switch entry.Kind {
+		case "root", "directory":
+			state.Git = rootGit
+			if rootGit.Root == "" {
+				state.Confidence = string(Unknown)
+			}
+		case "submodule":
+			submodule, found := findSubmodule(rootGit.Submodules, entry.Path)
+			if !found || !submodule.Initialized {
+				state.Confidence = string(Unknown)
+				item := domain.Item{Code: "workspace.missing", Message: "A declared submodule is not initialized at its pinned commit.", Refs: []string{entry.ID, entry.Path}}
+				issues = append(issues, item)
+				state.Issues = append(state.Issues, item)
+				states = append(states, state)
+				continue
+			}
+			state.ExpectedSHA = submodule.ExpectedSHA
+			if submodule.PointerDiff {
+				state.Confidence = string(Blocked)
+				item := domain.Item{Code: "workspace.pointer-mismatch", Message: "Child HEAD differs from the root gitlink pointer.", Refs: []string{entry.ID, entry.Path, submodule.ExpectedSHA, submodule.Head}}
+				issues = append(issues, item)
+				state.Issues = append(state.Issues, item)
+			}
+			childGit, inspectErr := gitx.Inspect(ctx, workspaceRoot)
+			if inspectErr != nil {
+				state.Confidence = string(maxConfidence(Confidence(state.Confidence), Unknown))
+				item := domain.Item{Code: "workspace.git-unknown", Message: "Child Git state could not be inspected.", Refs: []string{entry.ID, entry.Path}}
+				issues = append(issues, item)
+				state.Issues = append(state.Issues, item)
+			} else {
+				state.Git = childGit
+			}
+		case "external":
+			externalGit, inspectErr := gitx.Inspect(ctx, workspaceRoot)
+			if inspectErr != nil {
+				state.Confidence = string(Unknown)
+				item := domain.Item{Code: "workspace.git-unknown", Message: "External workspace Git state could not be inspected.", Refs: []string{entry.ID, entry.Path}}
+				issues = append(issues, item)
+				state.Issues = append(state.Issues, item)
+			} else {
+				state.Git = externalGit
+			}
+		}
+		gitIssues := evaluateGitState(entry, state.Git)
+		state.Issues = append(state.Issues, gitIssues...)
+		issues = append(issues, gitIssues...)
+		state.Confidence = string(maxConfidence(Confidence(state.Confidence), confidenceFromIssues(gitIssues)))
+		states = append(states, state)
+	}
+	sort.Slice(states, func(left, right int) bool { return states[left].Entry.ID < states[right].Entry.ID })
+	return states, issues
+}
+
+func evaluateGitState(entry workspace.Entry, state gitx.State) []domain.Item {
+	if state.Root == "" {
+		return nil
+	}
+	refs := []string{entry.ID, entry.Path}
+	issues := []domain.Item{}
+	if state.Diverged {
+		issues = append(issues, domain.Item{Code: "workspace.diverged", Message: "The workspace branch diverged from its upstream.", Refs: refs})
+	}
+	if state.Dirty {
+		issues = append(issues, domain.Item{Code: "workspace.dirty", Message: "The workspace has uncommitted changes.", Refs: refs})
+	}
+	if state.Upstream == "" || state.Ahead > 0 {
+		issues = append(issues, domain.Item{Code: "workspace.local-only", Message: "Some workspace state is not recoverable from an upstream branch.", Refs: refs})
+	}
+	if state.Detached {
+		issues = append(issues, domain.Item{Code: "workspace.detached", Message: "The workspace is on a detached HEAD.", Refs: refs})
+	}
+	return issues
+}
+
+func findSubmodule(submodules []gitx.Submodule, path string) (gitx.Submodule, bool) {
+	wanted := filepath.ToSlash(filepath.Clean(filepath.FromSlash(path)))
+	for _, submodule := range submodules {
+		if filepath.ToSlash(filepath.Clean(filepath.FromSlash(submodule.Path))) == wanted {
+			return submodule, true
+		}
+	}
+	return gitx.Submodule{}, false
+}
+
+type providerConfig struct {
+	SchemaVersion    int    `yaml:"schema_version"`
+	Provider         string `yaml:"provider"`
+	LiveStatusSource string `yaml:"live_status_source"`
+}
+
+func collectProvider(root string) (ProviderView, error) {
+	path := filepath.Join(root, ".harness", "work", "provider.yaml")
+	config, err := schema.LoadYAML[providerConfig](path)
+	if errors.Is(err, os.ErrNotExist) {
+		return ProviderView{Name: "git-local", Confidence: Unknown}, nil
+	}
+	if err != nil {
+		return ProviderView{Confidence: Unknown}, err
+	}
+	if config.SchemaVersion != 1 || config.Provider == "" || config.LiveStatusSource != config.Provider {
+		return ProviderView{Confidence: Unknown}, fmt.Errorf("task provider configuration is incomplete or has more than one live source")
+	}
+	view := ProviderView{Name: config.Provider, Confidence: Unknown}
+	cachePath := filepath.Join(root, ".harness", "local", "provider", "snapshot.json")
+	if data, readErr := os.ReadFile(cachePath); readErr == nil {
+		var cached struct {
+			ItemID   string `json:"item_id"`
+			Revision string `json:"revision"`
+			Owner    string `json:"owner"`
+			Status   string `json:"status"`
+		}
+		if json.Unmarshal(data, &cached) == nil {
+			view.ItemID, view.Revision, view.Owner, view.Status = cached.ItemID, cached.Revision, cached.Owner, cached.Status
+			view.Confidence = Stale
+		}
+	}
+	return view, nil
+}
+
+func collectActiveWork(root string) ([]WorkView, error) {
+	result := []WorkView{}
+	for _, relative := range []string{filepath.Join(".harness", "work", "definitions"), filepath.Join(".harness", "work", "items")} {
+		directory := filepath.Join(root, relative)
+		entries, err := os.ReadDir(directory)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || (filepath.Ext(entry.Name()) != ".yaml" && filepath.Ext(entry.Name()) != ".yml") {
+				continue
+			}
+			path := filepath.Join(directory, entry.Name())
+			data, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return nil, readErr
+			}
+			value, decodeErr := schema.DecodeYAML[map[string]any](data)
+			if decodeErr != nil {
+				return nil, decodeErr
+			}
+			id, _ := value["id"].(string)
+			if id == "" {
+				return nil, fmt.Errorf("work definition %s has no stable ID", filepath.ToSlash(path))
+			}
+			state, _ := value["status"].(string)
+			if state == "" {
+				state, _ = value["state"].(string)
+			}
+			if state == "done" || state == "closed" || state == "released" {
+				continue
+			}
+			title, _ := value["title"].(string)
+			digest := sha256.Sum256(data)
+			result = append(result, WorkView{ID: id, Title: title, State: state, DefinitionFingerprint: "sha256:" + hex.EncodeToString(digest[:])})
+		}
+	}
+	sort.Slice(result, func(left, right int) bool { return result[left].ID < result[right].ID })
+	return result, nil
+}
+
+func collectRelease(root string) ReleaseView {
+	for _, relative := range []string{filepath.Join(".harness", "release", "candidate.json"), filepath.Join(".harness", "state", "release-candidate.json")} {
+		data, err := os.ReadFile(filepath.Join(root, relative))
+		if err != nil {
+			continue
+		}
+		candidate, decodeErr := schema.DecodeJSON[release.Candidate](data)
+		if decodeErr == nil && candidate.Digest != "" {
+			return ReleaseView{CandidateDigest: candidate.Digest, Confidence: LocalOnly}
+		}
+	}
+	return ReleaseView{Confidence: Unknown}
+}
+
+func canonicalFingerprint(projectID string, snapshot contextpkg.Snapshot) string {
+	ids := make([]string, 0, len(snapshot.Index))
+	for id := range snapshot.Index {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	hash := sha256.New()
+	_, _ = hash.Write([]byte(projectID))
+	for _, id := range ids {
+		entry := snapshot.Index[id]
+		_, _ = hash.Write([]byte("\x00" + id + "\x00" + entry.Fingerprint))
+	}
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
+}
+
+func normalizeIssues(items []domain.Item) []domain.Item {
+	seen := map[string]bool{}
+	result := make([]domain.Item, 0, len(items))
+	for _, item := range items {
+		refs := append([]string(nil), item.Refs...)
+		sort.Strings(refs)
+		item.Refs = refs
+		key := item.Code + "\x00" + strings.Join(refs, "\x00")
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, item)
+	}
+	sort.Slice(result, func(left, right int) bool {
+		if result[left].Code == result[right].Code {
+			return strings.Join(result[left].Refs, "\x00") < strings.Join(result[right].Refs, "\x00")
+		}
+		return result[left].Code < result[right].Code
+	})
+	return result
+}
