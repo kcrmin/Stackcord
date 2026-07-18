@@ -95,8 +95,8 @@ def validate(root: pathlib.Path) -> list[str]:
             fail(errors, f"{directory.name} frontmatter name differs")
         if not frontmatter.group(2).startswith("Use when"):
             fail(errors, f"{directory.name} description must begin with Use when")
-        if "context audit" not in text:
-            fail(errors, f"{directory.name} does not refresh context")
+        if "orchestrator status --json" not in text:
+            fail(errors, f"{directory.name} does not recover combined status")
         if "[TODO:" in text:
             fail(errors, f"{directory.name} contains TODO placeholders")
         if "classes:\n" in text or "main_protected:" in text:

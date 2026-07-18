@@ -22,8 +22,8 @@ class PluginContractTest(unittest.TestCase):
             text = skill.read_text()
             self.assertIn(f"name: {case['skill']}", text)
             self.assertIn(case["domain_command"], text)
-            self.assertIn("context audit", text)
-            self.assertEqual("context audit", case["first_command"])
+            self.assertIn("orchestrator status --json", text)
+            self.assertEqual("orchestrator status --json", case["first_command"])
             self.assertLessEqual(
                 text.index(case["first_command"]),
                 text.index(case["domain_command"]),

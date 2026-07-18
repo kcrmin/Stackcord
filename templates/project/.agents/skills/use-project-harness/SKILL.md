@@ -5,8 +5,8 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 # Use Project Harness
 
-Read `.harness/entry.md`, inspect actual Git/workspace/submodule state, and run `orchestrator status --json` when available. If this is a child repository, resolve the actual Git superproject or `.harness/bridge.yaml` before claiming service-wide context. Treat `specs/` as product meaning and `contracts/` as behavioral obligations. Read only the sources related to the current request.
+Run `orchestrator status --json`, then read only the canonical sources related to the request. If invoked in a child repository, resolve the actual orchestration root before claiming service-wide context. Treat `specs/` as approved product meaning and `contracts/` as service purpose, guarantees, non-goals, business rules, failure behavior, APIs, events, and data obligations.
 
-Ask one material product question at a time; infer facts from files and Git. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, check path and semantic scope, set ownership and merge order, and use conventional Git names without AI markers.
+Ask one material product question at a time; infer facts from files, Git, and selected tools. Checkpoint normalized meaning after each material answer, never raw dialogue. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, re-read the selected task source, check path and semantic scope, claim shared work, set ownership and merge order, and use conventional Git names without AI markers.
 
-Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, audit again before mutation. If the CLI is unavailable, follow `references/fallback.md` and state reduced verification.
+Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, run `orchestrator context audit --json` before mutation. If the CLI is unavailable, follow `references/fallback.md` and state reduced verification.

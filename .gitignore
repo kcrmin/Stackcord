@@ -1,6 +1,7 @@
 .DS_Store
 .worktrees/
 .tools/
+.harness/local/
 dist/
 coverage/
 *.test
@@ -10,4 +11,3 @@ coverage/
 .env
 .env.*
 !.env.example
-

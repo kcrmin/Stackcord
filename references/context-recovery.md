@@ -1,16 +1,18 @@
 # Context recovery
 
-Find the nearest `.harness/manifest.yaml`, establish repository trust, and run `orchestrator context audit --json`. Then inspect actual Git, worktree, workspace, and exact submodule pointer state without mutation.
+Find the nearest project root from any root or child workspace and run `orchestrator status --json`. When context was compacted, settled questions repeat, or sources disagree, run `orchestrator context audit --json` before mutation.
 
-Use this source precedence:
+Use this precedence:
 
 1. approved `specs/` product meaning;
-2. `contracts/` behavioral and data obligations;
-3. actual Git, submodule, filesystem, tests, and artifacts;
-4. `.harness/` coordination state;
-5. the selected task source for live execution status;
-6. generated summaries and chat memory only as navigation hints.
+2. `contracts/` service rules, failure behavior, technical, and data obligations;
+3. actual Git, remotes, worktrees, submodules, filesystem, tests, and artifacts;
+4. the selected provider for live task status;
+5. `.harness/` coordination records and provider snapshots;
+6. generated summaries, memory tools, and chat only as navigation hints.
 
-Report facts, stale state, unknown state, blockers, active ownership, evidence, and one safe next action. Audit again after context compaction, repeated settled questions, branch changes, pointer changes, or source/generated disagreement.
+Reconcile actual root and child commits, dirty/ahead/behind/diverged state, exact submodule pointers, active ownership, evidence, provider reachability, and release candidate identity. Classify each result as confirmed, stale, unknown, blocked, or local-only. Report one safe next action in plain language.
 
-If the CLI is unavailable, follow the repository-local Skill and Markdown fallback. State that fingerprint, divergence, remote-claim, semantic-conflict, and release-identity checks have reduced coverage.
+Audit again after compaction, repeated settled questions, provider reconnect, branch/worktree changes, pointer changes, canonical writes, or source/generated disagreement.
+
+If the CLI is unavailable, follow the repository-local Skill and Markdown fallback. State that fingerprints, divergence, remote claims, semantic conflicts, archive safety, and exact release identity have reduced coverage. Never claim those checks passed manually.

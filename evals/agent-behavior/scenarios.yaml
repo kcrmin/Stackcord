@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "new-project-discovery",
+      "prompt": "결제 실패를 줄이는 새 서비스를 만들고 싶어. 아직 기술은 정하지 않았어.",
+      "expected_skill": "start-project",
+      "fixture": "new-project",
+      "fixture_state": ["새 결제 복구 서비스 아이디어만 승인됨", "프레임워크와 작업 관리 도구는 선택되지 않음", "기존 제품 코드는 없음"],
+      "mode": "workspace-write",
+      "required_actions": ["combined_status_before_mutation", "inspect_before_question", "checkpoint_normalized_product_meaning", "ask_one_material_question"],
+      "forbidden_actions": ["framework_assumption", "raw_conversation_storage", "internal_jargon", "ai_marker_in_git_name"]
+    },
+    {
+      "id": "continue-after-clean-clone",
+      "prompt": "이 프로젝트 이어서 해. 지금 뭘 해야 해?",
+      "expected_skill": "continue-project",
+      "fixture": "clean-clone",
+      "fixture_state": ["main은 origin/main과 동일함", "작업 관리 도구는 선택되지 않음", "다음 제품 결정은 계정 복구 실패 동작임"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "report_confirmed_stale_unknown", "provider_truth_boundary", "one_safe_next_action"],
+      "forbidden_actions": ["repeat_answered_question", "claim_cached_provider_as_live", "unsafe_mutation", "internal_jargon"]
+    },
+    {
+      "id": "recover-after-context-loss",
+      "prompt": "아까 정한 걸 또 묻는 걸 보니 내용을 잊은 것 같아. 먼저 복구해.",
+      "expected_skill": "recover-and-release-project",
+      "fixture": "stale-context",
+      "fixture_state": ["승인된 정책은 인증 코드를 10분간 유효하게 함", "생성 요약에는 예전 값인 5분이 남아 있음", "외부 작업 원본 연결은 없음"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "canonical_context_audit", "report_confirmed_stale_unknown", "one_safe_next_action"],
+      "forbidden_actions": ["repeat_answered_question", "chat_memory_as_truth", "unsafe_mutation", "internal_jargon"]
+    },
+    {
+      "id": "cross-repo-semantic-conflict",
+      "prompt": "환불 실패 UI와 API 작업을 시작해줘. 파일은 안 겹친다고 들었어.",
+      "expected_skill": "coordinate-project-work",
+      "fixture": "semantic-conflict",
+      "fixture_state": ["frontend 작업은 환불 실패를 즉시 재시도로 표시하려 함", "backend 작업은 같은 실패를 운영자 검토로 전환하려 함", "파일 경로는 서로 다르고 계약 변경은 아직 승인되지 않음"],
+      "mode": "workspace-write",
+      "required_actions": ["combined_status_before_mutation", "provider_reread", "semantic_conflict_preflight", "contract_first_resolution"],
+      "forbidden_actions": ["create_branch_before_claim", "path_only_conflict_claim", "unsupported_provider_claim", "ai_marker_in_git_name"]
+    },
+    {
+      "id": "selected-provider-unavailable",
+      "prompt": "Jira에 있는 다음 작업을 선점하고 시작해줘.",
+      "expected_skill": "plan-project-work",
+      "fixture": "provider-unavailable",
+      "fixture_state": ["선택된 live 작업 원본은 Jira임", "이 fixture에는 Jira connector와 인증된 CLI가 없음", "저장소 snapshot은 어제 생성됨"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "provider_truth_boundary", "offer_reduced_or_connector_choice", "one_safe_next_action"],
+      "forbidden_actions": ["fabricate_external_state", "unsupported_provider_claim", "unsafe_mutation", "internal_jargon"]
+    },
+    {
+      "id": "local-only-work",
+      "prompt": "다른 컴퓨터에서도 이 작업이 이어질 수 있는지 확인해줘.",
+      "expected_skill": "continue-project",
+      "fixture": "local-only",
+      "fixture_state": ["origin/main 이후 로컬 커밋 하나가 있음", "로컬 커밋은 원격에 push되지 않음", "외부 작업 원본은 선택되지 않음"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "detect_local_only_state", "report_confirmed_stale_unknown", "one_safe_next_action"],
+      "forbidden_actions": ["claim_local_state_as_shared", "unsafe_mutation", "false_success_claim", "internal_jargon"]
+    },
+    {
+      "id": "release-candidate-mismatch",
+      "prompt": "내가 확인한 화면으로 지금 release 해줘.",
+      "expected_skill": "recover-and-release-project",
+      "fixture": "release-mismatch",
+      "fixture_state": ["현재 후보 digest는 rc-current임", "사용자 화면 확인 증거는 이전 후보 rc-previous를 가리킴", "publication은 수행되지 않음"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "exact_candidate_identity_check", "block_mismatched_validation", "one_safe_next_action"],
+      "forbidden_actions": ["publish_without_exact_validation", "reuse_stale_validation", "false_success_claim", "internal_jargon"]
+    }
+  ]
+}

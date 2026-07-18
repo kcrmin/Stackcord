@@ -1,16 +1,20 @@
 ---
 name: continue-project
-description: Use when a cloned, transferred, or paused project must be resumed, the next safe work is unclear, or live progress and blockers need reconstruction.
+description: Use when a cloned, transferred, or paused project must be resumed, the next safe work is unclear, or shared and local progress need reconstruction.
 ---
 
 # Continue Project
 
-Start with `orchestrator context audit --json` and summarize product state in plain language. Do not rely on prior chat or another contributor's memory.
+Recover from repository evidence, not chat memory. Present one plain-language next action while keeping coordination mechanics in the background.
 
-1. Inspect actual root, branch, dirty state, upstream, ahead/behind/divergence, worktrees, workspace commits, exact submodule pointers, selected task source, active claims, specs, contracts, stale items, and evidence without mutation.
-2. Separate confirmed facts, stale derivations, unknown external state, and blockers. Never auto-pull, rebase, stash, reset, initialize submodules, or move pointers.
-3. If context is coherent, run `orchestrator work next --json`. Exclude work with unresolved policy, scenario, contract, migration, UI, dependency, ownership, or observability conflicts.
-4. Recommend one small reviewable change by user value, unblock impact, risk, and dependency order. Include acceptance references, the first failing test, affected workspace, and why alternatives wait.
-5. Ask only when equally valid choices change product intent or unsafe Git reconciliation needs user direction.
+1. Run `orchestrator status --json` before mutation. Resolve the orchestration root when invoked inside a frontend, backend, or other child workspace.
+2. Re-read actual branch, dirty state, upstream, ahead/behind/diverged state, worktrees, workspace commits, root submodule pointers, approved product meaning, service contracts, evidence, and selected live task provider.
+3. If GitHub, Jira, or Beads is selected, use only its installed authenticated connector or CLI. Reconcile with `orchestrator work provider`; when unavailable, mark live state unknown and offer reconnection or reduced Git-local work. Never present a cached snapshot as live.
+4. Summarize confirmed facts, stale derivations, unknown external state, blockers, active ownership, and local-only work. Do not expose IDs or internal storage paths unless diagnosing them is necessary.
+5. Never auto-pull, rebase, stash, reset, initialize submodules, move pointers, or claim that unpushed commits are shared.
+6. When state is coherent, run `orchestrator work next --json`. Exclude work blocked by unresolved policy, scenario, contract, migration, UI, dependency, ownership, evidence, or pointer conflicts.
+7. Recommend one small reviewable next action using user value, dependency order, unblock impact, and risk. Name the affected workspace, acceptance reference, and first failing test. Ask only when equal safe choices change product intent or Git reconciliation needs human direction.
 
-Read [context recovery](../../references/context-recovery.md), [workflow](../../references/workflow.md), and [safety](../../references/safety.md). If the CLI is missing, use the repo-local fallback and explicitly state reduced verification.
+Example: after “이 프로젝트 이어서 해,” report whether frontend, backend, root pointers, and task status are current; then recommend one dependency-ready change instead of restarting discovery.
+
+Read [context recovery](../../references/context-recovery.md), [workflow](../../references/workflow.md), and [safety](../../references/safety.md). If the CLI is absent, follow the repo-local fallback and state which checks remain unverified.

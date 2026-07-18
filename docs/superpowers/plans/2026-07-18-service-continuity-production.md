@@ -1017,7 +1017,7 @@ git commit -m "feat(release): bind exact service integration"
 - Skills use connector snapshots and deterministic CLI results, hide internal mechanics, and ask one material question at a time.
 - Evaluation scenarios cover routing and behavior, not only string presence.
 
-- [ ] **Step 1: Use `superpowers:writing-skills` and write failing behavior scenarios first.**
+- [x] **Step 1: Use `superpowers:writing-skills` and write failing behavior scenarios first.**
 
 ```yaml
 - id: continue-after-clean-clone
@@ -1044,7 +1044,7 @@ git commit -m "feat(release): bind exact service integration"
     - ai_marker_in_git_name
 ```
 
-- [ ] **Step 2: Run validators and observe failure.**
+- [x] **Step 2: Run validators and observe failure.**
 
 Run:
 
@@ -1056,19 +1056,19 @@ python3 scripts/validate_agent_eval.py .
 
 Expected: FAIL because Skills reference old commands and behavior eval files do not exist.
 
-- [ ] **Step 3: Rewrite each Skill with one responsibility.**
+- [x] **Step 3: Rewrite each Skill with one responsibility.**
 
 All Skills perform status recovery before mutation, locate canonical refs, distinguish fact/assumption/open/stale, use external connectors only when selected, and translate JSON into plain language. Discovery asks a single material question and checkpoints immediately. Work Skills require provider re-read and post-write re-read.
 
-- [ ] **Step 4: Add just-in-time tool selection.**
+- [x] **Step 4: Add just-in-time tool selection.**
 
 The workflow derives requirements, detects installed Plugin/Skill/CLI/MCP, searches current official sources when available, compares two or three candidates on capability/maintenance/security/license/platform/export/lock-in/cost, records a dated decision, and connects only the selection. No static tool list is called universally current.
 
-- [ ] **Step 5: Add honest connector routing.**
+- [x] **Step 5: Add honest connector routing.**
 
 Git-local uses the CLI. GitHub uses an installed GitHub connector or authenticated `gh` only when selected. Jira uses an installed Atlassian connector only when selected. Beads uses an installed `bd --json`. Missing connectors produce choices or reduced Git-local mode; they never fabricate external state.
 
-- [ ] **Step 6: Run Skill drill evaluations.**
+- [x] **Step 6: Run Skill drill evaluations.**
 
 Use the official Skill validator and a real Codex drill through `scripts/run_agent_eval.py`. The runner invokes the installed `codex` command in read-only or workspace-write fixtures according to each scenario, writes transcripts only under `.harness/local/evals/`, and scores them with the checked-in rubric. Absence of a working Codex command is a local release blocker, not a skipped pass. Capture transcripts for: new project, clean-clone resume, forgotten context, semantic conflict, provider unavailable, local-only work, and release mismatch. The rubric fails repeated questions, unsafe mutation, false claim, internal jargon, and unsupported provider claims.
 
