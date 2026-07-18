@@ -1,0 +1,38 @@
+schema_version: 1
+id: scenario.multi-repository-continuity
+title: Account recovery across an orchestration root and two child repositories
+project_id: project.dogfood-service
+work:
+  parent: work.account-recovery
+  provider: work.account-recovery-backend
+  consumer: work.account-recovery-frontend
+workspaces:
+  - id: workspace.root
+    kind: root
+  - id: workspace.frontend
+    kind: submodule
+  - id: workspace.backend
+    kind: submodule
+actors:
+  - id: owner.alex
+    owns: workspace.backend
+  - id: owner.sam
+    owns: workspace.frontend
+required_assertions:
+  - topology.root-and-two-submodules
+  - contract.business-and-failure-approved
+  - conflict.semantic-path-disjoint
+  - claim.race-single-owner
+  - worktree.conventional-isolation
+  - evidence.backend-provider
+  - evidence.frontend-consumer
+  - integration.provider-before-consumer
+  - submodule.pointers-exact
+  - clone.context-recovered
+  - clone.next-action-recovered
+  - clone.local-only-unrecoverable
+  - clone.pointer-drift-detected
+  - evidence.wrong-workspace-blocked
+  - release.exact-candidate
+  - release.tamper-blocked
+  - self.product-adopt-and-live-work

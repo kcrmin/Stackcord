@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "scenario": "scenario.multi-repository-continuity",
+  "required_assertions": [
+    "topology.root-and-two-submodules",
+    "contract.business-and-failure-approved",
+    "conflict.semantic-path-disjoint",
+    "claim.race-single-owner",
+    "worktree.conventional-isolation",
+    "evidence.backend-provider",
+    "evidence.frontend-consumer",
+    "integration.provider-before-consumer",
+    "submodule.pointers-exact",
+    "clone.context-recovered",
+    "clone.next-action-recovered",
+    "clone.local-only-unrecoverable",
+    "clone.pointer-drift-detected",
+    "evidence.wrong-workspace-blocked",
+    "release.exact-candidate",
+    "release.tamper-blocked",
+    "self.product-adopt-and-live-work"
+  ],
+  "required_status": "passed"
+}

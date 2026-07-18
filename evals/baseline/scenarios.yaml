@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "baseline": "manual-git-and-static-docs",
+  "scenarios": [
+    {
+      "id": "clean-clone-next-action",
+      "harness_assertions": ["clone.context-recovered", "clone.next-action-recovered"],
+      "manual_deterministic": false,
+      "manual_note": "Git restores commits but does not combine product meaning, live work, and one safe next action."
+    },
+    {
+      "id": "answered-product-context-recovery",
+      "harness_assertions": ["contract.business-and-failure-approved", "clone.context-recovered"],
+      "manual_deterministic": false,
+      "manual_note": "Static notes can be read manually but provide no fingerprinted stale or unknown audit."
+    },
+    {
+      "id": "false-live-claim-prevention",
+      "harness_assertions": ["claim.race-single-owner"],
+      "manual_deterministic": false,
+      "manual_note": "Branches alone do not provide an atomic service-scope ownership reservation."
+    },
+    {
+      "id": "path-disjoint-semantic-conflict",
+      "harness_assertions": ["conflict.semantic-path-disjoint"],
+      "manual_deterministic": false,
+      "manual_note": "Native merge checks do not compare business policies, contracts, UI flows, or DB meaning across different paths."
+    },
+    {
+      "id": "wrong-workspace-evidence",
+      "harness_assertions": ["evidence.wrong-workspace-blocked"],
+      "manual_deterministic": false,
+      "manual_note": "Git does not know which service workspace is allowed to satisfy a work definition."
+    },
+    {
+      "id": "submodule-pointer-drift",
+      "harness_assertions": ["clone.pointer-drift-detected"],
+      "manual_deterministic": true,
+      "manual_note": "Native Git can expose a changed gitlink, although it does not explain the service integration impact."
+    },
+    {
+      "id": "local-only-recoverability",
+      "harness_assertions": ["clone.local-only-unrecoverable"],
+      "manual_deterministic": true,
+      "manual_note": "A careful remote-ref containment check can determine whether a commit is published."
+    },
+    {
+      "id": "exact-release-candidate",
+      "harness_assertions": ["release.exact-candidate", "release.tamper-blocked"],
+      "manual_deterministic": false,
+      "manual_note": "Git and prose alone do not bind technical evidence and user validation to one candidate digest."
+    }
+  ]
+}
