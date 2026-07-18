@@ -12,16 +12,14 @@ Core release is the default. SBOM, provenance, signature, immutable publication,
 
 ## Observed local evidence
 
-The latest local release audit must be refreshed after any product change. The 2026-07-18 audit observed:
+The latest local release audit must be refreshed after any product change. The 2026-07-18 editable-UI audit observed:
 
-- actual Codex behavior: **9/9** isolated scenarios passed, including initial checkpoint before A/B/C discovery, clean-clone recovery, context loss, path-disjoint frontend/backend conflict, unavailable Jira, a small private edit, local-only work, mismatched RC validation, and current official-tool comparison without unapproved installation;
-- multi-repository dogfood: **23/23** assertions and **9/9** deterministic scenarios passed with actual root, frontend, backend, submodules, bare remotes, concurrent owners, Git reservation, red/green TDD evidence, pointer integration, clean clone, and exact RC checks;
-- manual Git plus static docs baseline: **2/9** scenarios had a deterministic native check; this is coverage comparison, not a productivity or speed claim;
-- Go unit/integration/native-binary E2E, race, vet, 15-second context fuzzing, and `govulncheck`: passed locally;
-- Plugin, Hook, all five packaged Skills, generated repo-local Skill, Markdown fallback, English/Korean parity, secret/security, strict-profile, workflow, release-config, and package validators: passed locally;
-- CGO-free macOS amd64/arm64 and Windows amd64/arm64 builds: passed locally;
-- clean temporary-clone GoReleaser check and snapshot: passed; the snapshot rendered four native binaries, four Plugin packages, and one checksum manifest;
-- source and rendered Plugin packages were both added to a temporary marketplace and installed in a temporary `CODEX_HOME`: passed.
+- **179** Go unit, integration, and native-binary E2E test functions passed with cache disabled; the complete suite and complete race suite both exited successfully;
+- the representative editable-UI E2E created an orchestration repository, UI submodule, and frontend workspace; promoted and committed an external mockup; bound its exact baseline; then proved that a later UI revision makes prior frontend work stale;
+- multi-repository dogfood passed **23/23** assertions using actual root/frontend/backend repositories, submodules, bare remotes, Git reservations, TDD evidence, pointer integration, clean-clone recovery, contract conflicts, provider reconciliation, and exact RC checks (**54** CLI calls and **124** Git calls);
+- **52** Python validator tests passed, followed by Plugin, generated repo-local Skill, Markdown fallback, Hook, English/Korean documentation (**12** pairs), agent-evaluation schema, and high-confidence secret/security validation;
+- CGO-free macOS amd64/arm64 and Windows amd64/arm64 builds passed. The resulting SHA-256 values were `8a41c35841ef997f59407442d7492152b407c40f1733286e771987bb83726518`, `559e289c2d0f7978e718722169632206c7e03e5386fd5e6f582a01adf4098fa8`, `58ebe5351dadcbd511cc802bc5fa1b6e72f296d4171445dc767712c46a39c38f`, and `bd52997acca6a9b78ba4ee4b868c9cdff9db35438aadabc69f139e2bbac9601e` respectively;
+- the pre-existing isolated Codex behavior audit remains **9/9**, but model-behavior drills were not rerun for this UI-only change. Deterministic Skill routing and Plugin contracts were rerun instead; this audit does not present that as a fresh model-behavior result.
 
 Local transcripts and generated diagnostic state stay under `.harness/local/` and are ignored. The checked-in scenario, rubric, dogfood runner, baseline, and test code make the evidence reproducible without publishing private transcripts.
 
@@ -31,7 +29,7 @@ Local transcripts and generated diagnostic state stay under `.harness/local/` an
 |---:|---|---|
 | 1 | Discovery, repeated checkpoint, neutral init | `TestCheckpointRevisesOneDiscoveryWithoutRawConversation`, `TestDiscoveryCheckpointExampleIsAValidStartingSnapshot`, focused E2E, and the real `new-project-discovery` drill. The initial request is persisted before the next question; framework selection remains open. |
 | 2 | Non-destructive adoption | `TestAdoptExistingProjectPreservesCustomFiles`, tooling-conflict and legacy-upgrade tests, native-binary E2E. Existing README, AGENTS content, ignore rules, and unrelated files are preserved. |
-| 3 | Root plus frontend/backend repositories | Dogfood creates three actual repositories, bare remotes, recursive submodules, bridges, and exact gitlinks. |
+| 3 | Root plus UI/frontend/backend repositories | The editable-UI E2E creates and binds an actual UI submodule and frontend consumer. Dogfood creates actual root, frontend, and backend repositories, bare remotes, recursive submodules, bridges, and exact gitlinks. |
 | 4 | Clone, new session, compaction, other client, Plugin-less recovery | Clean-clone, SessionStart/PostCompact Hook, context-audit, generated Skill, and Markdown fallback are tested. Codex is the only Plugin/Hook surface certified; another AI client receives Markdown fallback only and is not claimed as natively verified. |
 | 5 | Dirty/ahead/behind/diverged/detached/missing/local-only/pointer safety | `gitx`, continuity, sync, worktree, focused E2E, dogfood, and real local-only drill cover the states and block unsafe mutation. |
 | 6 | Work definition and lifecycle | Definition, provider mapping, transition, evidence, scope-fingerprint, parent/child completion, reservation race, and handoff tests plus dogfood cover the lifecycle. Handoff is used for ownership transfer; ordinary session recovery is not mislabeled as handoff. |
@@ -39,7 +37,7 @@ Local transcripts and generated diagnostic state stay under `.harness/local/` an
 | 8 | Cross-repository semantic collision | Policy, scenario, contract, DB entity, migration, UI flow, dependency, workspace, and root-pointer overlap are tested. Dogfood and the real frontend/backend drill catch a collision with disjoint file paths. |
 | 9 | Contract-first provider/consumer integration | Contract registry and impact tests plus dogfood prove approved shared behavior, backend provider red/green evidence, frontend consumer/mock red/green evidence, merge ordering, and exact root-pointer integration. |
 | 10 | DBML and dbdiagram | Git DBML remains canonical. Semantic DBML diff, isolated official CLI plan, stale proposal rejection, impact evidence, reconciliation, symlink defense, and migration scope/order conflicts are tested. |
-| 11 | External UI | Reference, seed, and canonical authority are represented; quarantine, malicious archive, duplicate path, symlink, authority escalation, stale mapping, and executable-scope integration are tested. No design provider is silently selected. |
+| 11 | External UI and editable baseline | Reference-only, selected-file, and whole-source promotion are supported. Accepted files become ordinary editable workspace files; overwrite, traversal, symlink, stale quarantine, authority escalation, and source-fingerprint mismatch are rejected. A clean published UI commit becomes the exact baseline consumed by frontend work, and later baseline changes stale that work. No design provider is silently selected. |
 | 12 | Commit-bound evidence | Test, review, integration, migration, rollback, artifact, and user evidence models bind to workspace commits and current meaning; dirty or changed commits stale the evidence. |
 | 13 | Exact core and strict RC | Core needs no supply-chain evidence. Strict requires it. Candidate tests and focused E2E reject pointer, contract, data, evidence, manifest, user-validation, and strict-evidence changes. |
 | 14 | Cross-platform and security | Local Go tests/race/vet/fuzz/vulnerability/secret scans and four-target builds pass. Native hosted macOS/Windows CI and CodeQL must still be observed after push. |

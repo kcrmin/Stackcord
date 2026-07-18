@@ -20,8 +20,8 @@ func render(request InitRequest) ([]operation.FileChange, error) {
 		name = request.ProjectID
 	}
 	files := map[string]string{
-		"README.md":      "# " + name + "\n\n" + managedSection("## Project harness\n\nAsk your AI assistant what to do next. It will read `.harness/entry.md`, inspect actual Git state, and continue from canonical specs and contracts."),
-		"AGENTS.md":      "# Agent entry\n\n" + managedSection("Before changing the project, read `.harness/entry.md` and refresh actual context. Product meaning lives in `specs/`; obligations live in `contracts/`; coordination state lives in `.harness/`."),
+		"README.md":      "# " + name + "\n\n" + managedSection("## Project harness\n\nAsk your AI assistant what to do next. It will read `.harness/entry.md`, inspect actual Git state, and continue from canonical specs and contracts.\n\nIf the project uses an independent editable UI baseline, it lives in a declared `ui/` directory or submodule. External mockups can be inspected, brought into that workspace, edited normally, and committed before frontend implementation is bound to the exact baseline."),
+		"AGENTS.md":      "# Agent entry\n\n" + managedSection("Before changing the project, read `.harness/entry.md` and refresh actual context. Product meaning lives in `specs/`; obligations live in `contracts/`; coordination state lives in `.harness/`.\n\nWhen `workspace.ui` is declared, recover its exact baseline and root pointer before frontend work. Optional UI tools create inputs; committed service specifications, contracts, and the UI baseline remain authoritative."),
 		".editorconfig":  "root = true\n\n[*]\ncharset = utf-8\nend_of_line = lf\ninsert_final_newline = true\ntrim_trailing_whitespace = true\n",
 		".gitattributes": "* text=auto eol=lf\n*.png binary\n*.jpg binary\n*.jpeg binary\n*.gif binary\n*.pdf binary\n",
 		".gitignore":     ".harness/local/\n.harness-drafts/\n.env\n.env.*\n!.env.example\n*.log\n",
@@ -90,17 +90,19 @@ Treat the user's natural-language request as the entry point; do not make them m
 When discovering or redefining the product, treat the initial product request as the first material answer. Infer discoverable facts, checkpoint normalized meaning rather than raw dialogue, and verify a successful apply before asking the next material question. When choices help, use 2–3 exclusive options labeled A/B/C, put the recommended option first and mark it recommended, and accept either a letter or free-form input. Keep work management proportional: a small private local edit does not need a ticket or Git work reservation. For shared, long-lived, cross-workspace, or semantically risky work, the selected task source owns live status and the Git work reservation owns exclusive semantic scope. Re-read both, check path and meaning overlap, and set ownership and merge order before parallel work. Use conventional Git names without AI markers.
 
 Use TDD for behavior, bugs, contracts, migrations, and UI interactions; exploratory spikes may stay unmerged until evidence exists. Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, run a context audit before mutation. Use core release normally and enable strict release only for an explicit organizational need. If the CLI is unavailable, follow ` + "`references/fallback.md`" + ` and state reduced verification.
+
+When an editable UI workspace exists, inspect external sources before bringing accepted whole or selected files into it. Treat them as ordinary editable files, bind approved UI to an exact published commit, and ensure frontend work names that baseline fingerprint. UI creation tools are optional inputs, not canonical service state.
 `
 
 const fallbackReference = `# Plugin-less and CLI-less fallback
 
 1. Treat the natural-language request as the entry point. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, the manifest, workspaces, profile, and selected task source; do not ask the user to operate internal files.
 2. From a child repository, locate the actual orchestration root. Inspect branch, dirty state, upstream, ahead/behind/diverged state, worktrees, workspace commits, remotes, and exact submodule pointers without mutation.
-3. Read only related approved ` + "`specs/`" + `; product, business, behavior, interface, and data ` + "`contracts/`" + `; current work definitions; and test evidence.
+3. Read only related approved ` + "`specs/`" + `; product, business, behavior, interface, and data ` + "`contracts/`" + `; external UI authority and exact UI baseline; current work definitions; and test evidence.
 4. If an external task source is selected, refresh it with a real authenticated connector or CLI. Treat cached status as unknown. Recover a Git work reservation from the coordination branch, but do not present it as fresh external status.
 5. Separate confirmed facts, stale derivations, unknown external state, blockers, active ownership, and local-only work. State one safe next action. Run a context audit when settled questions repeat or sources disagree.
 6. A small private local edit needs no ticket or reservation. Before shared or risky work, define the service meaning, behavioral boundary, first failing test, semantic scope, owner, dependencies, and merge order; then synchronize the selected task source and Git work reservation.
-7. Require test and integration evidence before merge. Bind technical and user validation to one release candidate. Keep strict release optional.
+7. If UI is independent, verify its clean commit, remote availability, source fingerprints, root pointer, and the baseline fingerprint used by frontend work. Require test and integration evidence before merge. Bind technical and user validation to one release candidate. Keep strict release optional.
 
 Without the CLI, fingerprint, divergence, atomic remote reservation, semantic-conflict, archive-safety, and exact release-identity verification has reduced coverage. Do not report those checks as passed.
 `
