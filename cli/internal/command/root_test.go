@@ -189,25 +189,26 @@ func TestWorkStartCreatesClaimReadableByNextConflictCheck(t *testing.T) {
 	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
 	init.SetArgs([]string{"project", "init", "--root", root, "--id", "project.claim-test", "--locale", "en", "--apply", "--json"})
 	require.NoError(t, init.Execute())
+	defineCommandWork(t, root, "work.account-recovery", "services/identity/**")
 
 	var startOutput bytes.Buffer
 	start := command.New("1.0.0", &startOutput, &bytes.Buffer{})
-	start.SetArgs([]string{"work", "start", "--root", root, "--work-id", "work.GH-1", "--claim-id", "claim.GH-1", "--owner", "alex", "--branch", "feature/account-recovery", "--path", "services/identity/**", "--apply", "--json"})
+	start.SetArgs([]string{"work", "start", "--root", root, "--work-id", "work.account-recovery", "--claim-id", "claim.account-recovery", "--owner", "alex", "--branch", "feature/account-recovery", "--path", "services/identity/**", "--apply", "--json"})
 	require.NoError(t, start.Execute())
 	require.Equal(t, 0, command.ExitCode(start), startOutput.String())
-	_, err := os.ReadFile(filepath.Join(root, ".harness", "work", "claims", "claim.GH-1.yaml"))
+	_, err := os.ReadFile(filepath.Join(root, ".harness", "work", "claims", "claim.account-recovery.yaml"))
 	require.NoError(t, err)
 
 	candidatePath := filepath.Join(root, "candidate.yaml")
-	require.NoError(t, os.WriteFile(candidatePath, []byte("repository: root\npaths: [services/identity/handler/**]\npolicy_ids: []\nscenario_ids: []\ncontract_ids: []\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nstable_ids: []\nroot_pointer: false\nnow: 2026-07-16T00:00:00Z\n"), 0o600))
+	require.NoError(t, os.WriteFile(candidatePath, []byte("repository: repository.root\npaths: [services/identity/handler/**]\npolicy_ids: []\nscenario_ids: []\ncontract_ids: []\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nstable_ids: []\nroot_pointer: false\nnow: 2026-07-16T00:00:00Z\n"), 0o600))
 	var output bytes.Buffer
 	conflict := command.New("1.0.0", &output, &bytes.Buffer{})
 	conflict.SetArgs([]string{"work", "conflict", "--root", root, "--candidate", candidatePath, "--json"})
 
 	require.NoError(t, conflict.Execute())
-	require.Equal(t, 0, command.ExitCode(conflict), "coordinate is a successful warning that requires an agreed merge order")
-	require.Contains(t, output.String(), `"status":"warning"`)
-	require.Contains(t, output.String(), "conflict.path-overlap")
+	require.Equal(t, 6, command.ExitCode(conflict), "a local-only claim cannot prove team ownership")
+	require.Contains(t, output.String(), `"status":"unknown"`)
+	require.Contains(t, output.String(), "conflict.claim-unobservable")
 }
 
 func TestWorkNextUsesUnavailableExitWhenNothingIsReady(t *testing.T) {

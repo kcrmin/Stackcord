@@ -32,7 +32,7 @@ type Candidate struct {
 	MigrationSlots   []string  `json:"migration_slots" yaml:"migration_slots"`
 	UIFlows          []string  `json:"ui_flows" yaml:"ui_flows"`
 	DependencyMajors []string  `json:"dependency_majors" yaml:"dependency_majors"`
-	StableIDs        []string  `json:"stable_ids" yaml:"stable_ids"`
+	StableIDs        []string  `json:"stable_ids,omitempty" yaml:"stable_ids,omitempty"`
 	RootPointer      bool      `json:"root_pointer" yaml:"root_pointer"`
 	Now              time.Time `json:"now" yaml:"now"`
 }
@@ -54,6 +54,7 @@ type Claim struct {
 	MigrationSlots   []string  `json:"migration_slots" yaml:"migration_slots"`
 	UIFlows          []string  `json:"ui_flows" yaml:"ui_flows"`
 	DependencyMajors []string  `json:"dependency_majors" yaml:"dependency_majors"`
+	StableIDs        []string  `json:"stable_ids,omitempty" yaml:"stable_ids,omitempty"`
 	RootPointer      bool      `json:"root_pointer" yaml:"root_pointer"`
 	StartsAt         time.Time `json:"starts_at" yaml:"starts_at"`
 	ExpiresAt        time.Time `json:"expires_at" yaml:"expires_at"`
@@ -109,6 +110,9 @@ func CheckConflict(candidate Candidate, claims []Claim, snapshot contextpkg.Snap
 		}
 		if intersects(candidate.DependencyMajors, claim.DependencyMajors) {
 			promote(&report, ConflictCoordinate, reason("conflict.dependency-major", "The same dependency major transition is in progress.", claim))
+		}
+		if intersects(candidate.StableIDs, claim.StableIDs) {
+			promote(&report, ConflictBlock, reason("conflict.stable-id", "The same stable product meaning is being changed.", claim))
 		}
 		if candidate.RootPointer && claim.RootPointer {
 			promote(&report, ConflictCoordinate, reason("conflict.root-pointer", "Root pointer integration order overlaps.", claim))

@@ -12,12 +12,13 @@ import (
 
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/project"
+	"fullstack-orchestrator/cli/internal/provider"
 	"fullstack-orchestrator/cli/internal/schema"
 	workpkg "fullstack-orchestrator/cli/internal/work"
+	"fullstack-orchestrator/cli/internal/workspace"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
@@ -133,7 +134,20 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 	var lease time.Duration
 	var apply bool
 	command := &cobra.Command{Use: "start", Short: "Create a time-bounded semantic claim and branch checkpoint", RunE: func(cmd *cobra.Command, _ []string) error {
-		request.Candidate = policy.Candidate{Repository: "root", Paths: paths, PolicyIDs: policies, ScenarioIDs: scenarios, ContractIDs: contracts, DBEntities: entities, MigrationSlots: migrations, UIFlows: flows, DependencyMajors: dependencies, StableIDs: stableIDs, Now: time.Now().UTC()}
+		located, err := workspace.FindRoot(cmd.Context(), request.Root)
+		if err != nil {
+			return err
+		}
+		request.Root = located.Path
+		now := time.Now().UTC()
+		request.Candidate = policy.Candidate{Repository: "repository.root", Paths: paths, PolicyIDs: policies, ScenarioIDs: scenarios, ContractIDs: contracts, DBEntities: entities, MigrationSlots: migrations, UIFlows: flows, DependencyMajors: dependencies, StableIDs: stableIDs, Now: now}
+		definition, definitionFound, err := loadStartDefinition(request.Root, request.WorkID)
+		if err != nil {
+			return err
+		}
+		if definitionFound {
+			request.Candidate = candidateFromDefinition(definition, now)
+		}
 		claims, err := loadClaims(cmd.Context(), request.Root)
 		if err != nil {
 			return err
@@ -142,9 +156,29 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 		request.Snapshot, _ = contextpkg.Refresh(cmd.Context(), request.Root, contextpkg.ReadOnly)
 		plan := project.StartWork(request)
 		if apply && len(plan.Blockers) == 0 {
-			result := operation.Apply(cmd.Context(), plan)
-			result.ToolVersion, result.Command = version, "work.start"
-			return writeResult(cmd, *jsonOutput, result)
+			config, configErr := loadTaskProvider(request.Root)
+			if configErr != nil {
+				return configErr
+			}
+			if config.LiveStatusSource != "git-local" {
+				result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-provider-read-only", Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: "The selected external provider must claim and re-read this work before local implementation starts.", Blockers: []domain.Item{{Code: "provider.connector-required", Message: "Use the selected provider connector to claim this work, then reconcile its live revision."}}}
+				return writeResult(cmd, *jsonOutput, result)
+			}
+			if !definitionFound {
+				_, remoteErr := provider.NewGitLocalStore(request.Root, config.Remote, config.CoordinationBranch).Read(cmd.Context())
+				if remoteErr == nil {
+					result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-definition-read-only", Status: domain.StatusBlocked, ExitCode: domain.ExitBlocked, Summary: "Collaborative work needs an executable canonical definition before it can be claimed.", Blockers: []domain.Item{{Code: "work.definition-required", Message: "Define outcome, acceptance, semantic scope, merge order, first failing test, and required evidence before claiming this work."}}}
+					return writeResult(cmd, *jsonOutput, result)
+				}
+				if !errors.Is(remoteErr, provider.ErrNoRemote) {
+					return writeResult(cmd, *jsonOutput, gitLocalFailureResult(version, "provider.live-read-failed", "Live Git-local coordination could not be read safely.", remoteErr))
+				}
+				result := operation.Apply(cmd.Context(), plan)
+				result.ToolVersion, result.Command = version, "work.start"
+				result.Warnings = append(result.Warnings, domain.Item{Code: "provider.single-user-local", Message: "No executable work definition and remote coordination source were confirmed; this is a local advisory claim only."})
+				return writeResult(cmd, *jsonOutput, result)
+			}
+			return applyGitLocalStart(cmd, *jsonOutput, version, request, definition, plan, config)
 		}
 		return writeResult(cmd, *jsonOutput, planResult(version, "work.start.plan", plan, "Work claim and branch checkpoint plan is ready."))
 	}}
@@ -296,11 +330,10 @@ func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	claims := []policy.Claim{}
+	localClaims := []policy.Claim{}
 	if providerConfig.LiveStatusSource != "git-local" {
-		claims = append(claims, policy.Claim{ID: "claim.external-provider-unobservable", Observable: false})
+		localClaims = append(localClaims, policy.Claim{ID: "claim.external-provider-unobservable", Observable: false})
 	}
-	byID := map[string]int{}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
@@ -312,48 +345,39 @@ func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {
 		if issues := schema.Validate("claim", claim); len(issues) > 0 {
 			return nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
 		}
-		claim.Observable = true
-		byID[claim.ID] = len(claims)
-		claims = append(claims, claim)
+		claim.Observable = false
+		localClaims = append(localClaims, claim)
 	}
-	if _, err := os.Lstat(filepath.Join(root, ".git")); err == nil {
-		remoteFiles, readErr := gitx.ReadRemoteFiles(ctx, root, ".harness/work/claims", ".yaml")
-		if readErr != nil {
-			return nil, readErr
-		}
-		for _, remoteFile := range remoteFiles {
-			claim, decodeErr := schema.DecodeYAML[policy.Claim](remoteFile.Data)
-			if decodeErr != nil {
-				return nil, fmt.Errorf("decode %s:%s: %w", remoteFile.Ref, remoteFile.Path, decodeErr)
-			}
-			if issues := schema.Validate("claim", claim); len(issues) > 0 {
-				return nil, fmt.Errorf("validate %s:%s: %s", remoteFile.Ref, remoteFile.Path, issues[0].Message)
-			}
-			claim.Observable = true
-			if index, exists := byID[claim.ID]; exists {
-				if !sameClaim(claims[index], claim) {
-					claims[index].Observable = false
-				}
-				continue
-			}
-			byID[claim.ID] = len(claims)
-			claims = append(claims, claim)
-		}
+	if providerConfig.LiveStatusSource != "git-local" {
+		return localClaims, nil
+	}
+	observed, readErr := provider.NewGitLocalStore(root, providerConfig.Remote, providerConfig.CoordinationBranch).Read(ctx)
+	if errors.Is(readErr, provider.ErrNoRemote) {
+		return localClaims, nil
+	}
+	if readErr != nil {
+		return nil, readErr
+	}
+	claims := make([]policy.Claim, 0, len(observed.Claims))
+	for _, claim := range observed.Claims {
+		claims = append(claims, policyClaimFromGitLocal(claim))
 	}
 	return claims, nil
 }
 
 type taskProviderConfig struct {
-	SchemaVersion    int    `yaml:"schema_version"`
-	Provider         string `yaml:"provider"`
-	LiveStatusSource string `yaml:"live_status_source"`
+	SchemaVersion      int    `yaml:"schema_version"`
+	Provider           string `yaml:"provider"`
+	LiveStatusSource   string `yaml:"live_status_source"`
+	Remote             string `yaml:"remote,omitempty"`
+	CoordinationBranch string `yaml:"coordination_branch,omitempty"`
 }
 
 func loadTaskProvider(root string) (taskProviderConfig, error) {
 	path := filepath.Join(root, ".harness", "work", "provider.yaml")
 	config, err := schema.LoadYAML[taskProviderConfig](path)
 	if errors.Is(err, os.ErrNotExist) {
-		return taskProviderConfig{SchemaVersion: 1, Provider: "git-local", LiveStatusSource: "git-local"}, nil
+		return taskProviderConfig{SchemaVersion: 1, Provider: "git-local", LiveStatusSource: "git-local", Remote: "origin", CoordinationBranch: "coordination"}, nil
 	}
 	if err != nil {
 		return taskProviderConfig{}, err
@@ -361,14 +385,13 @@ func loadTaskProvider(root string) (taskProviderConfig, error) {
 	if config.SchemaVersion != 1 || config.Provider == "" || config.LiveStatusSource == "" {
 		return taskProviderConfig{}, fmt.Errorf("task provider configuration is incomplete")
 	}
+	if config.Remote == "" {
+		config.Remote = "origin"
+	}
+	if config.CoordinationBranch == "" {
+		config.CoordinationBranch = "coordination"
+	}
 	return config, nil
-}
-
-func sameClaim(left, right policy.Claim) bool {
-	left.Observable, right.Observable = true, true
-	leftData, leftErr := yaml.Marshal(left)
-	rightData, rightErr := yaml.Marshal(right)
-	return leftErr == nil && rightErr == nil && string(leftData) == string(rightData)
 }
 
 func loadYAML[T any](path string) (T, error) {

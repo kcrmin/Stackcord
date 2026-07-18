@@ -35,7 +35,7 @@ type FinishWorkRequest struct {
 
 // StartWork creates a reviewable claim and branch checkpoint plan after conflict preflight.
 func StartWork(request StartWorkRequest) operation.Plan {
-	plan := operation.Plan{ID: "start-" + request.WorkID, Root: request.Root}
+	plan := operation.Plan{ID: "start-" + request.ClaimID, Root: request.Root}
 	if request.Root == "" || !ValidWorkID(request.WorkID) || !validClaimID(request.ClaimID) || request.Owner == "" || request.Candidate.Repository == "" || !request.ExpiresAt.After(request.Candidate.Now) || gitx.ValidateBranch(request.Branch) != nil {
 		plan.Blockers = []domain.Item{{Code: "work.request-invalid", Message: "Work and claim IDs, owner, repository, conventional branch, and a future lease are required."}}
 		return plan
@@ -54,7 +54,7 @@ func StartWork(request StartWorkRequest) operation.Plan {
 		Branch: request.Branch, Repository: request.Candidate.Repository, Workspace: request.Candidate.Workspace,
 		Paths: request.Candidate.Paths, PolicyIDs: request.Candidate.PolicyIDs, ScenarioIDs: request.Candidate.ScenarioIDs,
 		ContractIDs: request.Candidate.ContractIDs, DBEntities: request.Candidate.DBEntities, MigrationSlots: request.Candidate.MigrationSlots,
-		UIFlows: request.Candidate.UIFlows, DependencyMajors: request.Candidate.DependencyMajors, RootPointer: request.Candidate.RootPointer,
+		UIFlows: request.Candidate.UIFlows, DependencyMajors: request.Candidate.DependencyMajors, StableIDs: request.Candidate.StableIDs, RootPointer: request.Candidate.RootPointer,
 		StartsAt: request.Candidate.Now.UTC(), ExpiresAt: request.ExpiresAt.UTC(),
 	}
 	claimData, _ := yaml.Marshal(claim)
@@ -110,6 +110,7 @@ type claimDocument struct {
 	MigrationSlots   []string  `yaml:"migration_slots"`
 	UIFlows          []string  `yaml:"ui_flows"`
 	DependencyMajors []string  `yaml:"dependency_majors"`
+	StableIDs        []string  `yaml:"stable_ids"`
 	RootPointer      bool      `yaml:"root_pointer"`
 	StartsAt         time.Time `yaml:"starts_at"`
 	ExpiresAt        time.Time `yaml:"expires_at"`

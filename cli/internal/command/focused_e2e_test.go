@@ -113,11 +113,11 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	started := runFocusedCommand(t, "work", "start", "--root", root, "--work-id", "work.backend-recovery", "--claim-id", "claim.backend-recovery", "--owner", "alex", "--branch", "feature/backend-recovery", "--contract", "contract.identity.recovery.v1", "--apply", "--json")
 	require.Contains(t, started, `"status":"passed"`)
 	candidate := filepath.Join(parent, "candidate.yaml")
-	candidateYAML := "repository: root\npaths: []\npolicy_ids: []\nscenario_ids: []\ncontract_ids: [contract.identity.recovery.v1]\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nstable_ids: []\nroot_pointer: false\n"
+	candidateYAML := "repository: repository.root\npaths: []\npolicy_ids: []\nscenario_ids: []\ncontract_ids: [contract.identity.recovery.v1]\ndb_entities: []\nmigration_slots: []\nui_flows: []\ndependency_majors: []\nstable_ids: []\nroot_pointer: false\n"
 	require.NoError(t, os.WriteFile(candidate, []byte(candidateYAML), 0o600))
 	conflict := runFocusedCommand(t, "work", "conflict", "--root", root, "--candidate", candidate, "--json")
-	require.Contains(t, conflict, `"conflict.level","message":"block"`)
-	require.Contains(t, conflict, "conflict.contract")
+	require.Contains(t, conflict, `"conflict.level","message":"unknown"`)
+	require.Contains(t, conflict, "conflict.claim-unobservable")
 }
 
 func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *testing.T) {

@@ -191,9 +191,11 @@ func findSubmodule(submodules []gitx.Submodule, path string) (gitx.Submodule, bo
 }
 
 type providerConfig struct {
-	SchemaVersion    int    `yaml:"schema_version"`
-	Provider         string `yaml:"provider"`
-	LiveStatusSource string `yaml:"live_status_source"`
+	SchemaVersion      int    `yaml:"schema_version"`
+	Provider           string `yaml:"provider"`
+	LiveStatusSource   string `yaml:"live_status_source"`
+	Remote             string `yaml:"remote,omitempty"`
+	CoordinationBranch string `yaml:"coordination_branch,omitempty"`
 }
 
 func collectProvider(root string) (ProviderView, error) {

@@ -574,7 +574,7 @@ git commit -m "feat(work): reconcile live task providers"
 - Produces `provider.GitLocalStore` with `Read(ctx) (SnapshotSet, error)` and `CompareAndSwap(ctx, expected string, next SnapshotSet) (string, error)`.
 - Uses remote branch `coordination` by default and an isolated temporary index/worktree; it never checks out the coordination branch in the user's worktree.
 
-- [ ] **Step 1: Write an E2E race test with a bare remote and two clones.**
+- [x] **Step 1: Write an E2E race test with a bare remote and two clones.**
 
 ```go
 func TestGitLocalCompareAndSwapAllowsOneConcurrentClaim(t *testing.T) {
@@ -594,25 +594,25 @@ func TestGitLocalCompareAndSwapAllowsOneConcurrentClaim(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/provider ./internal/command -run GitLocal -v`
 
 Expected: FAIL because no CAS store exists.
 
-- [ ] **Step 3: Implement isolated coordination commits.**
+- [x] **Step 3: Implement isolated coordination commits.**
 
 Fetch only the configured coordination ref. Read its tree without checkout. Create the next tree in an isolated temporary repository or index, commit normalized live state, then push with an explicit lease against the expected remote object ID. Re-fetch and compare the final content and revision.
 
-- [ ] **Step 4: Make failure classifications exact.**
+- [x] **Step 4: Make failure classifications exact.**
 
 Return typed errors for no remote, authentication unavailable, expected revision mismatch, non-fast coordination history, malformed state, push rejected, and postcondition mismatch. No remote produces single-user mode, not a collaborative claim.
 
-- [ ] **Step 5: Replace branch-scanning claims.**
+- [x] **Step 5: Replace branch-scanning claims.**
 
 Remove `ReadRemoteFiles` from claim truth after the new store tests pass. Feature branches may contain work evidence, but cannot own live coordination status.
 
-- [ ] **Step 6: Run race and E2E tests, then commit.**
+- [x] **Step 6: Run race and E2E tests, then commit.**
 
 ```sh
 cd cli && go test -race ./internal/provider ./internal/gitx ./internal/command -run 'GitLocal|Claim' -v

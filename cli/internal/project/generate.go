@@ -32,7 +32,7 @@ func render(request InitRequest) ([]operation.FileChange, error) {
 		".harness/profile.yaml":                                     projectProfile,
 		".harness/sources.yaml":                                     "schema_version: 1\nsources:\n  - id: source.git.local\n    kind: git\n    authority: actual_state\n    access: read\n",
 		".harness/workspaces.yaml":                                  fmt.Sprintf("schema_version: 1\nproject_id: %s\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n", request.ProjectID),
-		".harness/work/provider.yaml":                               "schema_version: 1\nprovider: git-local\nlive_status_source: git-local\n",
+		".harness/work/provider.yaml":                               "schema_version: 1\nprovider: git-local\nlive_status_source: git-local\nremote: origin\ncoordination_branch: coordination\n",
 		"specs/index.md":                                            "# Product specifications\n\nApproved intent, roles, capabilities, journeys, policies, scenarios, quality, architecture, and UI baselines live here.\n",
 		"contracts/registry.yaml":                                   "schema_version: 1\ncontracts: []\n",
 		"docs/index.md":                                             "# Project documentation\n\nGuides, runbooks, troubleshooting, and generated summaries live here.\n",

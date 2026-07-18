@@ -26,6 +26,7 @@ func TestConflictMatrix(t *testing.T) {
 		{"same migration slot", policy.Candidate{Repository: "root", MigrationSlots: []string{"identity:20260716-01"}}, with(base, func(c *policy.Claim) { c.MigrationSlots = []string{"identity:20260716-01"} }), policy.ConflictBlock},
 		{"same UI flow", policy.Candidate{Repository: "root", UIFlows: []string{"flow.account.recovery"}}, with(base, func(c *policy.Claim) { c.UIFlows = []string{"flow.account.recovery"} }), policy.ConflictCoordinate},
 		{"dependency major", policy.Candidate{Repository: "root", DependencyMajors: []string{"shared.auth@3"}}, with(base, func(c *policy.Claim) { c.DependencyMajors = []string{"shared.auth@3"} }), policy.ConflictCoordinate},
+		{"same stable product meaning", policy.Candidate{Repository: "root", StableIDs: []string{"feature.account-recovery"}}, with(base, func(c *policy.Claim) { c.StableIDs = []string{"feature.account-recovery"} }), policy.ConflictBlock},
 		{"root pointer order", policy.Candidate{Repository: "root", RootPointer: true}, with(base, func(c *policy.Claim) { c.RootPointer = true }), policy.ConflictCoordinate},
 		{"expired claim", policy.Candidate{Repository: "root", Paths: []string{"same/**"}}, with(base, func(c *policy.Claim) { c.Paths = []string{"same/**"}; c.ExpiresAt = now.Add(-time.Minute) }), policy.ConflictClear},
 		{"unobservable provider", policy.Candidate{Repository: "root", Paths: []string{"same/**"}}, with(base, func(c *policy.Claim) { c.Paths = []string{"same/**"}; c.Observable = false }), policy.ConflictUnknown},

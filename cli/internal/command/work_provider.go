@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,8 @@ import (
 
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/operation"
+	"fullstack-orchestrator/cli/internal/policy"
+	"fullstack-orchestrator/cli/internal/project"
 	"fullstack-orchestrator/cli/internal/provider"
 	"fullstack-orchestrator/cli/internal/work"
 	"fullstack-orchestrator/cli/internal/workspace"
@@ -163,4 +166,114 @@ func providerMappingPlan(root, workID string, data []byte) (operation.Plan, erro
 	var err error
 	plan.InitialStateFingerprint, err = operation.StateFingerprint(plan)
 	return plan, err
+}
+
+func loadStartDefinition(root, workID string) (work.Definition, bool, error) {
+	definitions, err := work.LoadDefinitions(root)
+	if err != nil {
+		return work.Definition{}, false, err
+	}
+	definition, found := findDefinition(definitions, workID)
+	return definition, found, nil
+}
+
+func candidateFromDefinition(definition work.Definition, now time.Time) policy.Candidate {
+	repository := "repository.root"
+	if len(definition.Scope.Repositories) > 0 {
+		repository = strings.Join(definition.Scope.Repositories, ",")
+	}
+	return policy.Candidate{
+		Repository:       repository,
+		Paths:            append([]string(nil), definition.Scope.Paths...),
+		PolicyIDs:        append([]string(nil), definition.Scope.PolicyIDs...),
+		ScenarioIDs:      append([]string(nil), definition.Scope.ScenarioIDs...),
+		ContractIDs:      append([]string(nil), definition.Scope.ContractIDs...),
+		DBEntities:       append([]string(nil), definition.Scope.DBEntities...),
+		MigrationSlots:   append([]string(nil), definition.Scope.MigrationSlots...),
+		UIFlows:          append([]string(nil), definition.Scope.UIFlows...),
+		DependencyMajors: append([]string(nil), definition.Scope.DependencyMajors...),
+		StableIDs:        append([]string(nil), definition.Refs...),
+		RootPointer:      len(definition.Scope.RootPointers) > 0,
+		Now:              now,
+	}
+}
+
+func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, request project.StartWorkRequest, definition work.Definition, plan operation.Plan, config taskProviderConfig) error {
+	store := provider.NewGitLocalStore(request.Root, config.Remote, config.CoordinationBranch)
+	current, err := store.Read(cmd.Context())
+	if errors.Is(err, provider.ErrNoRemote) {
+		result := operation.Apply(cmd.Context(), plan)
+		result.ToolVersion, result.Command = version, "work.start"
+		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.single-user-local", Message: "No Git coordination remote was available; this claim is local advisory state and is not a team lock."})
+		return writeResult(cmd, jsonOutput, result)
+	}
+	if err != nil {
+		return writeResult(cmd, jsonOutput, gitLocalFailureResult(version, "provider.live-read-failed", "Live Git-local coordination could not be read safely.", err))
+	}
+	liveClaims := make([]provider.GitLocalClaim, 0, len(current.Claims))
+	for _, claim := range current.Claims {
+		if claim.ExpiresAt.After(request.Candidate.Now) {
+			liveClaims = append(liveClaims, claim)
+		}
+	}
+	active := make([]policy.Claim, 0, len(liveClaims))
+	for _, claim := range liveClaims {
+		active = append(active, policyClaimFromGitLocal(claim))
+	}
+	report := policy.CheckConflict(request.Candidate, active, request.Snapshot)
+	if report.Level != policy.ConflictClear {
+		return writeResult(cmd, jsonOutput, domain.Result{
+			SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-conflict-read-only",
+			Status: domain.StatusBlocked, ExitCode: domain.ExitBlocked, Summary: report.NextAction, Blockers: report.Reasons,
+			NextActions: []domain.Item{{Code: "work.refresh-preflight", Message: "Refresh the live claim set, agree ownership and merge order, then retry."}},
+		})
+	}
+	next := provider.SnapshotSet{SchemaVersion: 1, Claims: append([]provider.GitLocalClaim(nil), liveClaims...)}
+	next.Claims = append(next.Claims, gitLocalClaimFromStart(request, definition))
+	revision, err := store.CompareAndSwap(cmd.Context(), current.Revision, next)
+	if err != nil {
+		code, message := "provider.claim-failed", "Git-local claim publication could not be verified."
+		if errors.Is(err, provider.ErrCASConflict) {
+			code, message = "provider.claim-race", "Another collaborator changed live claims first; no branch work was started."
+		}
+		return writeResult(cmd, jsonOutput, gitLocalFailureResult(version, code, message, err))
+	}
+	result := operation.Apply(cmd.Context(), plan)
+	result.ToolVersion, result.Command = version, "work.start"
+	result.Facts = append(result.Facts, domain.Item{Code: "provider.name", Message: "git-local"})
+	result.Evidence = append(result.Evidence, domain.Item{Code: "provider.git-local-claim", Message: revision, Refs: []string{request.WorkID, request.Owner}})
+	if result.Status != domain.StatusPassed {
+		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.claim-active", Message: "The remote claim succeeded but the local checkpoint failed; resume the same work instead of claiming again.", Refs: []string{request.WorkID, revision}})
+	}
+	return writeResult(cmd, jsonOutput, result)
+}
+
+func gitLocalClaimFromStart(request project.StartWorkRequest, definition work.Definition) provider.GitLocalClaim {
+	return provider.GitLocalClaim{
+		ID: request.ClaimID, WorkID: request.WorkID, DefinitionFingerprint: definition.Fingerprint,
+		Owner: request.Owner, Branch: request.Branch, Repository: request.Candidate.Repository, Workspace: request.Candidate.Workspace,
+		Paths: append([]string(nil), request.Candidate.Paths...), PolicyIDs: append([]string(nil), request.Candidate.PolicyIDs...), ScenarioIDs: append([]string(nil), request.Candidate.ScenarioIDs...),
+		ContractIDs: append([]string(nil), request.Candidate.ContractIDs...), DBEntities: append([]string(nil), request.Candidate.DBEntities...), MigrationSlots: append([]string(nil), request.Candidate.MigrationSlots...),
+		UIFlows: append([]string(nil), request.Candidate.UIFlows...), DependencyMajors: append([]string(nil), request.Candidate.DependencyMajors...), StableIDs: append([]string(nil), request.Candidate.StableIDs...),
+		RootPointer: request.Candidate.RootPointer, StartsAt: request.Candidate.Now.UTC(), ExpiresAt: request.ExpiresAt.UTC(),
+	}
+}
+
+func policyClaimFromGitLocal(claim provider.GitLocalClaim) policy.Claim {
+	return policy.Claim{
+		SchemaVersion: 1, ID: claim.ID, WorkID: claim.WorkID, Repository: claim.Repository, Workspace: claim.Workspace,
+		Owner: claim.Owner, Branch: claim.Branch, Paths: append([]string(nil), claim.Paths...), PolicyIDs: append([]string(nil), claim.PolicyIDs...),
+		ScenarioIDs: append([]string(nil), claim.ScenarioIDs...), ContractIDs: append([]string(nil), claim.ContractIDs...), DBEntities: append([]string(nil), claim.DBEntities...),
+		MigrationSlots: append([]string(nil), claim.MigrationSlots...), UIFlows: append([]string(nil), claim.UIFlows...), DependencyMajors: append([]string(nil), claim.DependencyMajors...),
+		StableIDs: append([]string(nil), claim.StableIDs...), RootPointer: claim.RootPointer, StartsAt: claim.StartsAt, ExpiresAt: claim.ExpiresAt, Observable: true,
+	}
+}
+
+func gitLocalFailureResult(version, code, message string, err error) domain.Result {
+	return domain.Result{
+		SchemaVersion: "1.0", ToolVersion: version, Command: "work.start", OperationID: "work-start-git-local",
+		Status: domain.StatusUnknown, ExitCode: domain.ExitUnavailable, Summary: message,
+		Blockers:    []domain.Item{{Code: code, Message: err.Error()}},
+		NextActions: []domain.Item{{Code: "work.refresh-preflight", Message: "Refresh live coordination and actual Git state before retrying."}},
+	}
 }
