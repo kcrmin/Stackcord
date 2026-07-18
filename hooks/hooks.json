@@ -1,17 +1,31 @@
 {
-  "schema_version": 1,
-  "hooks": [
-    {
-      "event": "SessionStart",
-      "trusted_repository_only": true,
-      "read_only": true,
-      "message": "Find the nearest .harness/manifest.yaml and run a context audit before mutation when context is stale."
-    },
-    {
-      "event": "PostCompact",
-      "trusted_repository_only": true,
-      "read_only": true,
-      "message": "Conversation context was compacted. Run context audit before mutation; repository sources override memory."
-    }
-  ]
+  "description": "Read-only service context recovery at thread start and after compaction.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "orchestrator hook session-start",
+            "commandWindows": "orchestrator.exe hook session-start",
+            "timeout": 10,
+            "statusMessage": "Checking project continuity"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "orchestrator hook post-compact",
+            "commandWindows": "orchestrator.exe hook post-compact",
+            "timeout": 10,
+            "statusMessage": "Recovering project context"
+          }
+        ]
+      }
+    ]
+  }
 }

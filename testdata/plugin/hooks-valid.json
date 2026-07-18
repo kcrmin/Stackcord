@@ -1,0 +1,27 @@
+{
+  "description": "Read-only context recovery hooks.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "orchestrator hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "orchestrator hook post-compact",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

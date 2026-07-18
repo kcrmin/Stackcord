@@ -113,7 +113,7 @@ Expected: FAIL because hooks are an event list with message-only entries and `AG
 }
 ```
 
-Set the manifest hook entry according to the current Codex Plugin schema verified by the official validator. Update `AGENTS.md` to reference:
+Set `.codex-plugin/plugin.json` `hooks` to `./hooks/hooks.json`, as required by the current Codex manual for an explicit bundled lifecycle resource. Codex can also discover the default path, but the manifest keeps published package intent unambiguous. Verify the repository validator and a real Codex plugin ingestion path; do not rely on the older scaffold validator that still rejects this now-supported field. Update `AGENTS.md` to reference:
 
 ```text
 docs/superpowers/specs/2026-07-18-service-continuity-harness-design.md

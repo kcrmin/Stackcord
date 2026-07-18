@@ -20,7 +20,7 @@ Unused provider registries, claims of unsupported Jira/Linear/Beads adapters, du
 
 ## Authoritative design records
 
-- [Focused product specification](../superpowers/specs/2026-07-17-focused-product-design.md)
-- [Focused implementation plan](../superpowers/plans/2026-07-17-focused-product-implementation.md)
+- [Service continuity harness specification](../superpowers/specs/2026-07-18-service-continuity-harness-design.md)
+- [Service continuity production plan](../superpowers/plans/2026-07-18-service-continuity-production.md)
 - [Core concepts](../concepts/en.md)
 - [Korean core concepts](../concepts/ko.md)

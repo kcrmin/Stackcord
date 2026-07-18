@@ -10,10 +10,40 @@ import sys
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$")
 LINK = re.compile(r"\[[^]]+\]\(([^)]+)\)")
+HOOK_EVENTS = ("SessionStart", "PostCompact")
 
 
 def fail(errors, message):
     errors.append(message)
+
+
+def validate_hook_document(value: object) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict) or not isinstance(value.get("hooks"), dict):
+        return ["hooks must be an event-keyed object"]
+    hooks = value["hooks"]
+    for name in HOOK_EVENTS:
+        groups = hooks.get(name)
+        if not isinstance(groups, list) or not groups:
+            errors.append(f"missing hook event {name}")
+            continue
+        for group in groups:
+            if not isinstance(group, dict):
+                errors.append(f"{name} matcher group must be an object")
+                continue
+            commands = group.get("hooks")
+            if not isinstance(commands, list) or not commands:
+                errors.append(f"{name} must contain command hooks")
+                continue
+            for command in commands:
+                if (
+                    not isinstance(command, dict)
+                    or command.get("type") != "command"
+                    or not isinstance(command.get("command"), str)
+                    or not command["command"].strip()
+                ):
+                    errors.append(f"{name} must contain valid command hooks")
+    return errors
 
 
 def validate(root: pathlib.Path) -> list[str]:
@@ -36,8 +66,8 @@ def validate(root: pathlib.Path) -> list[str]:
         fail(errors, "manifest name is not kebab-case")
     if not SEMVER.fullmatch(str(manifest.get("version", ""))):
         fail(errors, "manifest version is not strict semver")
-    if "hooks" in manifest:
-        fail(errors, "unsupported manifest hooks field must be omitted")
+    if manifest.get("hooks") != "./hooks/hooks.json":
+        fail(errors, "manifest must point to ./hooks/hooks.json")
     if "[TODO:" in manifest_path.read_text(encoding="utf-8"):
         fail(errors, "manifest contains TODO placeholders")
     interface = manifest.get("interface", {})
@@ -94,10 +124,13 @@ def validate(root: pathlib.Path) -> list[str]:
     if not entry.get("category"):
         fail(errors, "marketplace category is required")
 
-    hooks = json.loads((root / "hooks" / "hooks.json").read_text(encoding="utf-8"))
-    for hook in hooks.get("hooks", []):
-        if not hook.get("trusted_repository_only") or not hook.get("read_only"):
-            fail(errors, f"hook {hook.get('event')} must be trusted and read-only")
+    hook_path = root / "hooks" / "hooks.json"
+    try:
+        hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+    except Exception as error:
+        fail(errors, f"invalid hook document: {error}")
+    else:
+        errors.extend(validate_hook_document(hooks))
     return errors
 
 

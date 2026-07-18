@@ -3,8 +3,8 @@
 Read these files before changing the product:
 
 1. `docs/design/index.md`
-2. `docs/design/11-cross-review-and-confirmation.md`
-3. `docs/superpowers/plans/2026-07-16-fullstack-orchestrator-production.md`
+2. `docs/superpowers/specs/2026-07-18-service-continuity-harness-design.md`
+3. `docs/superpowers/plans/2026-07-18-service-continuity-production.md`
 
 Implementation rules:
 

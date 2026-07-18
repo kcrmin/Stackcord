@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "keywords": ["full-stack", "harness", "git", "submodule", "contracts", "dbml", "tdd"],
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Full-stack Orchestrator",
     "shortDescription": "Define, build, resume, and release coherent full-stack projects.",
