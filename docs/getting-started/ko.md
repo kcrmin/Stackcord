@@ -52,3 +52,5 @@ Codex CLI에서는 marketplace 추가 뒤 `/plugins`를 엽니다. GitHub에 둔
 ## 다음 가이드
 
 [핵심 개념](../concepts/ko.md)을 읽고 [신규 프로젝트](../guides/new-project-ko.md) 또는 [기존 프로젝트](../guides/existing-project-ko.md)로 갑니다. 병렬 협업 전에는 [작업 관리와 작업 선점](../guides/task-management-ko.md)을 봅니다. Clone·context·Git·선택 도구 상태가 불명확하면 [문제 해결](../guides/troubleshooting-ko.md)을 사용합니다.
+
+편집 가능한 외부 목업이나 별도 UI 저장소가 필요하면 [UI workspace와 외부 목업](../guides/ui-workspace-ko.md)에서 directory와 submodule 중 맞는 경계를 선택합니다.

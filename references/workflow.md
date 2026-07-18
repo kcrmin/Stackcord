@@ -7,12 +7,12 @@ The AI owns product conversation and judgment. The CLI owns observable state, sa
 3. Keep discovery in its draft until existing product files establish the boundary or the first high-impact scope answer makes the target root clear. Only then plan project initialization or non-destructive adoption.
 4. Define product-wide purpose, non-goals, roles, journeys, capabilities, service policies, failure behavior, quality, and UI coverage. Keep this baseline evolving through small role/domain/journey slices; do not use waterfall.
 5. Treat service purpose, guarantees, prohibited behavior, business rules, authorization, failure, retry, compensation, API behavior, events, and data obligations as contracts. Keep readable policy meaning and machine interfaces distinct but impact-linked.
-6. Accept external UI as `reference`, `seed`, or `canonical`. Even a broad UI baseline integrates through small owned changes.
+6. Accept external UI as `reference`, `seed`, or `canonical`. Inspect it before promotion, then copy all or selected accepted material into an optional editable UI workspace. Commit an approved UI baseline before frontend implementation; even a broad baseline integrates through small owned changes.
 7. Select technology only when product, quality, team, and operating needs justify it. Detect tools, verify current official evidence, compare 2–3 candidates, record the dated decision, and connect only the selected option.
 8. Define shared behavioral interfaces and compatibility order before parallel implementation. Do not freeze unrelated internals.
 9. Keep work management proportional. A small private local edit needs no ticket or reservation. For shared, long-lived, cross-workspace, or semantically risky work, choose exactly one live task source, save the executable checklist, refresh external state when applicable, then acquire the Git work reservation before creating a conventional branch/worktree.
 10. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Bind failing and passing evidence to current meaning and commits.
-11. Integrate compatible contracts, providers, consumers, UI, migrations, and the reviewed root submodule pointer in that order when applicable.
+11. Integrate compatible contracts, providers, consumers, the exact UI baseline, migrations, and the reviewed root submodule pointer in dependency order when applicable.
 12. Prepare one exact release candidate. Bind technical checks and user validation to the same digest; publish only as a separate explicit action.
 
 Reopen an earlier decision whenever later evidence invalidates it.

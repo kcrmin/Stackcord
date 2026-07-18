@@ -52,3 +52,5 @@ Confirm that `README.md`, `AGENTS.md`, `.agents/skills/use-project-harness/`, `.
 ## Next guides
 
 Read [Core concepts](../concepts/en.md), then choose [New project](../guides/new-project-en.md) or [Existing project](../guides/existing-project-en.md). See [Task management and work reservation](../guides/task-management-en.md) before coordinated parallel work. Use [Troubleshooting](../guides/troubleshooting-en.md) when clone, context, Git, or optional-tool state is unclear.
+
+When the product needs editable external mockups or an independent UI repository, use [UI workspace and external mockups](../guides/ui-workspace-en.md) to choose the appropriate directory or submodule boundary.

@@ -8,6 +8,7 @@
 - Check path and semantic overlap. Policy, scenario, contract, DB entity, migration, UI flow, dependency, workspace, and root-pointer conflicts can occur when files do not overlap.
 - Internally treat conflict outcomes as `clear`, `coordinate`, `block`, or `unknown`. In user-facing replies, translate them to “no conflict found,” “assign ownership and merge order,” “settle the shared rule first,” or “restore missing visibility.” Do not expose the enum itself.
 - Keep each contributor in the correct root or child worktree. A completed child branch does not move the orchestration root's submodule pointer; pointer integration is a separate reviewed change.
-- Keep Git DBML canonical. Quarantine dbdiagram and external UI inputs until semantic, license, security, accessibility, provenance, and authority review finishes.
+- Keep Git DBML canonical. Isolate dbdiagram proposals. Inspect external UI inputs for path, content, license, and provenance risk before promoting accepted files into the editable UI workspace; quarantine is an internal temporary boundary, not user-managed storage.
+- Never overwrite edited UI workspace files during promotion. Bind a baseline only to a clean commit visible from its recorded remote, and require integration or release to match the root pointer and dependent frontend fingerprint.
 - Never expose operation IDs, reservation IDs, receipts, or `.harness/` internals in normal explanations. Summarize their user-visible meaning when relevant.
 - Detect external tools first and connect only a selected real provider. One provider owns live task status. Unavailable providers remain unknown; cached snapshots never become live truth.

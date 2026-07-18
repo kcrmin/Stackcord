@@ -24,6 +24,8 @@ The selected provider remains selected and its live status becomes unknown. The 
 
 Keep external input in quarantine. Compare semantics and provenance, confirm license and rationale, then explicitly promote accepted changes. Never let a visualization, archive, or remote mockup overwrite canonical files automatically.
 
+When a UI baseline is stale, compare `ui/` dirtiness and local-only state, recorded origin, source fingerprints, root submodule pointer, and the frontend work's baseline fingerprint in that order. Decide which commit to keep instead of resetting or overwriting automatically.
+
 ## Release verification no longer passes
 
 Compare the reported changed field with current commits, artifacts, product docs, contracts, tests, integration results, migrations, and user validation. Any material change creates a new candidate and requires validation of its new digest. Do not edit a digest or validation record to make it pass.

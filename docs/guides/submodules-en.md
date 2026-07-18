@@ -29,3 +29,5 @@ When a shared boundary changes, agree on the additive contract first. Merge prov
 ## Use handoff deliberately
 
 A handoff is for a real change of ownership, interruption, or unavailable contributor. It records current intent, evidence, blockers, and exact repository identity so the next owner does not reconstruct work from chat. Normal parallel contributors keep their own scopes and share common context through canonical specs, contracts, and Git.
+
+When UI has independent history or review cadence, `ui/` follows the same child-workspace rules. `ui/` owns the editable product baseline while `frontend/` implements its exact commit. Follow the [UI workspace guide](./ui-workspace-en.md) for whole or selected promotion and baseline binding.

@@ -24,6 +24,8 @@ Git inspect와 submodule sync plan을 요청합니다. Checkout 누락은 pointe
 
 외부 input을 quarantine에 둡니다. 의미와 출처를 비교하고 license와 이유를 확인한 뒤 수용한 변경만 명시적으로 승격합니다. 시각화·archive·remote mockup이 canonical file을 자동 덮어쓰게 하지 않습니다.
 
+UI 기준선이 stale이면 `ui/`의 dirty·local-only 상태, 기록된 origin, source fingerprint, root submodule pointer, frontend 작업의 기준선 fingerprint를 순서대로 비교합니다. 자동 reset이나 덮어쓰기 대신 유지할 커밋을 먼저 정합니다.
+
 ## Release 검증이 더 이상 통과하지 않음
 
 보고된 변경 field를 현재 commit, artifact, 제품 docs, contract, test, integration 결과, migration, 사용자 validation과 비교합니다. 중요한 변경은 새 candidate와 새 digest 검증이 필요합니다. 통과시키려고 digest나 validation record를 편집하지 않습니다.

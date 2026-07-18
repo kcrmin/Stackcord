@@ -69,6 +69,24 @@ class PluginContractTest(unittest.TestCase):
         self.assertIn("existing product files already establish", text)
         self.assertIn("first high-impact scope answer", text)
 
+    def test_ui_tools_are_optional_inputs_to_an_editable_baseline(self):
+        start = (ROOT / "skills" / "start-project" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        coordinate = (
+            ROOT / "skills" / "coordinate-project-work" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        continue_text = (
+            ROOT / "skills" / "continue-project" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("MengTo/Skills", start)
+        self.assertIn("optional UI creation", start)
+        self.assertIn("ordinary editable files", coordinate)
+        self.assertIn("orchestrator ui promote", coordinate)
+        self.assertIn("orchestrator ui baseline bind", coordinate)
+        self.assertIn("exact UI baseline", continue_text)
+        self.assertNotIn("MengTo/Skills is the source of truth", start)
+
     def test_manifest_points_to_bundled_hooks(self):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")

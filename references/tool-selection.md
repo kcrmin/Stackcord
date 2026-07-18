@@ -20,6 +20,6 @@ Common boundaries:
 | Beads | Optional distributed task graph for teams choosing its CLI and storage model | Service contracts, workspace topology, evidence, and release gates |
 | Memory or conversation-continuity tools | Faster recall and navigation hints | Canonical repository evidence, fingerprints, stale detection, Git truth, and safety decisions |
 | dbdiagram CLI | Isolated DBML visualization and remote diagram collaboration | Git DBML, accepted semantic changes, migrations, contracts, and rollback evidence |
-| UI design tools | Mockups and design collaboration | Imported authority (`reference`, `seed`, or `canonical`), provenance, accessibility, and implementation mapping |
+| UI design tools and UI Skills such as MengTo/Skills | References, interaction extraction, mockups, prototypes, and design collaboration | Imported authority, editable `ui/` baseline, provenance, accessibility, exact commit, frontend mapping, and release identity |
 
 Do not recommend a bundle merely because it is popular. Prefer an existing working tool when it meets the need. Do not claim support for Jira, GitHub, Beads, or any future provider unless a real connector can read and write it and produce a fresh normalized observation. Re-run this comparison when the current tool becomes unavailable, materially changes its license or maintenance status, or a new requirement appears.

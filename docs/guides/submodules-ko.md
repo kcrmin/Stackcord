@@ -29,3 +29,5 @@ Clone 뒤 AI에게 프로젝트를 이어서 하라고 말합니다. AI는 `.git
 ## Handoff를 의도적으로 사용
 
 Handoff는 실제 ownership 변경, 중단, 담당자 부재에 사용합니다. 현재 의도·evidence·blocker·정확한 repository identity를 기록하여 다음 owner가 chat에서 작업을 복원하지 않게 합니다. 일반 병렬 contributor는 자기 범위를 유지하고 canonical spec·contract·Git으로 공통 context를 공유합니다.
+
+UI가 독립적인 history나 review 주기를 가지면 `ui/`도 같은 child 원칙을 따릅니다. `ui/`는 편집 가능한 제품 기준선이고 `frontend/`는 그 정확한 커밋을 구현합니다. 전체·선택 가져오기와 기준선 연결은 [UI workspace 가이드](./ui-workspace-ko.md)를 따릅니다.

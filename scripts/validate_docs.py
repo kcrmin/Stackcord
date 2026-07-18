@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PAIRS = [
     ("docs/getting-started/en.md", "docs/getting-started/ko.md"),
     ("docs/concepts/en.md", "docs/concepts/ko.md"),
-    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "dbdiagram", "release", "troubleshooting")],
+    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "dbdiagram", "ui-workspace", "release", "troubleshooting")],
     *[(f"docs/security/{name}-en.md", f"docs/security/{name}-ko.md") for name in ("threat-model", "privacy")],
 ]
 SKILL_NAMES = (
@@ -62,6 +62,8 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
             errors.append(f"{path} generated project paths differ from the tested fixture")
         if ".harness/local/context/" not in text or ".harness/state/context-index.json" in text:
             errors.append(f"{path} must describe the ignored generated context location")
+        if not all(token in text for token in ("```mermaid", "ui/", "frontend/", "strict", "ui-workspace")):
+            errors.append(f"{path} must show the concise UI-to-release product flow")
 
     concept_requirements = {
         "docs/concepts/en.md": ("Memory is not", "repository evidence", "canonical"),
