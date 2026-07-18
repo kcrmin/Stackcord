@@ -133,7 +133,7 @@ func newContextCommand(version string, jsonOutput *bool) *cobra.Command {
 		}
 		child.Flags().StringVar(&rootPath, "root", ".", "project path or any path inside it")
 		if name == "refresh" {
-			child.Flags().BoolVar(&write, "write", false, "replace tracked generated context checkpoints")
+			child.Flags().BoolVar(&write, "write", false, "replace ignored local generated context checkpoints")
 		}
 		contextCommand.AddCommand(child)
 	}

@@ -31,9 +31,7 @@ func render(request InitRequest) ([]operation.FileChange, error) {
 		".harness/entry.md":                                         harnessEntry,
 		".harness/profile.yaml":                                     projectProfile,
 		".harness/sources.yaml":                                     "schema_version: 1\nsources:\n  - id: source.git.local\n    kind: git\n    authority: actual_state\n    access: read\n",
-		".harness/workspaces.yaml":                                  "schema_version: 1\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n",
-		".harness/state/context-index.json":                         "{\n  \"schema_version\": 1,\n  \"index\": {}\n}\n",
-		".harness/state/impact-graph.json":                          "{\n  \"schema_version\": 1,\n  \"impact\": {}\n}\n",
+		".harness/workspaces.yaml":                                  fmt.Sprintf("schema_version: 1\nproject_id: %s\nworkspaces:\n  - id: workspace.root\n    kind: root\n    path: .\n    responsibilities: [orchestration]\n    dependencies: []\n", request.ProjectID),
 		".harness/work/provider.yaml":                               "schema_version: 1\nprovider: git-local\nlive_status_source: git-local\n",
 		"specs/index.md":                                            "# Product specifications\n\nApproved intent, roles, capabilities, journeys, policies, scenarios, quality, architecture, and UI baselines live here.\n",
 		"contracts/registry.yaml":                                   "schema_version: 1\ncontracts: []\n",
@@ -82,7 +80,7 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 # Use Project Harness
 
-Read ` + "`.harness/entry.md`" + `, inspect actual Git/workspace/submodule state, and run ` + "`orchestrator context audit --json`" + ` when available. Treat ` + "`specs/`" + ` as product meaning and ` + "`contracts/`" + ` as behavioral obligations. Read only the sources related to the current request.
+Read ` + "`.harness/entry.md`" + `, inspect actual Git/workspace/submodule state, and run ` + "`orchestrator status --json`" + ` when available. If this is a child repository, resolve the actual Git superproject or ` + "`.harness/bridge.yaml`" + ` before claiming service-wide context. Treat ` + "`specs/`" + ` as product meaning and ` + "`contracts/`" + ` as behavioral obligations. Read only the sources related to the current request.
 
 Ask one material product question at a time; infer facts from files and Git. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, check path and semantic scope, set ownership and merge order, and use conventional Git names without AI markers.
 
@@ -91,7 +89,7 @@ Keep coordination internals out of normal replies. If context was compacted, set
 
 const fallbackReference = `# Plugin-less and CLI-less fallback
 
-1. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, ` + "`.harness/manifest.yaml`" + `, and ` + "`.harness/profile.yaml`" + `.
+1. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, ` + "`.harness/manifest.yaml`" + `, ` + "`.harness/workspaces.yaml`" + `, and ` + "`.harness/profile.yaml`" + `.
 2. Inspect the current root, branch, dirty state, upstream, worktrees, workspace commits, and exact submodule pointers without mutation.
 3. Read related approved ` + "`specs/`" + `, ` + "`contracts/`" + `, the selected task source, active claim, and available test evidence.
 4. Separate facts, stale derivations, unknown state, blockers, and active ownership. State one safe next action.
@@ -102,7 +100,7 @@ Without the CLI, fingerprint, divergence, remote-claim, semantic-conflict, archi
 
 const harnessEntry = `# Project harness entry
 
-1. Find the nearest ` + "`.harness/manifest.yaml`" + ` and establish repository trust.
+1. Find the orchestration root from the actual Git superproject first, then ` + "`.harness/manifest.yaml`" + `; a standalone child must use ` + "`.harness/bridge.yaml`" + ` and report incomplete service context.
 2. Refresh filesystem, Git, workspace, submodule, work, spec, contract, and evidence state read-only.
 3. Treat ` + "`specs/`" + ` as product meaning, ` + "`contracts/`" + ` as obligations, and ` + "`.harness/`" + ` as coordination state.
 4. Before implementation, identify the product slice, scenario, contract, failure behavior, failing TDD test, conflict scope, ownership, and merge order.

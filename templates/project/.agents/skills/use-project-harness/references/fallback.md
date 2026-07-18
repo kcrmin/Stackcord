@@ -1,6 +1,6 @@
 # Plugin-less and CLI-less fallback
 
-1. Read `AGENTS.md`, `.harness/entry.md`, `.harness/manifest.yaml`, and `.harness/profile.yaml`.
+1. Read `AGENTS.md`, `.harness/entry.md`, `.harness/manifest.yaml`, `.harness/workspaces.yaml`, and `.harness/profile.yaml`. In a child repository, inspect `.harness/bridge.yaml` and locate the orchestration root before claiming full service context.
 2. Inspect the current root, branch, dirty state, upstream, worktrees, workspace commits, and exact submodule pointers without mutation.
 3. Read related approved `specs/`, `contracts/`, the selected task source, active claim, and available test evidence.
 4. Separate facts, stale derivations, unknown state, blockers, and active ownership. State one safe next action.

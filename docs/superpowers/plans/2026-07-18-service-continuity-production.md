@@ -167,10 +167,13 @@ git commit -m "fix(plugin): validate lifecycle hooks"
 - Modify: `cli/internal/project/generate.go`
 - Modify: `cli/internal/project/adopt.go`
 - Modify: `cli/internal/project/project_e2e_test.go`
+- Modify: `cli/internal/context/refresh.go`
+- Modify: `cli/internal/context/refresh_test.go`
+- Modify: `cli/internal/command/root.go`
+- Modify: `cli/internal/command/root_test.go`
 - Modify: `templates/project/AGENTS.md.tmpl`
 - Modify: `templates/project/.agents/skills/use-project-harness/SKILL.md`
 - Modify: `templates/project/.agents/skills/use-project-harness/references/fallback.md`
-- Modify: `templates/project/.gitignore.tmpl`
 - Replace: `schemas/workspaces.schema.json`
 - Replace: `cli/internal/schema/definitions/workspaces.schema.json`
 
@@ -193,7 +196,7 @@ func TestFindRootFromSubmoduleUsesActualSuperproject(t *testing.T) {
 func TestGeneratedLocalStateIsIgnoredAndAbsent(t *testing.T) {
     root := generateProject(t)
     assert.Contains(t, read(t, root, ".gitignore"), ".harness/local/")
-    assert.NoDirExists(t, filepath.Join(root, ".harness", "local"))
+    assert.NoFileExists(t, filepath.Join(root, ".harness", "local", "context", "context-index.json"))
     assert.NoFileExists(t, filepath.Join(root, ".harness", "state", "context-index.json"))
 }
 ```
@@ -231,6 +234,7 @@ type Bridge struct {
     ProjectID     string `json:"project_id" yaml:"project_id"`
     RootRemote    string `json:"root_remote" yaml:"root_remote"`
     WorkspaceID   string `json:"workspace_id" yaml:"workspace_id"`
+    Discovery     string `json:"discovery" yaml:"discovery"`
     ContractFingerprint string `json:"contract_fingerprint" yaml:"contract_fingerprint"`
     CommandsPath  string `json:"commands_path" yaml:"commands_path"`
 }

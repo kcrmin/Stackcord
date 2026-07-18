@@ -27,7 +27,7 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 
 	for _, path := range []string{
 		"AGENTS.md", ".agents/skills/use-project-harness/SKILL.md", ".agents/skills/use-project-harness/references/fallback.md",
-		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/state/context-index.json", ".harness/state/impact-graph.json",
+		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/workspaces.yaml",
 		"specs/index.md", "specs/product/summary.md", "specs/policies/policy.account.recovery-proof.md", "specs/scenarios/scenario.account.recovery-success.md",
 		"contracts/registry.yaml", "docs/index.md",
 	} {
@@ -44,9 +44,15 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 		require.NoDirExists(t, filepath.Join(root, filepath.FromSlash(path)))
 		require.NoFileExists(t, filepath.Join(root, filepath.FromSlash(path)))
 	}
+	require.NoFileExists(t, filepath.Join(root, ".harness", "state", "context-index.json"))
+	require.NoFileExists(t, filepath.Join(root, ".harness", "state", "impact-graph.json"))
+	require.NoFileExists(t, filepath.Join(root, ".harness", "local", "context", "context-index.json"))
+	require.Contains(t, mustRead(t, filepath.Join(root, ".gitignore")), ".harness/local/")
 	manifest, err := os.ReadFile(filepath.Join(root, ".harness", "manifest.yaml"))
 	require.NoError(t, err)
 	require.Contains(t, string(manifest), "project.service-product")
+	workspaces := mustRead(t, filepath.Join(root, ".harness", "workspaces.yaml"))
+	require.Contains(t, workspaces, "project_id: project.service-product")
 	_, issues := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
 	require.Empty(t, issues, "a newly generated project must be immediately resumable")
 	snapshot, _ := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
@@ -82,6 +88,28 @@ func TestAdoptBlocksSemanticToolingConflict(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, plan.Blockers)
 	require.Empty(t, plan.Files)
+}
+
+func TestAdoptUpgradesLegacyWorkspaceIdentityWithoutReplacingEntries(t *testing.T) {
+	root := t.TempDir()
+	legacy := `schema_version: 1
+workspaces:
+  - id: workspace.root
+    kind: root
+    path: .
+    responsibilities: [orchestration, product-contracts]
+    dependencies: []
+`
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".harness"), 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "workspaces.yaml"), []byte(legacy), 0o600))
+
+	plan, err := project.PlanAdopt(project.InitRequest{Root: root, ProjectID: "project.existing", Name: "Existing", Locale: "en"})
+	require.NoError(t, err)
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
+
+	got := mustRead(t, filepath.Join(root, ".harness", "workspaces.yaml"))
+	require.Contains(t, got, "project_id: project.existing")
+	require.Contains(t, got, "responsibilities: [orchestration, product-contracts]")
 }
 
 func TestProjectAndDraftRejectPathLikeStableIDs(t *testing.T) {

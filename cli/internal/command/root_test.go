@@ -54,6 +54,8 @@ func TestContextAuditInspectsProjectWithoutWriting(t *testing.T) {
 	require.Contains(t, stdout.String(), `"context.documents"`)
 	_, err := os.Stat(filepath.Join(root, ".harness", "state", "context-index.json"))
 	require.ErrorIs(t, err, os.ErrNotExist)
+	_, err = os.Stat(filepath.Join(root, ".harness", "local", "context", "context-index.json"))
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestCommandExposesRenderedDomainExitCode(t *testing.T) {

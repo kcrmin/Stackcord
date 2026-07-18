@@ -22,7 +22,7 @@ type RefreshMode int
 const (
 	// ReadOnly guarantees project files are not changed.
 	ReadOnly RefreshMode = iota
-	// WriteCheckpoint atomically replaces tracked generated index and graph files.
+	// WriteCheckpoint atomically replaces ignored local generated index and graph files.
 	WriteCheckpoint
 )
 
@@ -219,7 +219,7 @@ func semanticConflicts(root string, index map[string]IndexEntry) []string {
 }
 
 func writeSnapshot(root string, snapshot Snapshot) error {
-	stateDir := filepath.Join(root, ".harness", "state")
+	stateDir := filepath.Join(root, ".harness", "local", "context")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		return fmt.Errorf("create context state directory: %w", err)
 	}

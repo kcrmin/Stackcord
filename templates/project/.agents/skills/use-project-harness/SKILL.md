@@ -5,7 +5,7 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 # Use Project Harness
 
-Read `.harness/entry.md`, inspect actual Git/workspace/submodule state, and run `orchestrator context audit --json` when available. Treat `specs/` as product meaning and `contracts/` as behavioral obligations. Read only the sources related to the current request.
+Read `.harness/entry.md`, inspect actual Git/workspace/submodule state, and run `orchestrator status --json` when available. If this is a child repository, resolve the actual Git superproject or `.harness/bridge.yaml` before claiming service-wide context. Treat `specs/` as product meaning and `contracts/` as behavioral obligations. Read only the sources related to the current request.
 
 Ask one material product question at a time; infer facts from files and Git. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, check path and semantic scope, set ownership and merge order, and use conventional Git names without AI markers.
 

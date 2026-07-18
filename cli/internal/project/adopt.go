@@ -8,6 +8,7 @@ import (
 
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/operation"
+	"fullstack-orchestrator/cli/internal/schema"
 )
 
 // PlanAdopt adds only missing files and managed sections, preserving existing project content.
@@ -52,6 +53,14 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 			if string(file.Content) != string(existing) {
 				plan.Files = append(plan.Files, file)
 			}
+		case ".harness/workspaces.yaml":
+			upgraded, changed, upgradeErr := upgradeWorkspaceIdentity(string(existing), request.ProjectID)
+			if upgradeErr != nil {
+				plan.Blockers = append(plan.Blockers, domain.Item{Code: "project.workspace-identity-conflict", Message: upgradeErr.Error(), Refs: []string{file.Path}})
+			} else if changed {
+				file.Content = []byte(upgraded)
+				plan.Files = append(plan.Files, file)
+			}
 		default:
 			// Existing authored project files always win. Adoption does not replace them.
 		}
@@ -63,6 +72,35 @@ func PlanAdopt(request InitRequest) (operation.Plan, error) {
 	fingerprint, err := operation.StateFingerprint(plan)
 	plan.InitialStateFingerprint = fingerprint
 	return plan, err
+}
+
+func upgradeWorkspaceIdentity(existing, projectID string) (string, bool, error) {
+	value, err := schema.DecodeYAML[map[string]any]([]byte(existing))
+	if err != nil {
+		return "", false, fmt.Errorf("decode existing workspace manifest: %w", err)
+	}
+	if current, exists := value["project_id"]; exists {
+		currentID, ok := current.(string)
+		if !ok || currentID != projectID {
+			return "", false, fmt.Errorf("existing workspace project ID %q differs from requested %q", current, projectID)
+		}
+		return existing, false, nil
+	}
+	if version, ok := value["schema_version"].(int); !ok || version != 1 {
+		return "", false, fmt.Errorf("legacy workspace manifest must use schema_version 1")
+	}
+	lineEnding := "\n"
+	if strings.Contains(existing, "\r\n") {
+		lineEnding = "\r\n"
+	}
+	lines := strings.Split(strings.ReplaceAll(existing, "\r\n", "\n"), "\n")
+	for index, line := range lines {
+		if strings.TrimSpace(line) == "schema_version: 1" {
+			lines = append(lines[:index+1], append([]string{"project_id: " + projectID}, lines[index+1:]...)...)
+			return strings.Join(lines, lineEnding), true, nil
+		}
+	}
+	return "", false, fmt.Errorf("legacy workspace manifest has no schema_version field")
 }
 
 func mergeGitignore(existing, generated string) string {

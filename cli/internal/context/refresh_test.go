@@ -35,7 +35,7 @@ func TestRefreshDoesNotLetTaskTitleOverrideApprovedPolicy(t *testing.T) {
 
 func TestRefreshReadOnlyDoesNotWriteCheckpoint(t *testing.T) {
 	root := contextFixture(t, false)
-	indexPath := filepath.Join(root, ".harness", "state", "context-index.json")
+	indexPath := filepath.Join(root, ".harness", "local", "context", "context-index.json")
 	before, err := os.ReadFile(indexPath)
 	require.NoError(t, err)
 	_, _ = contextpkg.Refresh(stdcontext.Background(), root, contextpkg.ReadOnly)
@@ -48,7 +48,8 @@ func TestRefreshRefusesSymlinkTemporaryCheckpoint(t *testing.T) {
 	root := contextFixture(t, false)
 	victim := filepath.Join(t.TempDir(), "victim.txt")
 	require.NoError(t, os.WriteFile(victim, []byte("keep\n"), 0o600))
-	temporary := filepath.Join(root, ".harness", "state", "context-index.json.tmp")
+	temporary := filepath.Join(root, ".harness", "local", "context", "context-index.json.tmp")
+	require.NoError(t, os.MkdirAll(filepath.Dir(temporary), 0o700))
 	if err := os.Symlink(victim, temporary); err != nil {
 		t.Skipf("symlink unavailable: %v", err)
 	}
@@ -100,7 +101,7 @@ func contextFixture(t *testing.T, semanticConflict bool) string {
 	t.Helper()
 	root := t.TempDir()
 	for _, directory := range []string{
-		filepath.Join(root, ".harness", "state"),
+		filepath.Join(root, ".harness", "local", "context"),
 		filepath.Join(root, ".harness", "work", "items"),
 		filepath.Join(root, "specs", "policies"),
 		filepath.Join(root, "specs", "scenarios"),
@@ -124,7 +125,7 @@ func contextFixture(t *testing.T, semanticConflict bool) string {
 	checkpoint := map[string]any{"schema_version": 1, "index": map[string]any{}}
 	checkpointData, err := json.MarshalIndent(checkpoint, "", "  ")
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "state", "context-index.json"), append(checkpointData, '\n'), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "local", "context", "context-index.json"), append(checkpointData, '\n'), 0o600))
 
 	if semanticConflict {
 		work := "schema_version: 1\nid: work.GH-12\nsemantic_overrides: [policy.account.rate-limit]\n"
