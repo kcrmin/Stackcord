@@ -68,6 +68,29 @@ func newGitCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent.AddCommand(newGitSync(version, jsonOutput))
 	parent.AddCommand(newGitWorktreePlan(version, jsonOutput))
 	parent.AddCommand(newGitWorktree(version, jsonOutput))
+	parent.AddCommand(newGitSubmoduleCommand(version, jsonOutput))
+	return parent
+}
+
+func newGitSubmoduleCommand(version string, jsonOutput *bool) *cobra.Command {
+	parent := &cobra.Command{Use: "submodule", Short: "Apply reviewed submodule boundary changes"}
+	var request gitx.SubmoduleAddRequest
+	var apply bool
+	add := &cobra.Command{Use: "add", Short: "Add an existing remote repository as a submodule", RunE: func(cmd *cobra.Command, _ []string) error {
+		if !apply {
+			return writeResult(cmd, *jsonOutput, planResult(version, "git.submodule-add.plan", gitx.PlanSubmoduleAdd(cmd.Context(), request), "Submodule addition plan is ready; no Git mutation was attempted."))
+		}
+		result := gitx.AddSubmodule(cmd.Context(), request)
+		result.ToolVersion, result.Command = version, "git.submodule-add"
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	add.Flags().StringVar(&request.Root, "root", ".", "exact orchestration repository root")
+	add.Flags().StringVar(&request.Remote, "remote", "", "existing credential-free Git remote")
+	add.Flags().StringVar(&request.Path, "path", "", "new submodule path")
+	add.Flags().BoolVar(&apply, "apply", false, "execute the reviewed allow-listed submodule addition")
+	_ = add.MarkFlagRequired("remote")
+	_ = add.MarkFlagRequired("path")
+	parent.AddCommand(add)
 	return parent
 }
 

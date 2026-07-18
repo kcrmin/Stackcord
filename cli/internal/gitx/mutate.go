@@ -21,8 +21,9 @@ import (
 type mutationKind string
 
 const (
-	mutationWorktree  mutationKind = "worktree-add"
-	mutationSubmodule mutationKind = "submodule-update"
+	mutationWorktree     mutationKind = "worktree-add"
+	mutationSubmodule    mutationKind = "submodule-update"
+	mutationSubmoduleAdd mutationKind = "submodule-add"
 )
 
 var safeBasePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]*$`)
@@ -212,6 +213,10 @@ func validateMutationArgs(kind mutationKind, args []string) error {
 	case mutationSubmodule:
 		if len(args) != 6 || args[0] != "submodule" || args[1] != "update" || args[2] != "--init" || args[3] != "--checkout" || args[4] != "--" || !safeMutationPath(args[5]) {
 			return fmt.Errorf("invalid submodule mutation")
+		}
+	case mutationSubmoduleAdd:
+		if len(args) != 5 || args[0] != "submodule" || args[1] != "add" || args[2] != "--" || !SafeRemoteURL(args[3]) || !safeMutationPath(args[4]) || args[4] == "." {
+			return fmt.Errorf("invalid submodule add mutation")
 		}
 	default:
 		return fmt.Errorf("unsupported Git mutation")
