@@ -17,13 +17,14 @@ import (
 	"fullstack-orchestrator/cli/internal/policy"
 	"fullstack-orchestrator/cli/internal/project"
 	"fullstack-orchestrator/cli/internal/schema"
+	workpkg "fullstack-orchestrator/cli/internal/work"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
 
 func newWorkCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent := &cobra.Command{Use: "work", Short: "Choose, claim, verify, and transfer collaborative work"}
-	parent.AddCommand(newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkFinish(version, jsonOutput), newWorkHandoff(version, jsonOutput))
+	parent.AddCommand(newWorkDefine(version, jsonOutput), newWorkNext(version, jsonOutput), newWorkConflict(version, jsonOutput), newWorkStart(version, jsonOutput), newWorkFinish(version, jsonOutput), newWorkHandoff(version, jsonOutput))
 	return parent
 }
 
@@ -236,15 +237,26 @@ func newWorkHandoff(version string, jsonOutput *bool) *cobra.Command {
 }
 
 func loadWorkItems(root string) ([]domain.WorkItem, error) {
+	definitions, err := workpkg.LoadDefinitions(root)
+	if err != nil {
+		return nil, err
+	}
+	itemsByID := map[string]domain.WorkItem{}
+	for _, definition := range definitions {
+		status := domain.WorkProposed
+		if definition.Readiness == workpkg.Ready {
+			status = domain.WorkReady
+		}
+		itemsByID[definition.ID] = domain.WorkItem{SchemaVersion: 1, ID: definition.ID, Title: definition.Title, Status: status, Refs: definition.Refs, Dependencies: definition.Dependencies}
+	}
 	directory := filepath.Join(root, ".harness", "work", "items")
 	entries, err := os.ReadDir(directory)
 	if os.IsNotExist(err) {
-		return []domain.WorkItem{}, nil
+		return sortedWorkItems(itemsByID), nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	items := []domain.WorkItem{}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
@@ -256,9 +268,20 @@ func loadWorkItems(root string) ([]domain.WorkItem, error) {
 		if issues := schema.Validate("work-item", item); len(issues) > 0 {
 			return nil, fmt.Errorf("validate %s: %s", entry.Name(), issues[0].Message)
 		}
-		items = append(items, item)
+		if _, canonical := itemsByID[item.ID]; !canonical {
+			itemsByID[item.ID] = item
+		}
 	}
-	return items, nil
+	return sortedWorkItems(itemsByID), nil
+}
+
+func sortedWorkItems(items map[string]domain.WorkItem) []domain.WorkItem {
+	result := make([]domain.WorkItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, item)
+	}
+	sort.Slice(result, func(left, right int) bool { return result[left].ID < result[right].ID })
+	return result
 }
 
 func loadClaims(ctx context.Context, root string) ([]policy.Claim, error) {

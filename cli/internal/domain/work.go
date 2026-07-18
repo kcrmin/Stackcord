@@ -14,7 +14,8 @@ const (
 	WorkDone       WorkStatus = "done"
 )
 
-// WorkItem links execution state to canonical product meaning without duplicating it.
+// WorkItem is the legacy local task shape kept temporarily for read migration.
+// New canonical intent uses work.Definition; live status and owner use one selected provider.
 type WorkItem struct {
 	SchemaVersion int        `json:"schema_version" yaml:"schema_version"`
 	ID            string     `json:"id" yaml:"id"`

@@ -401,7 +401,7 @@ git commit -m "feat(context): combine project continuity status"
 - Produces `work.PlanDefinition(root string, definition Definition) (operation.Plan, error)`.
 - Adds `work define --input [--apply]` while preserving read compatibility long enough to migrate current fixtures.
 
-- [ ] **Step 1: Write failing definition tests.**
+- [x] **Step 1: Write failing definition tests.**
 
 ```go
 func TestReadyDefinitionRequiresAcceptanceScopeOrderAndFirstTest(t *testing.T) {
@@ -420,13 +420,13 @@ func TestDefinitionFingerprintChangesWhenSemanticScopeExpands(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/work ./internal/command -run 'Definition|WorkDefine' -v`
 
 Expected: FAIL because the rich definition does not exist.
 
-- [ ] **Step 3: Define the model.**
+- [x] **Step 3: Define the model.**
 
 ```go
 type Definition struct {
@@ -449,15 +449,15 @@ type Definition struct {
 
 `Scope` includes repository/workspace, paths, policy IDs, scenario IDs, contract IDs, DB entities, migration slots, UI flows, dependency majors, and root-pointer ownership.
 
-- [ ] **Step 4: Implement strict validation and automatic fingerprinting.**
+- [x] **Step 4: Implement strict validation and automatic fingerprinting.**
 
 Reject duplicate IDs, missing referenced canonical entries, cyclic dependencies, merge-order items not present in the work graph, ready definitions without actionable acceptance, and user-supplied fingerprints that differ from normalized content.
 
-- [ ] **Step 5: Add plan/apply command and migrate fixtures.**
+- [x] **Step 5: Add plan/apply command and migrate fixtures.**
 
 The command reads strict YAML/JSON and writes `.harness/work/definitions/<id>.yaml` atomically. Live status and owner are absent from the file.
 
-- [ ] **Step 6: Run tests and commit.**
+- [x] **Step 6: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/work ./internal/command ./internal/project ./internal/schema -v
