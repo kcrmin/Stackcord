@@ -11,8 +11,8 @@ Use this precedence:
 5. `.harness/` coordination records and provider snapshots;
 6. generated summaries, memory tools, and chat only as navigation hints.
 
-Reconcile actual root and child commits, dirty/ahead/behind/diverged state, exact submodule pointers, active ownership, evidence, provider reachability, and release candidate identity. Classify each result as confirmed, stale, unknown, blocked, or local-only. Report one safe next action in plain language.
+Reconcile actual root and child commits, dirty/ahead/behind/diverged state, exact submodule pointers, external live status, Git work reservations, evidence, provider reachability, and release candidate identity. After clone, a remote reservation can recover owner, branch, and semantic scope, but external status remains unknown until the selected provider is refreshed. Classify each result as confirmed, stale, unknown, blocked, or local-only. Report one safe next action in plain language.
 
 Audit again after compaction, repeated settled questions, provider reconnect, branch/worktree changes, pointer changes, canonical writes, or source/generated disagreement.
 
-If the CLI is unavailable, follow the repository-local Skill and Markdown fallback. State that fingerprints, divergence, remote claims, semantic conflicts, archive safety, and exact release identity have reduced coverage. Never claim those checks passed manually.
+If the CLI is unavailable, follow the repository-local Skill and Markdown fallback. State that fingerprints, divergence, atomic remote reservations, semantic conflicts, archive safety, and exact release identity have reduced coverage. Never report those checks as passed manually.

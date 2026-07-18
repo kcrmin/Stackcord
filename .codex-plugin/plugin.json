@@ -1,7 +1,7 @@
 {
   "name": "fullstack-orchestrator",
   "version": "1.0.0",
-  "description": "AI-guided full-stack project discovery, durable context, and Git collaboration with deterministic local verification.",
+  "description": "AI-guided service discovery and durable context for multi-repository full-stack collaboration with deterministic local verification.",
   "author": { "name": "Full-stack Orchestrator contributors" },
   "license": "Apache-2.0",
   "keywords": ["full-stack", "harness", "git", "submodule", "contracts", "dbml", "tdd"],
@@ -9,11 +9,11 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Full-stack Orchestrator",
-    "shortDescription": "Define, build, resume, and release coherent full-stack projects.",
-    "longDescription": "Use natural language to discover a service, create or adopt a framework-neutral harness, coordinate Git workspaces and product contracts, recover context after cloning, and verify one exact release candidate.",
+    "shortDescription": "Keep service meaning coherent across people, agents, and repositories.",
+    "longDescription": "Use natural language to discover a service, create or adopt a framework-neutral harness, reconcile one external task source with semantic work reservation, recover multi-repository context after cloning or compaction, and verify one exact release candidate.",
     "developerName": "Full-stack Orchestrator contributors",
     "category": "Productivity",
-    "capabilities": ["Service discovery", "Project continuation", "Git collaboration", "Release verification"],
+    "capabilities": ["Service discovery and durable context", "Multi-repository Git continuity", "External task reconciliation", "Semantic work reservation", "Exact release verification"],
     "defaultPrompt": [
       "Start a new full-stack service with me.",
       "Continue this cloned project safely.",

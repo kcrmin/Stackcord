@@ -96,15 +96,54 @@ jobs:
         env:
           PYTHONPATH: scripts
         run: |
-          python3 scripts/validate_plugin_test.py
+          python3 -m unittest \
+            validate_plugin_test \
+            validate_docs_test \
+            validate_agent_eval_test \
+            bootstrap_cli_test \
+            render_plugin_packages_test \
+            security_scan_test \
+            validate_release_config_test \
+            validate_ci_test \
+            -v
           python3 scripts/validate_plugin.py .
+          python3 scripts/validate_agent_eval.py .
           python3 scripts/validate_docs.py
-          python3 -m unittest security_scan_test validate_release_config_test -v
           python3 scripts/security_scan.py .
           python3 scripts/validate_release_config.py .
+          python3 -m unittest discover -s evals/baseline -p '*_test.py' -v
           python3 -m unittest discover -s profiles/strict-release/scripts -p '*_test.py' -v
       - name: Workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/*.yml
+      - name: GoReleaser configuration
+        run: go run github.com/goreleaser/goreleaser/v2@v2.17.0 check
+
+  product-dogfood:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: cli/go.sum
+      - name: Multi-repository service continuity scenario
+        run: |
+          bash dogfood/run.sh --output "$RUNNER_TEMP/dogfood.json" --workspace "$RUNNER_TEMP/dogfood-workspace"
+          python3 evals/baseline/score.py \
+            --scenarios evals/baseline/scenarios.yaml \
+            --dogfood "$RUNNER_TEMP/dogfood.json" \
+            --output-json "$RUNNER_TEMP/baseline.json" \
+            --output-markdown "$RUNNER_TEMP/report.md"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: service-continuity-dogfood
+          path: |
+            ${{ runner.temp }}/dogfood.json
+            ${{ runner.temp }}/baseline.json
+            ${{ runner.temp }}/report.md
+          if-no-files-found: error
 
   cross-build:
     runs-on: ubuntu-24.04

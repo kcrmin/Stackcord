@@ -1,6 +1,8 @@
 import hashlib
 import json
 import pathlib
+import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -32,6 +34,7 @@ class RenderPluginPackagesTest(unittest.TestCase):
                     names = set(archive.namelist())
                     prefix = "fullstack-orchestrator/"
                     self.assertIn(prefix + ".codex-plugin/plugin.json", names)
+                    self.assertIn(prefix + ".agents/plugins/marketplace.json", names)
                     self.assertIn(prefix + "distribution/platform.json", names)
                     self.assertIn(prefix + "skills/start-project/SKILL.md", names)
                     self.assertIn(prefix + "scripts/bootstrap-cli.sh", names)
@@ -52,6 +55,28 @@ class RenderPluginPackagesTest(unittest.TestCase):
             first_hashes = [hashlib.sha256(path.read_bytes()).hexdigest() for path in first_packages]
             second_hashes = [hashlib.sha256(path.read_bytes()).hexdigest() for path in second_packages]
             self.assertEqual(first_hashes, second_hashes)
+
+    def test_rendered_package_validator_is_self_contained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            package = render_packages(
+                root=ROOT,
+                output=root / "packages",
+                version="1.0.0",
+                base_url="https://example.invalid/releases/download",
+            )[0]
+            unpacked = root / "unpacked"
+            with zipfile.ZipFile(package) as archive:
+                archive.extractall(unpacked)
+            plugin = unpacked / "fullstack-orchestrator"
+            completed = subprocess.run(
+                [sys.executable, str(plugin / "scripts" / "validate_plugin.py"), str(plugin)],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
 
     def test_goreleaser_binaries_are_staged_by_verified_upload_name(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -85,22 +85,24 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 # Use Project Harness
 
-Read ` + "`.harness/entry.md`" + `, inspect actual Git/workspace/submodule state, and run ` + "`orchestrator status --json`" + ` when available. If this is a child repository, resolve the actual Git superproject or ` + "`.harness/bridge.yaml`" + ` before claiming service-wide context. Treat ` + "`specs/`" + ` as product meaning and ` + "`contracts/`" + ` as behavioral obligations. Read only the sources related to the current request.
+Treat the user's natural-language request as the entry point; do not make them memorize commands or edit ` + "`.harness/`" + `. Read ` + "`.harness/entry.md`" + `, run ` + "`orchestrator status --json`" + ` when available, and inspect actual Git, workspace, and submodule state. From a child repository, resolve the actual orchestration root before asserting service-wide context. Read only canonical sources related to the request. ` + "`specs/`" + ` owns product meaning; ` + "`contracts/`" + ` owns service purpose, commitments, non-goals, business rules, failure behavior, interfaces, and data obligations.
 
-Ask one material product question at a time; infer facts from files and Git. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Before parallel work, check path and semantic scope, set ownership and merge order, and use conventional Git names without AI markers.
+Ask one material product question at a time, infer discoverable facts, and checkpoint normalized decisions rather than raw dialogue. Keep work management proportional: a small private local edit does not need a ticket or Git work reservation. For shared, long-lived, cross-workspace, or semantically risky work, the selected task source owns live status and the Git work reservation owns exclusive semantic scope. Re-read both, check path and meaning overlap, and set ownership and merge order before parallel work. Use conventional Git names without AI markers.
 
-Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, audit again before mutation. If the CLI is unavailable, follow ` + "`references/fallback.md`" + ` and state reduced verification.
+Use TDD for behavior, bugs, contracts, migrations, and UI interactions; exploratory spikes may stay unmerged until evidence exists. Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, run a context audit before mutation. Use core release normally and enable strict release only for an explicit organizational need. If the CLI is unavailable, follow ` + "`references/fallback.md`" + ` and state reduced verification.
 `
 
 const fallbackReference = `# Plugin-less and CLI-less fallback
 
-1. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, ` + "`.harness/manifest.yaml`" + `, ` + "`.harness/workspaces.yaml`" + `, and ` + "`.harness/profile.yaml`" + `.
-2. Inspect the current root, branch, dirty state, upstream, worktrees, workspace commits, and exact submodule pointers without mutation.
-3. Read related approved ` + "`specs/`" + `, ` + "`contracts/`" + `, the selected task source, active claim, and available test evidence.
-4. Separate facts, stale derivations, unknown state, blockers, and active ownership. State one safe next action.
-5. Before changing work, define affected product meaning, behavioral interface, failing test, path/semantic ownership, and integration order.
+1. Treat the natural-language request as the entry point. Read ` + "`AGENTS.md`" + `, ` + "`.harness/entry.md`" + `, the manifest, workspaces, profile, and selected task source; do not ask the user to operate internal files.
+2. From a child repository, locate the actual orchestration root. Inspect branch, dirty state, upstream, ahead/behind/diverged state, worktrees, workspace commits, remotes, and exact submodule pointers without mutation.
+3. Read only related approved ` + "`specs/`" + `; product, business, behavior, interface, and data ` + "`contracts/`" + `; current work definitions; and test evidence.
+4. If an external task source is selected, refresh it with a real authenticated connector or CLI. Treat cached status as unknown. Recover a Git work reservation from the coordination branch, but do not present it as fresh external status.
+5. Separate confirmed facts, stale derivations, unknown external state, blockers, active ownership, and local-only work. State one safe next action. Run a context audit when settled questions repeat or sources disagree.
+6. A small private local edit needs no ticket or reservation. Before shared or risky work, define the service meaning, behavioral boundary, first failing test, semantic scope, owner, dependencies, and merge order; then synchronize the selected task source and Git work reservation.
+7. Require test and integration evidence before merge. Bind technical and user validation to one release candidate. Keep strict release optional.
 
-Without the CLI, fingerprint, divergence, remote-claim, semantic-conflict, archive-safety, and release-identity verification has reduced coverage. Do not claim those checks passed.
+Without the CLI, fingerprint, divergence, atomic remote reservation, semantic-conflict, archive-safety, and exact release-identity verification has reduced coverage. Do not report those checks as passed.
 `
 
 const harnessEntry = `# Project harness entry

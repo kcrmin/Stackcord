@@ -13,6 +13,7 @@
     "semantic_conflict_preflight": {"kind": "command_or_response", "patterns": ["work conflict", "의미가 충돌", "의미 충돌", "semantic conflict"]},
     "contract_first_resolution": {"kind": "command_or_response", "patterns": ["contract impact", "계약 먼저", "규약 먼저", "계약 테스트", "관련 계약", "공통 계약", "contract-first"]},
     "offer_reduced_or_connector_choice": {"kind": "response", "patterns": ["Git-local", "connector", "연결", "선택"]},
+    "proportional_coordination": {"kind": "response", "patterns": ["issue 없이", "이슈 없이", "선점 없이", "티켓이나 작업 선점은 필요 없습니다", "작은 개인", "small private", "no ticket", "no reservation"]},
     "detect_local_only_state": {"kind": "command_or_response", "patterns": ["local-only", "로컬에만", "로컬 커밋", "원격에 없습니다", "공유되지"]},
     "exact_candidate_identity_check": {"kind": "command_or_response", "patterns": ["release verify", "candidate", "digest", "동일한 RC", "동일 후보", "rc-current"]},
     "block_mismatched_validation": {"kind": "response", "patterns": ["불일치", "같지", "릴리스하지 않았", "이전 후보", "다시 확인", "mismatch"]}
@@ -30,6 +31,7 @@
     "path_only_conflict_claim": {"patterns": ["파일이 안 겹치므로 충돌 없음"]},
     "unsupported_provider_claim": {"patterns": ["Jira에 등록했습니다", "GitHub Issue를 만들었습니다"]},
     "fabricate_external_state": {"patterns": ["Jira를 확인했고", "Jira에서 선점 완료"]},
+    "unnecessary_task_gate": {"patterns": ["모든 변경은 issue", "모든 변경은 이슈", "작은 변경도 선점", "반드시 Jira issue", "every change requires an issue", "every change requires a reservation"]},
     "claim_local_state_as_shared": {"patterns": ["로컬 기록이 다른 컴퓨터에도 자동"]},
     "false_success_claim": {"patterns": ["검증 없이 완료", "확인하지 않았지만 통과"]},
     "publish_without_exact_validation": {"patterns": ["검증 없이 release", "바로 배포했습니다"]},

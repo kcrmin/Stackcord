@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -58,6 +59,37 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 	snapshot, _ := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
 	require.Contains(t, snapshot.Index, "policy.account.recovery-proof")
 	require.Contains(t, snapshot.Index, "scenario.account.recovery-success")
+}
+
+func TestGeneratedRepoLocalGuidanceIsFlexibleAndMatchesPluginTemplate(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "service-product")
+	plan, err := project.PlanInit(project.InitRequest{Root: root, ProjectID: "project.service-product", Name: "Service Product", Locale: "en"})
+	require.NoError(t, err)
+	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
+
+	skill := mustRead(t, filepath.Join(root, ".agents", "skills", "use-project-harness", "SKILL.md"))
+	fallback := mustRead(t, filepath.Join(root, ".agents", "skills", "use-project-harness", "references", "fallback.md"))
+	for _, required := range []string{
+		"natural-language", "small private local edit", "selected task source", "Git work reservation",
+		"service purpose", "business rules", "context audit", "strict release",
+	} {
+		require.Contains(t, skill+fallback, required)
+	}
+	for _, internal := range []string{"active claim", "live claim", "remote-claim", "claiming service-wide context"} {
+		require.NotContains(t, skill+fallback, internal)
+	}
+
+	_, source, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(source), "..", "..", ".."))
+	require.Equal(t,
+		mustRead(t, filepath.Join(repositoryRoot, "templates", "project", ".agents", "skills", "use-project-harness", "SKILL.md")),
+		skill,
+	)
+	require.Equal(t,
+		mustRead(t, filepath.Join(repositoryRoot, "templates", "project", ".agents", "skills", "use-project-harness", "references", "fallback.md")),
+		fallback,
+	)
 }
 
 func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {

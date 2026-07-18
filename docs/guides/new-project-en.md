@@ -20,4 +20,4 @@ When the service has enough identity to create a durable root, ask the AI to ini
 
 ## Implement with shared boundaries
 
-Before parallel work, define interfaces, contracts, DBML, and failure behavior that multiple changes depend on. Claim semantic scope, create a conventional feature branch or isolated worktree, write the failing test, implement the smallest behavior, and integrate frequently. Revise product checkpoints when implementation reveals a real product decision.
+Before parallel work, define interfaces, contracts, DBML, and failure behavior that multiple changes depend on. Reserve shared semantic scope when coordination is needed, create a conventional feature branch or isolated worktree, write the failing test, implement the smallest behavior, and integrate frequently. A small private edit does not require a ticket or reservation. Revise product checkpoints when implementation reveals a real product decision.

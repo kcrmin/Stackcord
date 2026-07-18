@@ -1,6 +1,6 @@
 # Product workflow
 
-The AI owns product conversation and judgment. The CLI owns observable state, safe local writes, fingerprints, conflict outcomes, remote Git-local claims, and release identity.
+The AI owns product conversation and judgment. The CLI owns observable state, safe local writes, fingerprints, conflict outcomes, Git compare-and-swap work reservations, and release identity.
 
 1. Run combined status and inspect discoverable facts before asking questions.
 2. Discover one material product decision at a time. Checkpoint normalized meaning after every material answer; store no raw conversation or tone.
@@ -9,7 +9,7 @@ The AI owns product conversation and judgment. The CLI owns observable state, sa
 5. Accept external UI as `reference`, `seed`, or `canonical`. Even a broad UI baseline integrates through small owned changes.
 6. Select technology only when product, quality, team, and operating needs justify it. Detect tools, verify current official evidence, compare 2–3 candidates, record the dated decision, and connect only the selected option.
 7. Define shared behavioral interfaces and compatibility order before parallel implementation. Do not freeze unrelated internals.
-8. Choose exactly one live task source: Git-local, GitHub, Jira, or an existing supported provider. Save the executable checklist in the repository, re-read live status, claim, re-read, then create a conventional branch/worktree.
+8. Keep work management proportional. A small private local edit needs no ticket or reservation. For shared, long-lived, cross-workspace, or semantically risky work, choose exactly one live task source, save the executable checklist, refresh external state when applicable, then acquire the Git work reservation before creating a conventional branch/worktree.
 9. Use TDD for behavior, bugs, contracts, migrations, and UI interactions. Bind failing and passing evidence to current meaning and commits.
 10. Integrate compatible contracts, providers, consumers, UI, migrations, and the reviewed root submodule pointer in that order when applicable.
 11. Prepare one exact release candidate. Bind technical checks and user validation to the same digest; publish only as a separate explicit action.

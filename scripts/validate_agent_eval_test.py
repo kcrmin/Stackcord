@@ -57,11 +57,14 @@ class AgentEvalContractTest(unittest.TestCase):
             mode="read-only",
             output=pathlib.Path("/tmp/final.txt"),
             prompt="continue",
+            model="gpt-5.4",
         )
         self.assertEqual("codex", command[0])
         self.assertIn("--ephemeral", command)
         self.assertIn("read-only", command)
         self.assertIn("never", command)
+        self.assertIn("gpt-5.4", command)
+        self.assertLess(command.index("--model"), command.index("gpt-5.4"))
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", command)
 
     def test_runner_scores_status_before_mutation_and_forbidden_content(self):

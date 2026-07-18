@@ -6,7 +6,7 @@ Production readiness is not a final testing phase. Each change carries applicabl
 
 ## Prepare one candidate
 
-Core `release prepare` deterministically binds exact root and workspace commits, artifact digests, product/docs/contract fingerprints, TDD evidence, integration evidence, and conditional migration/rollback evidence. Preparation writes a candidate but performs no public side effect. Any missing required evidence blocks preparation.
+Core `release prepare` deterministically binds exact root and workspace commits, artifact digests, product/docs/contract fingerprints, the reconciled external-provider revision plus Git-reservation revision, TDD evidence, integration evidence, and conditional migration/rollback evidence. Preparation writes a candidate but performs no public side effect. Any missing required evidence blocks preparation.
 
 ## Validate the exact candidate
 

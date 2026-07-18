@@ -11,6 +11,13 @@ NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$")
 LINK = re.compile(r"\[[^]]+\]\(([^)]+)\)")
 HOOK_EVENTS = ("SessionStart", "PostCompact")
+EXPECTED_SKILLS = {
+    "start-project",
+    "continue-project",
+    "plan-project-work",
+    "coordinate-project-work",
+    "recover-and-release-project",
+}
 
 
 def fail(errors, message):
@@ -75,8 +82,7 @@ def validate(root: pathlib.Path) -> list[str]:
         if not interface.get(field):
             fail(errors, f"manifest interface missing {field}")
 
-    expected = json.loads((root / "testdata" / "plugin" / "behavior.json").read_text(encoding="utf-8"))
-    expected_names = sorted({item["skill"] for item in expected})
+    expected_names = sorted(EXPECTED_SKILLS)
     skill_dirs = sorted(path for path in (root / "skills").iterdir() if path.is_dir())
     actual_names = sorted(path.name for path in skill_dirs)
     if actual_names != expected_names:

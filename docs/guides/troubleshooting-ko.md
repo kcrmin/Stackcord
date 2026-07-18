@@ -14,11 +14,11 @@ Git inspect와 submodule sync plan을 요청합니다. Checkout 누락은 pointe
 
 ## 병렬 작업이 충돌로 막힘
 
-충돌 category를 읽습니다. Path overlap은 파일을 나누거나 직렬화합니다. 정책·contract·DB·UI·dependency·pointer overlap은 공유 boundary와 통합 순서를 합의합니다. Ownership이 명확해진 뒤 claim을 갱신하며 blocker를 우회하려고 지우지 않습니다.
+충돌 category를 읽습니다. Path overlap은 파일을 나누거나 직렬화합니다. 정책·contract·DB·UI·dependency·pointer overlap은 공유 boundary와 통합 순서를 합의합니다. Ownership이 명확해진 뒤 작업 선점을 갱신하며 blocker를 우회하려고 지우지 않습니다.
 
 ## 외부 task 도구를 사용할 수 없음
 
-실제 connector 또는 executable이 생길 때까지 Git-local을 live status로 둡니다. 여러 authority 사이에 status를 복사하지 않습니다. 제품 spec·contract·claim·fingerprint·release identity는 task provider와 무관하게 저장소가 소유합니다.
+선택한 provider는 선택 상태를 유지하고 live status는 unknown이 됩니다. AI는 저장소가 소유한 제품 의미와 Git 작업 선점을 복구할 수 있지만 어느 것도 fresh 외부 status로 표현하지 않습니다. 실제 connector를 다시 연결하거나 status migration을 검토한 뒤 다른 provider 하나로 명시적으로 전환합니다. Cache status를 복사하거나 몰래 Git-local로 바꾸지 않습니다. 제품 spec·contract·의미 범위·fingerprint·release identity는 task provider와 무관하게 저장소가 소유합니다.
 
 ## DBML 또는 UI input이 stale하거나 위험함
 

@@ -6,7 +6,7 @@ Production 준비는 마지막 testing 단계가 아닙니다. 각 변경은 해
 
 ## Candidate 하나 준비
 
-기본 `release prepare`는 정확한 root/workspace commit, artifact digest, 제품/docs/contract fingerprint, TDD evidence, integration evidence, 조건부 migration/rollback evidence를 결정적으로 묶습니다. 준비는 candidate를 쓰지만 공개 side effect를 만들지 않습니다. 필수 evidence가 없으면 중단합니다.
+기본 `release prepare`는 정확한 root/workspace commit, artifact digest, 제품/docs/contract fingerprint, reconcile된 외부 provider revision과 Git 선점 revision, TDD evidence, integration evidence, 조건부 migration/rollback evidence를 결정적으로 묶습니다. 준비는 candidate를 쓰지만 공개 side effect를 만들지 않습니다. 필수 evidence가 없으면 중단합니다.
 
 ## 정확한 candidate 검증
 

@@ -5,6 +5,8 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 # Use Project Harness
 
-Read `.harness/entry.md`, inspect actual root and child Git state, and run `orchestrator context audit --json` when available. Use `specs/` for product meaning and `contracts/` for obligations. Ask only material unanswered questions, use TDD, check semantic conflicts, and keep normal Git names free of AI markers.
+Treat the user's natural-language request as the entry point; do not make them memorize commands or edit `.harness/`. Read `.harness/entry.md`, run `orchestrator status --json` when available, and inspect actual Git, workspace, and submodule state. From a child repository, resolve the actual orchestration root before asserting service-wide context. Read only canonical sources related to the request. `specs/` owns product meaning; `contracts/` owns service purpose, commitments, non-goals, business rules, failure behavior, interfaces, and data obligations.
 
-If deterministic checks are unavailable, follow `references/fallback.md` and state the reduced coverage.
+Ask one material product question at a time, infer discoverable facts, and checkpoint normalized decisions rather than raw dialogue. Keep work management proportional: a small private local edit does not need a ticket or Git work reservation. For shared, long-lived, cross-workspace, or semantically risky work, the selected task source owns live status and the Git work reservation owns exclusive semantic scope. Re-read both, check path and meaning overlap, and set ownership and merge order before parallel work. Use conventional Git names without AI markers.
+
+Use TDD for behavior, bugs, contracts, migrations, and UI interactions; exploratory spikes may stay unmerged until evidence exists. Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, run a context audit before mutation. Use core release normally and enable strict release only for an explicit organizational need. If the CLI is unavailable, follow `references/fallback.md` and state reduced verification.

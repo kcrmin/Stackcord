@@ -16,7 +16,13 @@ import zipfile
 
 PLATFORMS = (("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), ("windows", "arm64"))
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$")
-TOP_LEVEL_FILES = ("AGENTS.md", "LICENSE", "README.md", "README.ko.md")
+TOP_LEVEL_FILES = (
+    "AGENTS.md",
+    "LICENSE",
+    "README.md",
+    "README.ko.md",
+    ".agents/plugins/marketplace.json",
+)
 PACKAGE_TREES = (".codex-plugin", "hooks", "skills", "references", "templates", "schemas", "profiles/strict-release")
 PACKAGE_SCRIPTS = ("scripts/bootstrap-cli.sh", "scripts/bootstrap-cli.ps1", "scripts/validate_plugin.py")
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)

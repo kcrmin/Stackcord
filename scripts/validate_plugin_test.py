@@ -42,11 +42,35 @@ class PluginContractTest(unittest.TestCase):
             {case["skill"] for case in cases},
         )
 
+    def test_work_planning_is_proportional_not_a_universal_gate(self):
+        text = (ROOT / "skills" / "plan-project-work" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("small private", text)
+        self.assertNotIn("then reserve it before creating implementation state", text)
+
     def test_manifest_points_to_bundled_hooks(self):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
         self.assertEqual("./hooks/hooks.json", manifest.get("hooks"))
+
+    def test_manifest_names_the_service_continuity_differentiator(self):
+        manifest = json.loads(
+            (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        interface = manifest["interface"]
+        combined = " ".join(
+            [manifest["description"], interface["longDescription"], *interface["capabilities"]]
+        ).lower()
+        for token in (
+            "durable context",
+            "multi-repository",
+            "semantic work reservation",
+            "external task",
+            "exact release",
+        ):
+            self.assertIn(token, combined)
 
     def test_hooks_use_current_command_schema(self):
         hooks = json.loads(

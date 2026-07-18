@@ -8,6 +8,8 @@ Skills interpret natural-language goals, discover product meaning, choose what t
 
 Actual Git, submodule, worktree, and filesystem state outrank cached summaries. `specs/` owns product intent and policy. `contracts/` owns cross-component behavior and failures. Git-tracked DBML owns data structure. `.harness/` indexes those sources and records compact coordination state. One selected task provider owns live task status; Git-local is the default, not a mandate.
 
+Memory is not canonical repository evidence. A conversation-memory Plugin may help the AI find a likely decision, but it cannot prove current Git identity, product approval, provider revision, or release evidence. The AI must resolve every material hint back to canonical files or actual state and mark it unknown when that proof is missing.
+
 ## Identity and staleness
 
 Product facts receive stable IDs so references survive file movement and rewriting. Fingerprints bind indexes, change plans, evidence, and release candidates to exact content. When a dependency fingerprint changes, downstream state is stale until refreshed or deliberately accepted; timestamps alone are not trusted.
@@ -18,7 +20,7 @@ A workspace is a repository or separately testable component represented in the 
 
 ## Conflict model
 
-Filesystem overlap is only one conflict type. Claims also reserve policies, scenarios, contracts, DB entities, migration slots, UI flows, dependency majors, stable IDs, and root pointers. A detected conflict blocks silent parallel editing and creates a discussion about ownership, boundaries, or sequence; it does not perform an automatic reset, stash, or rebase.
+Filesystem overlap is only one conflict type. Work reservations also cover policies, scenarios, contracts, DB entities, migration slots, UI flows, dependency majors, stable IDs, and root pointers. A selected external provider remains the live status source; a Git compare-and-swap reservation supplies semantic exclusivity across repositories. A detected conflict blocks silent parallel editing and creates a discussion about ownership, boundaries, or sequence; it does not perform an automatic reset, stash, or rebase.
 
 ## Iterative delivery and TDD
 

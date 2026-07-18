@@ -10,7 +10,7 @@ Clone 뒤 AI에게 프로젝트를 이어서 하라고 말합니다. AI는 `.git
 
 ## 병렬 작업 격리
 
-보통 contributor 한 명이 변경 하나의 일반 branch를 소유합니다. 같은 clone에 여러 branch가 필요하면 Git worktree를 사용합니다. 구현 전에 영향받는 path·정책·scenario·contract·DB entity·migration·UI flow·dependency major·pointer 의도를 semantic claim으로 기록합니다. Claim은 ownership을 조정하지만 대화를 대체하지 않습니다.
+보통 contributor 한 명이 변경 하나의 일반 branch를 소유합니다. 같은 clone에 여러 branch가 필요하면 Git worktree를 사용합니다. 조정이 필요한 작업은 영향받는 path·정책·scenario·contract·DB entity·migration·UI flow·dependency major·pointer 의도를 선점합니다. Git 선점은 의미 범위를 배타적으로 보호하고 선택한 task provider만 팀의 live status 원본으로 남습니다. 어느 것도 공유 의미에 대한 대화를 대체하지 않습니다.
 
 ## 의존 순서로 통합
 

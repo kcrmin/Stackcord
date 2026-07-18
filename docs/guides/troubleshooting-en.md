@@ -18,7 +18,7 @@ Read the conflict category. For path overlap, split files or serialize. For poli
 
 ## An external task tool is unavailable
 
-Keep Git-local as live status until a real connector or executable is available. Do not copy status between multiple authorities. Product specs, contracts, claims, fingerprints, and release identity remain repository-owned regardless of the task provider.
+The selected provider remains selected and its live status becomes unknown. The AI can still recover repository-owned product meaning and the Git work reservation, but it must not present either as fresh external status. Reconnect the real connector or explicitly switch to one different provider after reviewing the status migration; never copy cached status or silently fall back to Git-local. Product specs, contracts, semantic scope, fingerprints, and release identity remain repository-owned regardless of the task provider.
 
 ## DBML or UI input is stale or unsafe
 

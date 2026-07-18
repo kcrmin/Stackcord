@@ -19,6 +19,7 @@ REQUIRED_SCENARIOS = {
     "recover-after-context-loss",
     "cross-repo-semantic-conflict",
     "selected-provider-unavailable",
+    "small-private-change",
     "local-only-work",
     "release-candidate-mismatch",
 }

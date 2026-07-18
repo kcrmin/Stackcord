@@ -110,8 +110,9 @@ def build_codex_command(
     mode: str,
     output: pathlib.Path,
     prompt: str,
+    model: str | None = None,
 ) -> list[str]:
-    return [
+    command = [
         executable,
         "-a",
         "never",
@@ -126,8 +127,11 @@ def build_codex_command(
         "--output-last-message",
         str(output),
         "--json",
-        prompt,
     ]
+    if model:
+        command.extend(("--model", model))
+    command.append(prompt)
+    return command
 
 
 def _walk_strings(value: object) -> Iterable[tuple[str | None, str]]:
@@ -289,6 +293,7 @@ def run(args: argparse.Namespace) -> int:
                     scenario["mode"],
                     final_path,
                     _scenario_prompt(root, scenario),
+                    args.model,
                 )
                 with events_path.open("w", encoding="utf-8") as events:
                     completed = subprocess.run(
@@ -338,6 +343,7 @@ def run(args: argparse.Namespace) -> int:
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument("--command", default="codex")
+    value.add_argument("--model", help="Explicit Codex model for a reproducible drill")
     value.add_argument("--scenarios", required=True)
     value.add_argument("--rubric", required=True)
     value.add_argument("--output", required=True)

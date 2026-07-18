@@ -10,7 +10,7 @@ After clone, ask the AI to continue the project. It compares `.gitmodules`, the 
 
 ## Isolate parallel work
 
-One contributor normally owns one conventional branch per change. Use Git worktrees when the same clone must hold simultaneous branches. Before implementation, record a semantic claim listing affected paths, policies, scenarios, contracts, DB entities, migrations, UI flows, dependency majors, and pointer intent. Claims coordinate ownership; they are not a substitute for conversation.
+One contributor normally owns one conventional branch per change. Use Git worktrees when the same clone must hold simultaneous branches. For coordinated work, reserve the affected paths, policies, scenarios, contracts, DB entities, migrations, UI flows, dependency majors, and pointer intent. The Git reservation provides semantic exclusivity; the selected task provider remains the only live team-status source. Neither replaces a conversation about shared meaning.
 
 ## Integrate in dependency order
 

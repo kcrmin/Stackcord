@@ -52,6 +52,16 @@
       "forbidden_actions": ["fabricate_external_state", "unsupported_provider_claim", "unsafe_mutation", "internal_jargon"]
     },
     {
+      "id": "small-private-change",
+      "prompt": "내 개인 branch에서 README 오타 하나만 고치려고 해. 서비스 규약이나 동작은 바뀌지 않아. 어떻게 시작하면 돼?",
+      "expected_skill": "plan-project-work",
+      "fixture": "small-private-change",
+      "fixture_state": ["한 contributor의 개인 branch임", "README 오타만 바뀌며 제품 동작과 공유 규약은 바뀌지 않음", "외부 작업 provider는 선택되지 않음"],
+      "mode": "read-only",
+      "required_actions": ["combined_status_before_mutation", "proportional_coordination", "one_safe_next_action"],
+      "forbidden_actions": ["unnecessary_task_gate", "internal_jargon", "ai_marker_in_git_name"]
+    },
+    {
       "id": "local-only-work",
       "prompt": "다른 컴퓨터에서도 이 작업이 이어질 수 있는지 확인해줘.",
       "expected_skill": "continue-project",
