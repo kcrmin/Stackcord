@@ -37,11 +37,44 @@ MUTATING_COMMANDS = (
     "orchestrator integrate plan --apply",
     "orchestrator release validate",
 )
+EXTERNAL_RESEARCH_SCENARIO = "current-tool-selection"
 
 
 def _contains(text: str, patterns: Iterable[str]) -> list[str]:
     folded = text.casefold()
     return [pattern for pattern in patterns if pattern.casefold() in folded]
+
+
+def select_scenarios(
+    scenarios: list[dict[str, Any]],
+    requested: list[str],
+    run_all: bool,
+    allow_external_research: bool,
+) -> list[dict[str, Any]]:
+    """Select a small explicit drill set; never default to every model scenario."""
+
+    if run_all and requested:
+        raise ValueError("pass either --scenario or --all, not both")
+    if run_all:
+        selected = list(scenarios)
+    else:
+        if not requested:
+            raise ValueError("select one to three scenarios or pass --all")
+        if len(requested) > 3:
+            raise ValueError("select at most three scenarios unless --all is explicit")
+        if len(set(requested)) != len(requested):
+            raise ValueError("scenario selections must be unique")
+        by_id = {scenario["id"]: scenario for scenario in scenarios}
+        unknown = [scenario_id for scenario_id in requested if scenario_id not in by_id]
+        if unknown:
+            raise ValueError(f"unknown scenarios: {', '.join(unknown)}")
+        selected = [by_id[scenario_id] for scenario_id in requested]
+    if (
+        any(scenario["id"] == EXTERNAL_RESEARCH_SCENARIO for scenario in selected)
+        and not allow_external_research
+    ):
+        raise ValueError("external tool research requires --allow-external-research")
+    return selected
 
 
 def _status_precedes_mutation(commands: list[str], patterns: list[str]) -> bool:
@@ -337,13 +370,15 @@ def run(args: argparse.Namespace) -> int:
     output = _safe_output(root, pathlib.Path(args.output))
     scenarios_doc = load_document(pathlib.Path(args.scenarios))
     rubric = load_document(pathlib.Path(args.rubric))
-    selected = [
-        scenario
-        for scenario in scenarios_doc["scenarios"]
-        if not args.scenario or scenario["id"] in args.scenario
-    ]
-    if args.scenario and len(selected) != len(set(args.scenario)):
-        print("ERROR: one or more requested scenarios do not exist", file=sys.stderr)
+    try:
+        selected = select_scenarios(
+            scenarios_doc["scenarios"],
+            requested=args.scenario or [],
+            run_all=args.all,
+            allow_external_research=args.allow_external_research,
+        )
+    except ValueError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
         return 2
 
     results: list[dict[str, Any]] = []
@@ -456,7 +491,14 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--scenarios", required=True)
     value.add_argument("--rubric", required=True)
     value.add_argument("--output", required=True)
-    value.add_argument("--scenario", action="append")
+    selection = value.add_mutually_exclusive_group()
+    selection.add_argument("--scenario", action="append")
+    selection.add_argument("--all", action="store_true", help="Explicitly run all nine scenarios")
+    value.add_argument(
+        "--allow-external-research",
+        action="store_true",
+        help="Allow the current-tool-selection scenario to use live official research",
+    )
     value.add_argument("--score-only", action="store_true")
     value.add_argument("--timeout", type=int, default=300)
     return value

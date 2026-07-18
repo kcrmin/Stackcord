@@ -3,6 +3,7 @@ import pathlib
 import tempfile
 import unittest
 
+import run_agent_eval
 from validate_agent_eval import load_document, validate
 from run_agent_eval import (
     build_codex_command,
@@ -44,6 +45,61 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertIn("compare_realistic_candidates", scenario["required_actions"])
         self.assertIn("ask_one_material_question", scenario["required_actions"])
         self.assertIn("install_without_selection", scenario["forbidden_actions"])
+
+    def test_runner_requires_an_explicit_scenario_or_all_opt_in(self):
+        scenarios = load_document(ROOT / "evals/agent-behavior/scenarios.yaml")["scenarios"]
+
+        with self.assertRaisesRegex(ValueError, "select one to three scenarios or pass --all"):
+            run_agent_eval.select_scenarios(
+                scenarios,
+                requested=[],
+                run_all=False,
+                allow_external_research=False,
+            )
+
+        selected = run_agent_eval.select_scenarios(
+            scenarios,
+            requested=["continue-after-clean-clone"],
+            run_all=False,
+            allow_external_research=False,
+        )
+        self.assertEqual(["continue-after-clean-clone"], [item["id"] for item in selected])
+
+    def test_full_suite_and_external_research_need_separate_opt_ins(self):
+        scenarios = load_document(ROOT / "evals/agent-behavior/scenarios.yaml")["scenarios"]
+
+        with self.assertRaisesRegex(ValueError, "external tool research"):
+            run_agent_eval.select_scenarios(
+                scenarios,
+                requested=[],
+                run_all=True,
+                allow_external_research=False,
+            )
+        selected = run_agent_eval.select_scenarios(
+            scenarios,
+            requested=[],
+            run_all=True,
+            allow_external_research=True,
+        )
+        self.assertEqual(9, len(selected))
+
+    def test_normal_selection_is_limited_to_three_and_research_is_not_implicit(self):
+        scenarios = load_document(ROOT / "evals/agent-behavior/scenarios.yaml")["scenarios"]
+
+        with self.assertRaisesRegex(ValueError, "at most three"):
+            run_agent_eval.select_scenarios(
+                scenarios,
+                requested=[item["id"] for item in scenarios[:4]],
+                run_all=False,
+                allow_external_research=False,
+            )
+        with self.assertRaisesRegex(ValueError, "external tool research"):
+            run_agent_eval.select_scenarios(
+                scenarios,
+                requested=["current-tool-selection"],
+                run_all=False,
+                allow_external_research=False,
+            )
 
     def test_unknown_rubric_action_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

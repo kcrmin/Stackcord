@@ -17,7 +17,6 @@ import zipfile
 PLATFORMS = (("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), ("windows", "arm64"))
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$")
 TOP_LEVEL_FILES = (
-    "AGENTS.md",
     "LICENSE",
     "README.md",
     "README.ko.md",
@@ -53,7 +52,7 @@ def _package_files(root: pathlib.Path) -> list[pathlib.Path]:
         for path in tree.rglob("*"):
             if path.is_symlink():
                 raise ValueError(f"package tree contains symlink: {path.relative_to(root)}")
-            if path.is_file():
+            if path.is_file() and not path.name.endswith(("_test.py", "_test.go")) and path.suffix != ".go":
                 files.append(path)
     return sorted(set(files), key=lambda path: path.relative_to(root).as_posix())
 

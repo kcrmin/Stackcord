@@ -83,6 +83,23 @@ codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
 
 A generated repository can continue without the Plugin through `.agents/skills/use-project-harness/` and its Markdown fallback.
 
+## Proportional verification
+
+- During development, run only the changed Go package or relevant Python validator.
+- Pull requests run the full Go suite on macOS ARM and Windows x64, with fast validators, dogfood, and four-target cross-builds in parallel.
+- Race and fuzz checks do not repeat on every pull request; they run in scheduled security checks and release verification.
+- CI and normal release never invoke actual Codex. Select one explicit scenario only when Skill behavior changes.
+
+```bash
+python3 scripts/run_agent_eval.py \
+  --scenarios evals/agent-behavior/scenarios.yaml \
+  --rubric evals/agent-behavior/rubric.yaml \
+  --output .harness/local/evals/skill-change \
+  --scenario continue-after-clean-clone
+```
+
+All nine scenarios require both `--all --allow-external-research`. Use the external-tool research scenario only when the project actually needs a tool decision. Model drills consume AI tokens and are not an automatic CI gate.
+
 ## Real project flow
 
 1. Diagnose repositories and tools, then checkpoint material product answers.

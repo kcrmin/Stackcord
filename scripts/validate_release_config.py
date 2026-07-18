@@ -36,19 +36,29 @@ def validate(root: pathlib.Path) -> list[str]:
             if not re.search(r"@[0-9a-f]{40}$", use):
                 errors.append(f"GitHub Action is not commit-pinned: {path.name}: {use}")
     ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "ci.yml").exists() else ""
-    for label in ("macos-14", "macos-15-intel", "windows-2025", "windows-11-arm"):
+    for label in ("macos-14", "windows-2025"):
         if label not in ci:
-            errors.append(f"native CI target missing: {label}")
+            errors.append(f"representative native CI target missing: {label}")
+    for label in ("macos-15-intel", "windows-11-arm"):
+        if label in ci:
+            errors.append(f"non-representative target repeats the full PR suite: {label}")
     for target in ("darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64"):
         if target not in ci:
             errors.append(f"cross-build target missing: {target}")
-    if "-race" not in ci or "-fuzz" not in ci or "validate_plugin.py" not in ci:
-        errors.append("CI lacks race, fuzz, or Plugin evidence")
+    if "validate_plugin.py" not in ci:
+        errors.append("CI lacks Plugin evidence")
 
     security = (root / ".github" / "workflows" / "security.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "security.yml").exists() else ""
-    for evidence in ("govulncheck", "dependency-review-action", "codeql-action", "security_scan.py"):
+    for evidence in ("govulncheck", "dependency-review-action", "codeql-action"):
         if evidence not in security:
             errors.append(f"security workflow missing {evidence}")
+    for evidence in ("go test -race ./...", "-fuzz FuzzFingerprint"):
+        if evidence not in security:
+            errors.append(f"scheduled security workflow missing {evidence}")
+    if "security_scan.py" not in ci:
+        errors.append("pull-request contracts lack the repository secret scan")
+    if "security_scan.py" in security:
+        errors.append("repository secret scan is duplicated across pull-request workflows")
 
     release = (root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "release.yml").exists() else ""
     for guard in ("workflow_dispatch", "environment: production", "rc_digest", "--skip=publish", "render_plugin_packages.py", "checksums.txt", "--draft", "gh release create"):
@@ -59,6 +69,9 @@ def validate(root: pathlib.Path) -> list[str]:
             errors.append(f"default release workflow contains strict-only control: {strict_token}")
     if "pull_request" in release.split("jobs:", 1)[0]:
         errors.append("release workflow must not publish from pull requests")
+    for name, workflow in (("CI", ci), ("security", security), ("release", release)):
+        if "run_agent_eval.py" in workflow or "codex exec" in workflow:
+            errors.append(f"{name} workflow must not execute model evaluations")
 
     config = (root / ".goreleaser.yaml").read_text(encoding="utf-8") if (root / ".goreleaser.yaml").exists() else ""
     for token in ("CGO_ENABLED=0", "darwin", "windows", "amd64", "arm64", "-trimpath", "formats: [binary]", "orchestrator_{{ .Os }}_{{ .Arch }}", "checksums.txt"):

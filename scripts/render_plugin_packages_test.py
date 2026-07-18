@@ -38,8 +38,13 @@ class RenderPluginPackagesTest(unittest.TestCase):
                     self.assertIn(prefix + "distribution/platform.json", names)
                     self.assertIn(prefix + "skills/start-project/SKILL.md", names)
                     self.assertIn(prefix + "scripts/bootstrap-cli.sh", names)
+                    self.assertNotIn(prefix + "AGENTS.md", names)
                     self.assertFalse(any(name.startswith(prefix + ".git/") for name in names))
                     self.assertFalse(any(name.startswith(prefix + ".harness/") for name in names))
+                    self.assertFalse(any(name.endswith("_test.py") for name in names))
+                    self.assertFalse(any(name.endswith((".go", "_test.go")) for name in names))
+                    for excluded in ("evals/", "dogfood/", "testdata/", ".github/", "docs/superpowers/"):
+                        self.assertFalse(any(name.startswith(prefix + excluded) for name in names))
                     platform = json.loads(archive.read(prefix + "distribution/platform.json"))
                     self.assertEqual("1.0.0", platform["pluginVersion"])
                     self.assertEqual("1.0.0", platform["cliVersion"])
@@ -133,6 +138,7 @@ class RenderPluginPackagesTest(unittest.TestCase):
                     hashlib.sha256((output / name).read_bytes()).hexdigest(),
                     entries[name],
                 )
+
 
 
 if __name__ == "__main__":
