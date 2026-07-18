@@ -176,6 +176,9 @@ func newWorkStart(version string, jsonOutput *bool) *cobra.Command {
 				result := operation.Apply(cmd.Context(), plan)
 				result.ToolVersion, result.Command = version, "work.start"
 				result.Warnings = append(result.Warnings, domain.Item{Code: "provider.single-user-local", Message: "No executable work definition and remote coordination source were confirmed; this is a local advisory claim only."})
+				if result.Status == domain.StatusPassed {
+					result.NextActions = append(result.NextActions, domain.Item{Code: "git.create-worktree", Message: "Create and verify the conventional branch in an isolated worktree from the reviewed base before editing.", Refs: []string{request.Branch}})
+				}
 				return writeResult(cmd, *jsonOutput, result)
 			}
 			return applyGitLocalStart(cmd, *jsonOutput, version, request, definition, plan, config)

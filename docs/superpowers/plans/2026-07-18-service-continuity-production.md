@@ -639,7 +639,7 @@ git commit -m "feat(work): coordinate Git-local claims safely"
 - Produces `gitx.SyncPinnedSubmodules(ctx, root, paths) domain.Result`.
 - Produces a restricted command executor that accepts only preconstructed Git operations and verifies postconditions.
 
-- [ ] **Step 1: Write failing safety tests.**
+- [x] **Step 1: Write failing safety tests.**
 
 ```go
 func TestCreateWorktreeRefusesDirtyBaseAndDuplicateBranch(t *testing.T) {
@@ -661,29 +661,29 @@ func TestSyncPinnedSubmoduleVerifiesExactPostcondition(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: `cd cli && go test ./internal/gitx ./internal/operation ./internal/command -run 'CreateWorktree|SyncPinned|Command' -v`
 
 Expected: FAIL because commands are plan-only.
 
-- [ ] **Step 3: Implement an allow-listed Git executor.**
+- [x] **Step 3: Implement an allow-listed Git executor.**
 
 Do not make `operation.Apply` execute arbitrary `CommandStep`. Add typed operations for `git worktree add` and `git submodule update --init -- <path>`; reuse the restricted coordination push path completed in Task 6. Validate executable identity, exact arguments, directory, preconditions, timeout, output limit, and postcondition.
 
-- [ ] **Step 4: Implement safe worktree creation.**
+- [x] **Step 4: Implement safe worktree creation.**
 
 Reject invalid or AI-marked branches, dirty/diverged base, missing base, branch already checked out, target inside a repository, symlinked target ancestors, and existing target. Verify returned worktree path, branch, and HEAD after creation; remove only an empty failed target created by this operation.
 
-- [ ] **Step 5: Implement pinned submodule initialization.**
+- [x] **Step 5: Implement pinned submodule initialization.**
 
 Initialize only explicit safe paths from the root manifest. Reject dirty, unsafe URL, existing pointer mismatch, recursive implicit sync, and a root identity mismatch. Verify actual child HEAD equals the root gitlink afterwards.
 
-- [ ] **Step 6: Replace plan-only command UX.**
+- [x] **Step 6: Replace plan-only command UX.**
 
 Keep plan output for diagnostics, add Skill-facing apply commands, and never expose arbitrary command execution. A detached submodule is informational unless development starts.
 
-- [ ] **Step 7: Run tests and commit.**
+- [x] **Step 7: Run tests and commit.**
 
 ```sh
 cd cli && go test -race ./internal/gitx ./internal/operation ./internal/command -v

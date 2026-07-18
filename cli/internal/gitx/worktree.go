@@ -1,6 +1,7 @@
 package gitx
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -15,6 +16,8 @@ var branchPattern = regexp.MustCompile(`^(feature|fix|bugfix|chore|docs|refactor
 type WorktreeChange struct {
 	Root   string
 	Branch string
+	Base   string
+	Target string
 }
 
 // PlanWorktree validates conventions and places the worktree outside the repository.
@@ -26,10 +29,18 @@ func PlanWorktree(change WorktreeChange) (operation.Plan, error) {
 	if err != nil {
 		return operation.Plan{}, err
 	}
-	repositoryName := filepath.Base(root)
+	if change.Base == "" {
+		change.Base = "main"
+	}
+	if !safeBaseRef(change.Base) {
+		return operation.Plan{}, fmt.Errorf("worktree base ref is invalid")
+	}
 	branchKey := strings.ReplaceAll(change.Branch, "/", "-")
-	target := filepath.Join(filepath.Dir(root), ".orchestrator-worktrees", repositoryName, branchKey)
-	return operation.Plan{ID: "worktree-" + branchKey, Root: root, Commands: []operation.CommandStep{{Program: "git", Args: []string{"worktree", "add", target, "-b", change.Branch}, Directory: root, ApprovalClass: "B"}}}, nil
+	target, err := worktreeTarget(context.Background(), runner{}, root, change.Branch, change.Target)
+	if err != nil {
+		return operation.Plan{}, err
+	}
+	return operation.Plan{ID: "worktree-" + branchKey, Root: root, Commands: []operation.CommandStep{{Program: "git", Args: []string{"worktree", "add", "-b", change.Branch, target, change.Base}, Directory: root, ApprovalClass: "B"}}}, nil
 }
 
 // ValidateBranch enforces the repository-neutral collaboration convention.
@@ -42,10 +53,14 @@ func ValidateBranch(branch string) error {
 
 func containsAIMarker(branch string) bool {
 	lower := strings.ToLower(branch)
-	for _, marker := range []string{"ai-", "agent-", "codex-", "-ai", "-agent", "-codex"} {
-		if strings.Contains(lower, marker) {
+	description := lower
+	if _, value, found := strings.Cut(lower, "/"); found {
+		description = value
+	}
+	for _, token := range strings.Split(description, "-") {
+		if token == "ai" || token == "agent" || token == "codex" || token == "gpt" {
 			return true
 		}
 	}
-	return false
+	return strings.Contains(description, "generated-by") || strings.Contains(description, "model-generated") || strings.Contains(description, "generated-model")
 }

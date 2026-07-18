@@ -9,7 +9,7 @@ import (
 )
 
 func newGitCommand(version string, jsonOutput *bool) *cobra.Command {
-	parent := &cobra.Command{Use: "git", Short: "Inspect Git, submodule, and worktree actual state without mutation"}
+	parent := &cobra.Command{Use: "git", Short: "Inspect Git state and apply narrowly allow-listed workspace operations"}
 	var root string
 	inspect := &cobra.Command{Use: "inspect", RunE: func(cmd *cobra.Command, _ []string) error {
 		state, err := gitx.Inspect(cmd.Context(), root)
@@ -65,8 +65,32 @@ func newGitCommand(version string, jsonOutput *bool) *cobra.Command {
 	inspect.Flags().StringVar(&root, "root", ".", "repository path")
 	parent.AddCommand(inspect)
 	parent.AddCommand(newGitSyncPlan(version, jsonOutput))
+	parent.AddCommand(newGitSync(version, jsonOutput))
 	parent.AddCommand(newGitWorktreePlan(version, jsonOutput))
+	parent.AddCommand(newGitWorktree(version, jsonOutput))
 	return parent
+}
+
+func newGitSync(version string, jsonOutput *bool) *cobra.Command {
+	var root string
+	var paths []string
+	var apply bool
+	command := &cobra.Command{Use: "sync", Short: "Initialize explicit submodules at exact root pointers", RunE: func(cmd *cobra.Command, _ []string) error {
+		state, err := gitx.Inspect(cmd.Context(), root)
+		if err != nil {
+			return err
+		}
+		if !apply {
+			return writeResult(cmd, *jsonOutput, planResult(version, "git.sync-plan", gitx.PlanWorkspaceSync(state), "Pinned workspace synchronization plan is ready; no Git mutation was attempted."))
+		}
+		result := gitx.SyncPinnedSubmodules(cmd.Context(), root, paths)
+		result.ToolVersion, result.Command = version, "git.sync"
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	command.Flags().StringVar(&root, "root", ".", "exact orchestration repository root")
+	command.Flags().StringSliceVar(&paths, "path", nil, "explicit declared submodule path")
+	command.Flags().BoolVar(&apply, "apply", false, "execute the reviewed allow-listed pinned sync")
+	return command
 }
 
 func newGitSyncPlan(version string, jsonOutput *bool) *cobra.Command {
@@ -93,6 +117,30 @@ func newGitWorktreePlan(version string, jsonOutput *bool) *cobra.Command {
 	}}
 	command.Flags().StringVar(&root, "root", ".", "repository path")
 	command.Flags().StringVar(&branch, "branch", "", "conventional branch name")
+	_ = command.MarkFlagRequired("branch")
+	return command
+}
+
+func newGitWorktree(version string, jsonOutput *bool) *cobra.Command {
+	var root, branch, base, target string
+	var apply bool
+	command := &cobra.Command{Use: "worktree", Short: "Create and verify an isolated conventional feature worktree", RunE: func(cmd *cobra.Command, _ []string) error {
+		if !apply {
+			plan, err := gitx.PlanWorktree(gitx.WorktreeChange{Root: root, Branch: branch, Base: base, Target: target})
+			if err != nil {
+				return err
+			}
+			return writeResult(cmd, *jsonOutput, planResult(version, "git.worktree-plan", plan, "Isolated worktree plan is ready; no Git mutation was attempted."))
+		}
+		result := gitx.CreateWorktree(cmd.Context(), gitx.CreateWorktreeRequest{Root: root, Branch: branch, Base: base, Target: target})
+		result.ToolVersion, result.Command = version, "git.worktree"
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	command.Flags().StringVar(&root, "root", ".", "exact repository root")
+	command.Flags().StringVar(&branch, "branch", "", "conventional branch name")
+	command.Flags().StringVar(&base, "base", "main", "reviewed base branch or commit")
+	command.Flags().StringVar(&target, "target", "", "optional explicit worktree target outside every repository")
+	command.Flags().BoolVar(&apply, "apply", false, "execute the reviewed allow-listed worktree creation")
 	_ = command.MarkFlagRequired("branch")
 	return command
 }

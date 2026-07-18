@@ -205,6 +205,9 @@ func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, req
 		result := operation.Apply(cmd.Context(), plan)
 		result.ToolVersion, result.Command = version, "work.start"
 		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.single-user-local", Message: "No Git coordination remote was available; this claim is local advisory state and is not a team lock."})
+		if result.Status == domain.StatusPassed {
+			result.NextActions = append(result.NextActions, domain.Item{Code: "git.create-worktree", Message: "Create and verify the conventional branch in an isolated worktree from the reviewed base before editing.", Refs: []string{request.Branch}})
+		}
 		return writeResult(cmd, jsonOutput, result)
 	}
 	if err != nil {
@@ -244,6 +247,8 @@ func applyGitLocalStart(cmd *cobra.Command, jsonOutput bool, version string, req
 	result.Evidence = append(result.Evidence, domain.Item{Code: "provider.git-local-claim", Message: revision, Refs: []string{request.WorkID, request.Owner}})
 	if result.Status != domain.StatusPassed {
 		result.Warnings = append(result.Warnings, domain.Item{Code: "provider.claim-active", Message: "The remote claim succeeded but the local checkpoint failed; resume the same work instead of claiming again.", Refs: []string{request.WorkID, revision}})
+	} else {
+		result.NextActions = append(result.NextActions, domain.Item{Code: "git.create-worktree", Message: "Create and verify the conventional branch in an isolated worktree from the reviewed base before editing.", Refs: []string{request.Branch}})
 	}
 	return writeResult(cmd, jsonOutput, result)
 }

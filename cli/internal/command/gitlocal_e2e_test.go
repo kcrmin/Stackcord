@@ -73,6 +73,26 @@ func TestWorkStartPublishesObservableGitLocalClaimBeforeBranchWork(t *testing.T)
 	require.Equal(t, "sam", reclaimed.Claims[0].Owner)
 }
 
+func TestGitWorktreeCommandCreatesVerifiedConventionalBranch(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "root")
+	commandGit(t, "", "init", "--initial-branch=main", root)
+	commandGit(t, root, "config", "user.email", "fixture@example.invalid")
+	commandGit(t, root, "config", "user.name", "Fixture User")
+	require.NoError(t, os.WriteFile(filepath.Join(root, "README.md"), []byte("fixture\n"), 0o600))
+	commandGit(t, root, "add", "README.md")
+	commandGit(t, root, "commit", "-m", "chore: initialize fixture")
+	target := filepath.Join(t.TempDir(), "account-recovery")
+	var output bytes.Buffer
+	cmd := command.New("1.0.0", &output, &bytes.Buffer{})
+	cmd.SetArgs([]string{"git", "worktree", "--root", root, "--branch", "feature/account-recovery", "--base", "main", "--target", target, "--apply", "--json"})
+
+	require.NoError(t, cmd.Execute())
+	require.Equal(t, 0, command.ExitCode(cmd), output.String())
+	require.Contains(t, output.String(), "git.worktree-verified")
+	require.Equal(t, "feature/account-recovery", commandGit(t, target, "branch", "--show-current"))
+	require.Equal(t, commandGit(t, root, "rev-parse", "main"), commandGit(t, target, "rev-parse", "HEAD"))
+}
+
 func defineCommandWork(t *testing.T, root, id, path string) {
 	t.Helper()
 	definition := filepath.Join(t.TempDir(), "work.yaml")

@@ -71,10 +71,15 @@ func TestPlanWorktreeUsesConventionalBranchAndOutsidePath(t *testing.T) {
 	plan, err := gitx.PlanWorktree(gitx.WorktreeChange{Root: root, Branch: "feature/GH-142-account-recovery"})
 	require.NoError(t, err)
 	require.Len(t, plan.Commands, 1)
-	require.NotContains(t, plan.Commands[0].Args[2], root+string(filepath.Separator))
+	require.Equal(t, []string{"worktree", "add", "-b", "feature/GH-142-account-recovery", plan.Commands[0].Args[4], "main"}, plan.Commands[0].Args)
+	require.NotContains(t, plan.Commands[0].Args[4], root+string(filepath.Separator))
 
 	_, err = gitx.PlanWorktree(gitx.WorktreeChange{Root: root, Branch: "agent/generated-work"})
 	require.ErrorContains(t, err, "branch must match")
+	for _, branch := range []string{"feature/gpt-output", "feature/model-generated", "feature/generated-by-tool"} {
+		_, err = gitx.PlanWorktree(gitx.WorktreeChange{Root: root, Branch: branch})
+		require.ErrorContains(t, err, "branch must match", branch)
+	}
 }
 
 func TestInspectReportsExistingWorktrees(t *testing.T) {

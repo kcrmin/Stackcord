@@ -36,11 +36,17 @@ func validateReadArgs(args []string) error {
 		return fmt.Errorf("git command is required")
 	}
 	allowed := map[string]bool{"rev-parse": true, "status": true, "rev-list": true, "ls-tree": true, "for-each-ref": true, "cat-file": true, "worktree": true}
+	allowed["config"] = true
 	if !allowed[args[0]] {
 		return fmt.Errorf("git command %q is outside the read-only allowlist", args[0])
 	}
 	if args[0] == "worktree" && (len(args) != 4 || args[1] != "list" || args[2] != "--porcelain" || args[3] != "-z") {
 		return fmt.Errorf("only read-only Git worktree listing is allowed")
+	}
+	if args[0] == "config" {
+		if len(args) != 3 || args[1] != "--get" || !safeSubmoduleConfigKey(args[2]) {
+			return fmt.Errorf("only an exact submodule URL lookup is allowed")
+		}
 	}
 	for _, argument := range args {
 		lower := strings.ToLower(argument)
@@ -59,7 +65,23 @@ func safeEnvironment() []string {
 			result = append(result, key+"="+value)
 		}
 	}
-	return append(result, "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_CONFIG_NOSYSTEM=1")
+	return append(result, "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "GIT_CONFIG_NOSYSTEM=1", "GIT_ALLOW_PROTOCOL=https:ssh:git:file", "GCM_INTERACTIVE=Never", "LC_ALL=C")
+}
+
+func safeSubmoduleConfigKey(value string) bool {
+	if !strings.HasPrefix(value, "submodule.") || !strings.HasSuffix(value, ".url") || strings.ContainsAny(value, "\x00\r\n") {
+		return false
+	}
+	name := strings.TrimSuffix(strings.TrimPrefix(value, "submodule."), ".url")
+	if name == "" {
+		return false
+	}
+	for _, char := range name {
+		if (char < 'a' || char > 'z') && (char < 'A' || char > 'Z') && (char < '0' || char > '9') && !strings.ContainsRune("._/-", char) {
+			return false
+		}
+	}
+	return true
 }
 
 func redact(value string) string {
