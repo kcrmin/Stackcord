@@ -87,6 +87,18 @@ func Collect(ctx context.Context, start string, _ Options) Snapshot {
 	if err != nil {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: err.Error()})
 	}
+	if definitions, definitionErr := workpkg.LoadDefinitions(located.Path); definitionErr != nil {
+		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.definition-invalid", Message: definitionErr.Error()})
+	} else {
+		for _, definition := range definitions {
+			for id, expected := range definition.UIBaselines {
+				entry, exists := snapshot.Context.Index[id]
+				if !exists || entry.Kind != "ui-baseline" || entry.Fingerprint != expected {
+					snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "work.ui-baseline-stale", Message: "Active work references an older or missing UI baseline.", Refs: []string{definition.ID, id, expected, entry.Fingerprint}})
+				}
+			}
+		}
+	}
 	var liveClaims map[string]providerpkg.GitLocalClaim
 	snapshot.Provider, liveClaims, err = collectProvider(ctx, located.Path)
 	if err != nil {

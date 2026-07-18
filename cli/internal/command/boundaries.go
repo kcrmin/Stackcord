@@ -342,7 +342,80 @@ func newUICommand(version string, jsonOutput *bool) *cobra.Command {
 	integrate.Flags().BoolVar(&integrateApply, "apply", false, "write the reviewed baseline acknowledgement for the implementation commit")
 	_ = integrate.MarkFlagRequired("id")
 	_ = integrate.MarkFlagRequired("work-id")
-	parent.AddCommand(importCommand, reconcile, integrate)
+
+	var promotion uiimport.PromotionRequest
+	var promoteApply bool
+	promote := &cobra.Command{Use: "promote", Short: "Copy reviewed UI material into an editable UI workspace", RunE: func(cmd *cobra.Command, _ []string) error {
+		plan, err := uiimport.Promote(promotion)
+		if err != nil {
+			return err
+		}
+		if !promoteApply {
+			return writeResult(cmd, *jsonOutput, planResult(version, "ui.promote.plan", plan, "Reviewed UI source promotion plan is ready; workspace files are unchanged."))
+		}
+		if len(plan.Blockers) > 0 {
+			return writeResult(cmd, *jsonOutput, planResult(version, "ui.promote", plan, "UI source promotion is blocked by current source or workspace state."))
+		}
+		result := operation.Apply(cmd.Context(), plan)
+		result.ToolVersion, result.Command = version, "ui.promote"
+		if result.Status == domain.StatusPassed {
+			result.Summary = "Reviewed UI material is now editable in the UI workspace; no commit or frontend code was created."
+		}
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	promote.Flags().StringVar(&promotion.Root, "root", ".", "orchestration root")
+	promote.Flags().StringVar(&promotion.SourceID, "id", "", "registered external UI source ID")
+	promote.Flags().StringVar(&promotion.WorkspaceID, "workspace", "", "declared UI baseline workspace ID")
+	promote.Flags().StringVar(&promotion.Mode, "mode", "selected", "whole, selected, or reference-only")
+	promote.Flags().StringSliceVar(&promotion.Paths, "path", nil, "exact reviewed source path for selected mode")
+	promote.Flags().BoolVar(&promoteApply, "apply", false, "copy only reviewed inspected files")
+	_ = promote.MarkFlagRequired("id")
+	_ = promote.MarkFlagRequired("workspace")
+
+	baselineParent := &cobra.Command{Use: "baseline", Short: "Bind approved UI meaning to exact workspace commits"}
+	var baselineRequest uiimport.BaselineRequest
+	var baselineApply bool
+	bind := &cobra.Command{Use: "bind", RunE: func(cmd *cobra.Command, _ []string) error {
+		baseline, plan, warnings, err := uiimport.PlanBaseline(cmd.Context(), baselineRequest)
+		if err != nil {
+			return err
+		}
+		if !baselineApply {
+			result := planResult(version, "ui.baseline-bind.plan", plan, "UI baseline identity plan is ready; no root files or pointers changed.")
+			result.Warnings = append(result.Warnings, warnings...)
+			if baseline.ID != "" {
+				result.Facts = append(result.Facts, domain.Item{Code: "ui.baseline", Message: baseline.ID, Refs: []string{baseline.WorkspaceID, baseline.WorkspaceCommit, baseline.Fingerprint}})
+			}
+			return writeResult(cmd, *jsonOutput, result)
+		}
+		if len(plan.Blockers) > 0 {
+			result := planResult(version, "ui.baseline-bind", plan, "UI baseline binding is blocked by source or Git identity.")
+			result.Warnings = append(result.Warnings, warnings...)
+			return writeResult(cmd, *jsonOutput, result)
+		}
+		result := operation.Apply(cmd.Context(), plan)
+		result.ToolVersion, result.Command = version, "ui.baseline-bind"
+		result.Warnings = append(result.Warnings, warnings...)
+		if result.Status == domain.StatusPassed {
+			result.Summary = "Exact UI baseline identity was recorded; commit it with any pending root UI pointer change."
+			result.Facts = append(result.Facts, domain.Item{Code: "ui.baseline", Message: baseline.ID, Refs: []string{baseline.WorkspaceID, baseline.WorkspaceCommit, baseline.Fingerprint}})
+		}
+		return writeResult(cmd, *jsonOutput, result)
+	}}
+	bind.Flags().StringVar(&baselineRequest.Root, "root", ".", "orchestration root")
+	bind.Flags().StringVar(&baselineRequest.ID, "id", "", "UI baseline stable ID")
+	bind.Flags().StringVar(&baselineRequest.WorkspaceID, "workspace", "", "declared UI workspace ID")
+	bind.Flags().StringSliceVar(&baselineRequest.SourceIDs, "source", nil, "promoted seed or canonical source ID")
+	bind.Flags().StringSliceVar(&baselineRequest.MappedRefs, "ref", nil, "mapped UI flow or product stable ID")
+	bind.Flags().StringSliceVar(&baselineRequest.Consumers, "consumer", nil, "consumer workspace or component stable ID")
+	bind.Flags().BoolVar(&baselineApply, "apply", false, "write the reviewed root-owned baseline identity")
+	_ = bind.MarkFlagRequired("id")
+	_ = bind.MarkFlagRequired("workspace")
+	_ = bind.MarkFlagRequired("ref")
+	_ = bind.MarkFlagRequired("consumer")
+	baselineParent.AddCommand(bind)
+
+	parent.AddCommand(importCommand, reconcile, integrate, promote, baselineParent)
 	return parent
 }
 

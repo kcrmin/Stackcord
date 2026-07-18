@@ -147,6 +147,12 @@ func PlanDefinition(ctx context.Context, root string, definition Definition) (op
 			plan.Blockers = append(plan.Blockers, domain.Item{Code: "work.ref-missing", Message: "Work scope references missing canonical context.", Refs: []string{ref}})
 		}
 	}
+	for id, expected := range definition.UIBaselines {
+		entry, exists := contextSnapshot.Index[id]
+		if !exists || entry.Kind != "ui-baseline" || entry.Fingerprint != expected {
+			plan.Blockers = append(plan.Blockers, domain.Item{Code: "work.ui-baseline-stale", Message: "Work definition does not reference the current exact UI baseline.", Refs: []string{id, expected, entry.Fingerprint}})
+		}
+	}
 	workspaceIDs := map[string]bool{}
 	for _, entry := range rootInfo.Manifest.Workspaces {
 		workspaceIDs[entry.ID] = true
@@ -267,6 +273,9 @@ func canonicalRefs(definition Definition) []string {
 	values = append(values, definition.Scope.ScenarioIDs...)
 	values = append(values, definition.Scope.ContractIDs...)
 	values = append(values, definition.Scope.UIFlows...)
+	for id := range definition.UIBaselines {
+		values = append(values, id)
+	}
 	return normalizedSet(values)
 }
 

@@ -4,7 +4,7 @@
   "type": "object",
   "required": [
     "schema_version", "id", "workspace_id", "workspace_commit", "workspace_remote",
-    "source_ids", "mapped_refs", "consumers", "fingerprint"
+    "source_ids", "source_fingerprints", "mapped_refs", "consumers", "fingerprint"
   ],
   "properties": {
     "schema_version": { "const": 1 },
@@ -13,6 +13,11 @@
     "workspace_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "workspace_remote": { "type": "string", "minLength": 1, "maxLength": 2048 },
     "source_ids": { "$ref": "#/$defs/stable_ids" },
+    "source_fingerprints": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/stable_id" },
+      "additionalProperties": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+    },
     "mapped_refs": { "$ref": "#/$defs/stable_ids", "minItems": 1 },
     "consumers": { "$ref": "#/$defs/stable_ids", "minItems": 1 },
     "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }

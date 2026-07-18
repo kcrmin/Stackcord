@@ -3,6 +3,8 @@ package context
 import (
 	"bytes"
 	stdcontext "context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -101,6 +103,11 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 	for source, targets := range uiEdges {
 		registryEdges[source] = append(registryEdges[source], targets...)
 	}
+	baselineEdges, baselineIssues := uiBaselineContext(root, snapshot.Index)
+	issues = append(issues, baselineIssues...)
+	for source, targets := range baselineEdges {
+		registryEdges[source] = append(registryEdges[source], targets...)
+	}
 	for id := range uiStale {
 		registryStale[id] = struct{}{}
 	}
@@ -129,6 +136,84 @@ func Refresh(ctx stdcontext.Context, root string, mode RefreshMode) (Snapshot, [
 		}
 	}
 	return snapshot, issues
+}
+
+func uiBaselineContext(root string, index map[string]IndexEntry) (map[string][]string, []domain.Item) {
+	edges := map[string][]string{}
+	issues := []domain.Item{}
+	directory := filepath.Join(root, ".harness", "ui", "baselines")
+	if info, err := os.Lstat(directory); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return edges, []domain.Item{{Code: "context.error.ui-baselines", Message: "UI baseline directory cannot be a symlink."}}
+	}
+	entries, err := os.ReadDir(directory)
+	if os.IsNotExist(err) {
+		return edges, issues
+	}
+	if err != nil {
+		return edges, []domain.Item{{Code: "context.error.ui-baselines", Message: err.Error()}}
+	}
+	for _, file := range entries {
+		if file.IsDir() || (filepath.Ext(file.Name()) != ".yaml" && filepath.Ext(file.Name()) != ".yml") {
+			continue
+		}
+		path := filepath.Join(directory, file.Name())
+		info, statErr := os.Lstat(path)
+		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			issues = append(issues, domain.Item{Code: "context.error.ui-baseline", Message: "UI baseline must be a regular non-symlink file.", Refs: []string{filepath.ToSlash(path)}})
+			continue
+		}
+		baseline, loadErr := schema.LoadYAML[uiBaselineRegistration](path)
+		if loadErr == nil {
+			if schemaIssues := schema.Validate("ui-baseline", baseline); len(schemaIssues) > 0 {
+				loadErr = fmt.Errorf("validate UI baseline: %s", schemaIssues[0].Message)
+			} else if baseline.Fingerprint != contextUIBaselineFingerprint(baseline) {
+				loadErr = fmt.Errorf("UI baseline fingerprint differs from normalized identity")
+			}
+		}
+		if loadErr != nil {
+			issues = append(issues, domain.Item{Code: "context.error.ui-baseline", Message: loadErr.Error(), Refs: []string{filepath.ToSlash(path)}})
+			continue
+		}
+		filenameID := strings.TrimSuffix(strings.TrimSuffix(file.Name(), ".yaml"), ".yml")
+		if filenameID != baseline.ID {
+			issues = append(issues, domain.Item{Code: "context.error.ui-baseline", Message: "UI baseline filename and stable ID differ.", Refs: []string{filenameID, baseline.ID}})
+			continue
+		}
+		if _, duplicate := index[baseline.ID]; duplicate {
+			issues = append(issues, domain.Item{Code: "context.error.duplicate-id", Message: "UI baseline ID duplicates canonical context.", Refs: []string{baseline.ID}})
+			continue
+		}
+		sources := make([]SourceRef, 0, len(baseline.SourceIDs))
+		for _, sourceID := range baseline.SourceIDs {
+			sources = append(sources, SourceRef{Source: sourceID, Fingerprint: baseline.SourceFingerprints[sourceID]})
+		}
+		index[baseline.ID] = IndexEntry{ID: baseline.ID, Path: filepath.ToSlash(filepath.Join(".harness", "ui", "baselines", file.Name())), Kind: "ui-baseline", Status: "approved", Revision: 1, Fingerprint: baseline.Fingerprint, Refs: append([]string(nil), baseline.SourceIDs...), Sources: sources}
+		edges[baseline.ID] = uniqueSorted(append(append([]string(nil), baseline.MappedRefs...), baseline.Consumers...))
+	}
+	return edges, issues
+}
+
+type uiBaselineRegistration struct {
+	SchemaVersion      int               `json:"schema_version" yaml:"schema_version"`
+	ID                 string            `json:"id" yaml:"id"`
+	WorkspaceID        string            `json:"workspace_id" yaml:"workspace_id"`
+	WorkspaceCommit    string            `json:"workspace_commit" yaml:"workspace_commit"`
+	WorkspaceRemote    string            `json:"workspace_remote" yaml:"workspace_remote"`
+	SourceIDs          []string          `json:"source_ids" yaml:"source_ids"`
+	SourceFingerprints map[string]string `json:"source_fingerprints" yaml:"source_fingerprints"`
+	MappedRefs         []string          `json:"mapped_refs" yaml:"mapped_refs"`
+	Consumers          []string          `json:"consumers" yaml:"consumers"`
+	Fingerprint        string            `json:"fingerprint" yaml:"fingerprint"`
+}
+
+func contextUIBaselineFingerprint(baseline uiBaselineRegistration) string {
+	baseline.SourceIDs = uniqueSorted(baseline.SourceIDs)
+	baseline.MappedRefs = uniqueSorted(baseline.MappedRefs)
+	baseline.Consumers = uniqueSorted(baseline.Consumers)
+	baseline.Fingerprint = ""
+	data, _ := json.Marshal(baseline)
+	digest := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(digest[:])
 }
 
 func externalUIContext(root string, index map[string]IndexEntry) (map[string][]string, map[string]struct{}, []string, []domain.Item) {
