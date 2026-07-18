@@ -49,6 +49,19 @@ class PluginContractTest(unittest.TestCase):
         self.assertIn("small private", text)
         self.assertNotIn("then reserve it before creating implementation state", text)
 
+    def test_material_questions_use_the_user_facing_choice_contract(self):
+        for name in ("start-project", "plan-project-work"):
+            text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("A/B/C", text)
+            self.assertIn("free-form", text)
+
+    def test_discovery_persists_initial_intent_before_the_next_question(self):
+        text = (ROOT / "skills" / "start-project" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("initial product request", text)
+        self.assertIn("successful apply", text)
+
     def test_manifest_points_to_bundled_hooks(self):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")

@@ -66,6 +66,8 @@ def _validate_action_map(errors: list[str], label: str, value: object) -> set[st
         if label == "required_actions" and rule.get("kind") not in {
             "command_before_mutation",
             "command_or_response",
+            "successful_command",
+            "successful_command_or_response",
             "response",
         }:
             errors.append(f"rubric action {name} has unsupported kind")

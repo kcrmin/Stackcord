@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -66,8 +67,10 @@ def score_transcript(
     rubric: dict[str, Any],
     commands: list[str],
     response: str,
+    successful_commands: list[str] | None = None,
 ) -> dict[str, Any]:
     command_text = "\n".join(commands)
+    successful_command_text = "\n".join(successful_commands or [])
     combined = f"{command_text}\n{response}"
     missing_required: list[str] = []
     matched_forbidden: list[str] = []
@@ -80,6 +83,12 @@ def score_transcript(
         if kind == "command_before_mutation":
             passed = _status_precedes_mutation(commands, patterns)
             matches = _contains(command_text, patterns)
+        elif kind == "successful_command":
+            matches = _contains(successful_command_text, patterns)
+            passed = len(set(matches)) >= int(rule.get("min_matches", 1))
+        elif kind == "successful_command_or_response":
+            matches = _contains(f"{successful_command_text}\n{response}", patterns)
+            passed = len(set(matches)) >= int(rule.get("min_matches", 1))
         else:
             haystack = response if kind == "response" else combined
             matches = _contains(haystack, patterns)
@@ -134,6 +143,15 @@ def build_codex_command(
     return command
 
 
+def evaluation_environment(base: dict[str, str], cli: pathlib.Path) -> dict[str, str]:
+    environment = dict(base)
+    environment["ORCHESTRATOR_CLI"] = str(cli)
+    existing_path = environment.get("PATH", "")
+    environment["PATH"] = str(cli.parent) + (os.pathsep + existing_path if existing_path else "")
+    environment["GIT_TERMINAL_PROMPT"] = "0"
+    return environment
+
+
 def _walk_strings(value: object) -> Iterable[tuple[str | None, str]]:
     if isinstance(value, dict):
         for key, item in value.items():
@@ -159,6 +177,27 @@ def extract_commands(events_path: pathlib.Path) -> list[str]:
     return commands
 
 
+def extract_successful_commands(events_path: pathlib.Path) -> list[str]:
+    commands: list[str] = []
+    for line in events_path.read_text(encoding="utf-8").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item") if isinstance(event, dict) else None
+        if (
+            event.get("type") != "item.completed"
+            or not isinstance(item, dict)
+            or item.get("type") != "command_execution"
+            or item.get("exit_code") != 0
+        ):
+            continue
+        command = item.get("command")
+        if isinstance(command, str) and command not in commands:
+            commands.append(command)
+    return commands
+
+
 def score_saved_transcript(
     scenario: dict[str, Any],
     rubric: dict[str, Any],
@@ -169,8 +208,15 @@ def score_saved_transcript(
     if not events_path.is_file() or not final_path.is_file():
         raise ValueError(f"missing saved transcript for {scenario['id']}")
     commands = extract_commands(events_path)
+    successful_commands = extract_successful_commands(events_path)
     response = final_path.read_text(encoding="utf-8")
-    score = score_transcript(scenario, rubric, commands, response)
+    score = score_transcript(
+        scenario,
+        rubric,
+        commands,
+        response,
+        successful_commands=successful_commands,
+    )
     previous_path = scenario_output / "result.json"
     previous = (
         json.loads(previous_path.read_text(encoding="utf-8"))
@@ -184,6 +230,7 @@ def score_saved_transcript(
         "exit_code": exit_code,
         "stderr": str(previous.get("stderr", "")),
         "commands": commands,
+        "successful_commands": successful_commands,
         **score,
     }
     if exit_code != 0:
@@ -280,6 +327,20 @@ def run(args: argparse.Namespace) -> int:
             return 2
         with tempfile.TemporaryDirectory(prefix="service-continuity-eval-") as temporary:
             temp_root = pathlib.Path(temporary)
+            cli = temp_root / "bin" / ("orchestrator.exe" if sys.platform == "win32" else "orchestrator")
+            cli.parent.mkdir(parents=True)
+            build = subprocess.run(
+                ["go", "build", "-trimpath", "-o", str(cli), "./cmd/orchestrator"],
+                cwd=root / "cli",
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            if build.returncode != 0:
+                print(f"ERROR: cannot build evaluation CLI: {build.stderr[-4000:]}", file=sys.stderr)
+                return 2
+            environment = evaluation_environment(dict(os.environ), cli)
             for scenario in selected:
                 scenario_output = output / scenario["id"]
                 scenario_output.mkdir(parents=True, exist_ok=True)
@@ -299,6 +360,7 @@ def run(args: argparse.Namespace) -> int:
                     completed = subprocess.run(
                         command,
                         cwd=fixture,
+                        env=environment,
                         stdout=events,
                         stderr=subprocess.PIPE,
                         text=True,
@@ -307,13 +369,21 @@ def run(args: argparse.Namespace) -> int:
                     )
                 response = final_path.read_text(encoding="utf-8") if final_path.is_file() else ""
                 commands = extract_commands(events_path)
-                score = score_transcript(scenario, rubric, commands, response)
+                successful_commands = extract_successful_commands(events_path)
+                score = score_transcript(
+                    scenario,
+                    rubric,
+                    commands,
+                    response,
+                    successful_commands=successful_commands,
+                )
                 result = {
                     "id": scenario["id"],
                     "expected_skill": scenario["expected_skill"],
                     "exit_code": completed.returncode,
                     "stderr": completed.stderr[-4000:],
                     "commands": commands,
+                    "successful_commands": successful_commands,
                     **score,
                 }
                 if completed.returncode != 0:

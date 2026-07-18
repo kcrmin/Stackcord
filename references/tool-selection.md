@@ -8,7 +8,7 @@ Before recommending a tool:
 2. Decide which missing capability is actually needed: engineering method, formal planning, task status, conversational recall, design collaboration, database visualization, CI, or publication.
 3. When the choice can change, search current official documentation and security or release status. Compare two or three viable candidates, including “keep the current tool” when appropriate.
 4. Explain why each candidate fits, its operating cost and lock-in, what data leaves the repository, and which source of truth it would own.
-5. Ask one material choice with the recommendation first and free-form input. Connect or install only the chosen tool with explicit authority, then record the dated decision and reevaluation trigger.
+5. Ask one material choice as A/B/C with the recommended option first and marked, plus free-form input. Connect or install only the chosen tool with explicit authority, then record the dated decision and reevaluation trigger.
 
 Common boundaries:
 

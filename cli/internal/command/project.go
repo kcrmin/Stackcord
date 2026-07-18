@@ -10,6 +10,7 @@ import (
 	"fullstack-orchestrator/cli/internal/project"
 	"fullstack-orchestrator/cli/internal/schema"
 	"github.com/spf13/cobra"
+	"go.yaml.in/yaml/v3"
 )
 
 func newProjectCommand(version string, jsonOutput *bool) *cobra.Command {
@@ -24,24 +25,31 @@ func newProjectCheckpoint(version string, jsonOutput *bool) *cobra.Command {
 	var request project.CheckpointRequest
 	var inputPath string
 	var apply bool
-	command := &cobra.Command{Use: "checkpoint", Short: "Save the next normalized service-discovery revision", RunE: func(cmd *cobra.Command, _ []string) error {
-		checkpoint, err := schema.LoadYAML[project.DiscoveryCheckpoint](inputPath)
-		if err != nil {
-			return err
-		}
-		request.Checkpoint = checkpoint
-		plan, err := project.PlanCheckpoint(request)
-		if err != nil {
-			return err
-		}
-		if apply {
-			result := operation.Apply(cmd.Context(), plan)
-			result.ToolVersion, result.Command = version, "project.checkpoint"
+	example, _ := yaml.Marshal(project.ExampleDiscoveryCheckpoint())
+	command := &cobra.Command{
+		Use:   "checkpoint",
+		Short: "Save the next normalized service-discovery revision",
+		Long:  "Save a complete normalized service-discovery snapshot. Replace the example values with current product meaning; never copy raw dialogue or tone.",
+		Example: "  # checkpoint.yaml\n" + indentLines(string(example), "  ") +
+			"\n  orchestrator project checkpoint --parent . --id 01JDISCOVERY --input checkpoint.yaml --apply --json",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			checkpoint, err := schema.LoadYAML[project.DiscoveryCheckpoint](inputPath)
+			if err != nil {
+				return err
+			}
+			request.Checkpoint = checkpoint
+			plan, err := project.PlanCheckpoint(request)
+			if err != nil {
+				return err
+			}
+			if apply {
+				result := operation.Apply(cmd.Context(), plan)
+				result.ToolVersion, result.Command = version, "project.checkpoint"
+				return writeResult(cmd, *jsonOutput, result)
+			}
+			result := planResult(version, "project.checkpoint.plan", plan, "Normalized discovery checkpoint is ready; no files were changed.")
 			return writeResult(cmd, *jsonOutput, result)
-		}
-		result := planResult(version, "project.checkpoint.plan", plan, "Normalized discovery checkpoint is ready; no files were changed.")
-		return writeResult(cmd, *jsonOutput, result)
-	}}
+		}}
 	command.Flags().StringVar(&request.Parent, "parent", "", "parent directory for .harness-drafts")
 	command.Flags().StringVar(&request.DraftID, "id", "", "sortable draft ID")
 	command.Flags().StringVar(&request.Locale, "locale", "en", "discovery language: en or ko")
@@ -51,6 +59,10 @@ func newProjectCheckpoint(version string, jsonOutput *bool) *cobra.Command {
 	_ = command.MarkFlagRequired("id")
 	_ = command.MarkFlagRequired("input")
 	return command
+}
+
+func indentLines(value, prefix string) string {
+	return prefix + strings.ReplaceAll(strings.TrimRight(value, "\n"), "\n", "\n"+prefix)
 }
 
 func newProjectMutation(name, version string, jsonOutput *bool, adopt bool) *cobra.Command {

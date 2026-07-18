@@ -43,6 +43,21 @@ func TestCheckpointRejectsMissingStableIdentity(t *testing.T) {
 	require.ErrorContains(t, err, "does not match pattern")
 }
 
+func TestDiscoveryCheckpointExampleIsAValidStartingSnapshot(t *testing.T) {
+	example := project.ExampleDiscoveryCheckpoint()
+
+	plan, err := project.PlanCheckpoint(project.CheckpointRequest{
+		Parent:     t.TempDir(),
+		DraftID:    "01JEXAMPLE",
+		Locale:     "en",
+		Checkpoint: example,
+	})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, plan.Files)
+	require.NotContains(t, example.Summary, "User said")
+}
+
 func validCheckpoint(summary, question string) project.DiscoveryCheckpoint {
 	return project.DiscoveryCheckpoint{
 		SchemaVersion:   1,

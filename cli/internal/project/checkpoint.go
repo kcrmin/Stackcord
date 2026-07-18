@@ -61,6 +61,27 @@ type DiscoveryCheckpoint struct {
 	OpenQuestions   []DiscoveryFact     `json:"open_questions" yaml:"open_questions"`
 }
 
+// ExampleDiscoveryCheckpoint returns a complete valid input shape for CLI help.
+// Values are illustrative product meaning, never copied conversation text.
+func ExampleDiscoveryCheckpoint() DiscoveryCheckpoint {
+	return DiscoveryCheckpoint{
+		SchemaVersion:   1,
+		Summary:         "A service that helps a member recover from a failed payment.",
+		CurrentFocus:    "Decide the first recovery boundary.",
+		Roles:           []DiscoveryFact{{ID: "role.member", Summary: "A member completing a payment."}},
+		Journeys:        []DiscoveryFact{{ID: "journey.payment.recovery", Summary: "Recover after a failed payment."}},
+		Capabilities:    []DiscoveryFact{{ID: "capability.payment.recovery", Summary: "Guide a member to a safe recovery action."}},
+		Policies:        []DiscoveryFact{{ID: "policy.payment.no-duplicate", Summary: "Never create a duplicate charge during recovery."}},
+		Scenarios:       []DiscoveryScenario{{ID: "scenario.payment.failure", Actor: "role.member", Trigger: "A payment fails.", Outcome: "The member receives a safe recovery path.", Failure: "If recovery is unsafe, stop and explain the next action."}},
+		Quality:         []DiscoveryFact{{ID: "quality.payment.accessibility", Summary: "Recovery is keyboard and screen-reader accessible."}},
+		UICoverage:      []UICoverage{{ID: "ui.payment.recovery", RoleID: "role.member", JourneyID: "journey.payment.recovery", States: []string{"ready", "submitting", "success", "error"}}},
+		TechnologyNeeds: []DiscoveryFact{{ID: "technology.need.payment-integration", Summary: "Payment integration is required; implementation is not selected."}},
+		Decisions:       []DiscoveryDecision{{ID: "decision.payment.scope", Choice: "Post-failure recovery first.", Rationale: "It is the smallest boundary that tests the product value."}},
+		Assumptions:     []DiscoveryFact{{ID: "assumption.payment.failure-visible", Summary: "A failed payment can be observed without storing sensitive credentials."}},
+		OpenQuestions:   []DiscoveryFact{{ID: "question.payment.failure-boundary", Summary: "Which failed payments should the first release recover?"}},
+	}
+}
+
 // CheckpointRequest identifies one long-running discovery and its normalized current snapshot.
 type CheckpointRequest struct {
 	Parent, DraftID, Locale string

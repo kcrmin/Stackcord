@@ -4,7 +4,12 @@ import tempfile
 import unittest
 
 from validate_agent_eval import load_document, validate
-from run_agent_eval import build_codex_command, score_saved_transcript, score_transcript
+from run_agent_eval import (
+    build_codex_command,
+    evaluation_environment,
+    score_saved_transcript,
+    score_transcript,
+)
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -67,6 +72,17 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertLess(command.index("--model"), command.index("gpt-5.4"))
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", command)
 
+    def test_runner_exposes_the_built_cli_without_changing_user_path(self):
+        base = {"PATH": "/usr/bin", "HOME": "/tmp/home"}
+        cli = pathlib.Path("/tmp/eval-bin/orchestrator")
+
+        environment = evaluation_environment(base, cli)
+
+        self.assertEqual(str(cli), environment["ORCHESTRATOR_CLI"])
+        self.assertEqual(f"{cli.parent}:/usr/bin", environment["PATH"])
+        self.assertEqual("0", environment["GIT_TERMINAL_PROMPT"])
+        self.assertEqual({"PATH": "/usr/bin", "HOME": "/tmp/home"}, base)
+
     def test_runner_scores_status_before_mutation_and_forbidden_content(self):
         rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
         scenario = {
@@ -89,6 +105,48 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertFalse(failing["passed"])
         self.assertIn("combined_status_before_mutation", failing["missing_required"])
         self.assertIn("unsafe_mutation", failing["matched_forbidden"])
+
+    def test_proportional_coordination_accepts_natural_korean_wording(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["proportional_coordination"],
+            "forbidden_actions": ["unnecessary_task_gate"],
+        }
+
+        result = score_transcript(
+            scenario,
+            rubric,
+            commands=[],
+            response="이 작은 문서 수정에는 티켓, 예약, TDD 같은 조율 절차가 필요 없습니다.",
+        )
+
+        self.assertTrue(result["passed"])
+
+    def test_failed_checkpoint_command_does_not_prove_persisted_product_meaning(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["checkpoint_normalized_product_meaning"],
+            "forbidden_actions": [],
+        }
+        command = "orchestrator project checkpoint --input checkpoint.yaml --apply --json"
+
+        failed = score_transcript(
+            scenario,
+            rubric,
+            commands=[command],
+            successful_commands=[],
+            response="정규화한 제품 의도를 정리해 저장했습니다.",
+        )
+        passed = score_transcript(
+            scenario,
+            rubric,
+            commands=[command],
+            successful_commands=[command],
+            response="정규화한 제품 의도를 저장했습니다.",
+        )
+
+        self.assertFalse(failed["passed"])
+        self.assertTrue(passed["passed"])
 
     def test_local_evaluation_transcripts_are_ignored(self):
         patterns = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()

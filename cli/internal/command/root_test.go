@@ -93,6 +93,22 @@ func TestProjectInitPlansThenAppliesNeutralHarness(t *testing.T) {
 	require.Contains(t, stdout.String(), "project.init")
 }
 
+func TestProjectCheckpointHelpIncludesACompleteInputExample(t *testing.T) {
+	var stdout bytes.Buffer
+	cmd := command.New("1.0.0", &stdout, &bytes.Buffer{})
+	cmd.SetArgs([]string{"project", "checkpoint", "--help"})
+
+	require.NoError(t, cmd.Execute())
+	for _, field := range []string{
+		"schema_version: 1", "summary:", "current_focus:", "roles:", "journeys:",
+		"capabilities:", "policies:", "scenarios:", "quality:", "ui_coverage:",
+		"technology_needs:", "decisions:", "assumptions:", "open_questions:",
+	} {
+		require.Contains(t, stdout.String(), field)
+	}
+	require.Contains(t, stdout.String(), "orchestrator project checkpoint")
+}
+
 func TestGitInspectCommandReportsActualState(t *testing.T) {
 	root := t.TempDir()
 	run := func(args ...string) {
