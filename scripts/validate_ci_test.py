@@ -23,6 +23,8 @@ class CIContractTest(unittest.TestCase):
             self.assertIn(token, ci)
         for forbidden in ("run_agent_eval.py", "go test -race", "-fuzz FuzzFingerprint"):
             self.assertNotIn(forbidden, ci)
+        self.assertIn('STACKCORD_RUN_DOGFOOD: "1"', ci)
+        self.assertEqual(1, ci.count("dogfood/run.sh"))
 
     def test_pull_request_uses_two_representative_native_full_test_jobs(self):
         ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")

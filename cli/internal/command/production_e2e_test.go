@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -22,8 +21,8 @@ type productionDogfoodReport struct {
 }
 
 func TestProductionE2EMultiRepositoryContinuity(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("multi-repository dogfood runs once in its dedicated CI job; Windows keeps CAS, focused E2E, build, and smoke coverage")
+	if os.Getenv("STACKCORD_RUN_DOGFOOD") != "1" {
+		t.Skip("set STACKCORD_RUN_DOGFOOD=1 to run the opt-in multi-repository dogfood scenario")
 	}
 	repositoryRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
 	require.NoError(t, err)
