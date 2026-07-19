@@ -18,11 +18,10 @@ Use a problem-first README. Preserve the nine established product problems near 
    - external-tool recommendation at the point of need
    - protected policy change proposed by a contributor
 5. One question-to-release workflow table and one compact diagram
-6. Multi-repository Git/submodule/worktree collaboration structure
-7. What is verified deterministically and what still depends on a Git provider
-8. Installation through Codex first, with a manual fallback
-9. Only the generated files users may need to recognize
-10. A compact guide index
+6. A short distinction between product specifications and implementation contracts, using the reservation policy from the conversation
+7. Installation through Codex first, with a manual fallback
+8. Only the generated files users may need to recognize
+9. A compact guide index
 
 ## Editing rules
 
@@ -31,9 +30,10 @@ Use a problem-first README. Preserve the nine established product problems near 
 - Keep user-facing natural-language usage before CLI or internal paths.
 - Keep all nine established problem statements, QDD, full-stack, tool discovery, context recovery, product authority, and framework neutrality.
 - Retain the five-Skill model without requiring users to memorize Skill names.
-- Avoid unsupported claims: Stackcord detects and gates product authority, while provider branch rules enforce the final merge restriction.
+- Keep detailed Git-state fields, collision matrices, branch conventions, provider enforcement, and deterministic check inventories in the linked task-management, submodule, governance, and troubleshooting guides instead of the README.
+- Explain `specs/` as what and why the product does something, and `contracts/` as the obligations implementations must obey. Show both sides of one reservation-confirmation example.
 - Keep Korean and English headings, tables, examples, and claims semantically aligned.
-- Reduce both READMEs from 196 lines to roughly 130–160 lines without removing essential behavior.
+- Keep both READMEs concise without removing essential product behavior.
 
 ## Verification
 
