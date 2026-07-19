@@ -27,7 +27,7 @@ Stackcord는 Codex와 대화하며 사용하는 **Question-Driven Development(QD
 ### 1. 질문으로 서비스를 정의합니다
 
 ```text
-사용자: 새 예약 서비스를 시작해줘.
+사용자: 예약 서비스도 필요할 것 같아.
 Stackcord: 예약이 확정되는 방식을 먼저 정해야 합니다.
 A. 관리자가 승인하면 확정 (추천)
 B. 결제가 완료되면 자동 확정
@@ -89,39 +89,11 @@ flowchart LR
 
 Waterfall처럼 모든 문서를 끝낸 뒤 한꺼번에 구현하지 않습니다. 제품 전체 의미와 UI 범위는 먼저 공유하지만, 실제 개발은 작게 나누고 계속 통합합니다.
 
-## Git·submodule 협업 구조
+### `specs/`와 `contracts/`는 무엇이 다른가요?
 
-```text
-project/                  # orchestration root: 제품 의미와 통합 commit
-├── ui/                   # 선택형 UI directory 또는 submodule
-├── frontend/             # 독립 저장소/submodule
-├── backend/              # 독립 저장소/submodule
-├── specs/                # 목적·정책·scenario·결정
-├── contracts/            # 비즈니스·동작·interface·data 규약
-└── .harness/             # 검증 가능한 협업 상태
-```
+`specs/`는 **제품이 무엇을 왜 하는지** 정리합니다. 예를 들어 “예약은 관리자 승인 후 확정한다”는 제품 정책과 그 이유를 기록합니다.
 
-| 협업 시점 | 확인하는 것 |
-| --- | --- |
-| 작업 시작 | branch·dirty·ahead/behind·diverged·worktree·submodule 상태와 기존 선점을 확인합니다. |
-| 동시에 개발 | path와 정책·scenario·contract·DB entity·migration·UI flow·dependency·pointer의 겹침을 비교합니다. |
-| 충돌 위험 발견 | 담당·구현 경계·merge 순서를 먼저 정하거나 worktree로 격리합니다. |
-| child 작업 완료 | child commit을 먼저 검토하고 root가 기록한 submodule pointer를 갱신합니다. |
-| 다른 사람이 clone | submodule을 받은 뒤 Stackcord가 공통 원본·실제 Git·남은 작업을 복구합니다. |
-
-브랜치와 커밋은 `feature/account-recovery`, `feat(account): add recovery challenge` 같은 일반 Git convention을 사용합니다. AI·agent·model 표시는 넣지 않습니다.
-
-## 무엇을 실제로 검증하나요?
-
-| 검증 영역 | 차단하는 문제 |
-| --- | --- |
-| Git·submodule | dirty/diverged 저장소, 누락된 child, root pointer와 child HEAD 불일치 |
-| 작업·충돌 | 중복 선점, stale 상태, 서로 다른 파일에서 발생한 의미 충돌, 잘못된 merge 순서 |
-| 제품 원본 | 변경된 policy·contract·DBML·UI flow, 오래되거나 권한 없는 승인 |
-| 개발 근거 | TDD 실패/통과 근거, contract consumer, migration·rollback 누락 |
-| Release | 서로 다른 commit을 본 기술 검증과 사용자 승인, 검증 뒤 변조된 RC |
-
-Stackcord는 AI의 판단을 사실처럼 신뢰하지 않고 저장소에서 다시 계산 가능한 상태를 검증합니다. 다만 실제 merge 권한은 GitHub·GitLab 같은 Git 서비스의 branch protection과 CODEOWNERS가 집행합니다.
+`contracts/`는 **각 구현이 반드시 지켜야 할 의무**를 정의합니다. 같은 정책에서 “생성된 예약은 `pending`이고, 권한 있는 관리자의 승인만 `confirmed`로 바꿀 수 있다”는 규칙을 frontend와 backend가 함께 지키도록 만듭니다. 즉, `specs/`의 의도를 여러 구현이 테스트할 수 있는 약속으로 구체화한 것이 `contracts/`입니다.
 
 ## 설치
 

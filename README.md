@@ -27,7 +27,7 @@ Users do not memorize commands. Say “Start a new service,” “Build this fea
 ### 1. Define the service through questions
 
 ```text
-User: Start a reservation service with me.
+User: I think we also need a reservation service.
 Stackcord: First, how does a reservation become confirmed?
 A. An administrator approves it (Recommended)
 B. Successful payment confirms it automatically
@@ -89,39 +89,11 @@ flowchart LR
 
 This is not waterfall delivery. The team shares whole-product meaning and UI coverage first, but implementation stays in small changes that are integrated continuously.
 
-## Git and submodule collaboration
+### How are `specs/` and `contracts/` different?
 
-```text
-project/                  # orchestration root: product meaning and integration commit
-├── ui/                   # optional UI directory or submodule
-├── frontend/             # independent repository/submodule
-├── backend/              # independent repository/submodule
-├── specs/                # purpose, policies, scenarios, and decisions
-├── contracts/            # business, behavior, interface, and data agreements
-└── .harness/             # verifiable collaboration state
-```
+`specs/` answers **what the product does and why**. For example, it records the product policy “A reservation is confirmed after administrator approval” and the reason for that decision.
 
-| Collaboration point | What is checked |
-| --- | --- |
-| Before work starts | Branch, dirty state, ahead/behind, divergence, worktrees, submodules, and existing reservations. |
-| During concurrent work | Overlap in paths, policies, scenarios, contracts, DB entities, migrations, UI flows, dependencies, and pointers. |
-| When conflict risk appears | Ownership, implementation boundaries, and merge order are set first, or the work is isolated in a worktree. |
-| After child work finishes | The child commit is reviewed before the root-recorded submodule pointer changes. |
-| After another contributor clones | Stackcord recovers shared sources, actual Git state, and remaining work after submodules are initialized. |
-
-Branches and commits use ordinary Git conventions such as `feature/account-recovery` and `feat(account): add recovery challenge`. Names do not include AI, agent, or model markers.
-
-## What does it actually verify?
-
-| Verification area | Problems it blocks |
-| --- | --- |
-| Git and submodules | Dirty or diverged repositories, missing children, and root-pointer/child-HEAD mismatch |
-| Work and conflicts | Duplicate reservations, stale state, semantic conflicts across different files, and unsafe merge order |
-| Product sources | Changed policies, contracts, DBML, or UI flows and stale or unauthorized approvals |
-| Development evidence | Missing TDD red/green evidence, contract consumers, migrations, or rollback evidence |
-| Release | Technical and user approval of different commits or a candidate changed after verification |
-
-Stackcord does not treat AI judgment as fact; it verifies state that can be recomputed from repositories. Actual merge authorization is still enforced by branch protection and CODEOWNERS in a Git provider such as GitHub or GitLab.
+`contracts/` defines **what every implementation must obey**. From the same policy, it requires a new reservation to be `pending` and allows only an authorized administrator's approval to change it to `confirmed`. In other words, `contracts/` turn the intent in `specs/` into testable promises shared by frontend and backend.
 
 ## Installation
 

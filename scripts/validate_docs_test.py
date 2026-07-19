@@ -68,6 +68,24 @@ orchestrator release verify --root . --json
         self.assertTrue(any("AI-free Git conventions" in error for error in errors))
         self.assertTrue(any("generated context location" in error for error in errors))
 
+    def test_readmes_keep_maintainer_inventories_in_detailed_guides(self):
+        root = validate_docs.ROOT
+        english = (root / "README.md").read_text(encoding="utf-8")
+        korean = (root / "README.ko.md").read_text(encoding="utf-8")
+
+        self.assertNotIn("## Git and submodule collaboration", english)
+        self.assertNotIn("## What does it actually verify?", english)
+        self.assertNotIn("## Git·submodule 협업 구조", korean)
+        self.assertNotIn("## 무엇을 실제로 검증하나요?", korean)
+        self.assertIn("I think we also need a reservation service.", english)
+        self.assertIn("예약 서비스도 필요할 것 같아.", korean)
+        self.assertIn("`specs/` answers **what the product does and why**", english)
+        self.assertIn("`contracts/` defines **what every implementation must obey**", english)
+        self.assertIn("`specs/`는 **제품이 무엇을 왜 하는지**", korean)
+        self.assertIn("`contracts/`는 **각 구현이 반드시 지켜야 할 의무**", korean)
+        self.assertIn("administrator approval", english)
+        self.assertIn("관리자 승인", korean)
+
     def test_safety_contract_reports_missing_external_and_archive_boundaries(self):
         errors = validate_docs.safety_contract_errors({
             "docs/security/threat-model-en.md": "prompt injection",

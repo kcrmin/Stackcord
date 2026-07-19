@@ -54,8 +54,6 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
         text = documents.get(path, "")
         if not all(name in text for name in SKILL_NAMES):
             errors.append(f"{path} must name the same five Skills")
-        if not all(token in text for token in ("feature/account-recovery", "feat(account):", "AI")):
-            errors.append(f"{path} must describe AI-free Git conventions")
         if not all(path_token in text for path_token in (
             ".agents/skills/use-project-harness/", ".harness/work/provider.yaml", ".harness/governance.yaml", "contracts/registry.yaml",
         )):
@@ -118,6 +116,15 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
         text = documents.get(path, "")
         if not all(token in text for token in required):
             errors.append(f"{path} must explain the provider truth boundary")
+
+    git_convention_requirements = {
+        "docs/guides/task-management-en.md": ("feature/account-recovery", "feat(account):", "AI, agent, model"),
+        "docs/guides/task-management-ko.md": ("feature/account-recovery", "feat(account):", "AI, agent, model"),
+    }
+    for path, required in git_convention_requirements.items():
+        text = documents.get(path, "")
+        if not all(token in text for token in required):
+            errors.append(f"{path} must describe AI-free Git conventions")
 
     return errors
 
