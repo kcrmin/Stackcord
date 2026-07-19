@@ -476,11 +476,11 @@ class Dogfood:
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             list(executor.map(claim, clones))
         _, live_status = self.cli_raw("status", "--root", str(root))
-        winners = [
+        winners = {
             item.get("owner")
             for item in (live_status or {}).get("active_work", [])
             if item.get("id") == PARENT_WORK and item.get("owner") in {"alex", "sam"}
-        ]
+        }
         self.require(
             "claim.race-single-owner",
             len(winners) == 1,
