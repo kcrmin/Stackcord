@@ -23,6 +23,7 @@ Unused provider registries, claims of unsupported Jira/Linear/Beads adapters, du
 - [Service continuity harness specification](../superpowers/specs/2026-07-18-service-continuity-harness-design.md)
 - [Editable UI workspace specification](../superpowers/specs/2026-07-18-ui-baseline-submodule-design.md)
 - [Stackcord product naming](../superpowers/specs/2026-07-19-stackcord-naming-design.md)
+- [Stackcord README information design](../superpowers/specs/2026-07-19-readme-information-design.md)
 - [Core concepts](../concepts/en.md)
 - [Korean core concepts](../concepts/ko.md)
 
