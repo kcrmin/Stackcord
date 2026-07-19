@@ -1,135 +1,171 @@
-# Full-stack Project Harness
+# Stackcord
 
-> The public name will be selected before release. The current package is Codex-first.
+> A question-driven collaboration harness that connects the right development practices and collaboration tools and keeps full-stack project context coherent through release.
 
 [한국어](./README.ko.md)
 
-Define a service with an AI in natural language, create and connect framework-neutral `ui/`, `frontend/`, and `backend/` repositories, and let another clone continue from exact project state through release.
+Stackcord is a **Question-Driven Development (QDD)** tool used through conversations with Codex. It does not force a technology stack before the service is understood. It records users, policies, and failure behavior, then coordinates `ui/`, `frontend/`, and `backend/` as one product even when they are separate repositories.
 
-## What changes when you use it
+Users do not memorize commands. In Codex, say “Start a new service with me,” “Build this feature,” or “Continue this project.” Stackcord Skills own questions and judgment; an internal deterministic verifier checks actual Git, submodule, conflict, and release state.
 
-- Long product conversations continuously become normalized summaries, policies, scenarios, decisions, and open questions.
-- External mockups can become editable work in `ui/`, while frontend implementation binds to an exact approved UI commit.
-- Git, submodules, worktrees, and work reservation reveal both file and semantic collisions across policy, contracts, data, and UI.
-- A clone or compacted context can reconstruct actual state and verify the same release candidate.
+## What problems does it solve?
 
-## How to use it
+| Common problem | With Stackcord |
+| --- | --- |
+| Important requirements are asked again after a long conversation | Each material answer becomes a product summary, policy, scenario, decision, or open question. |
+| Frontend and backend implement different assumptions | Shared contracts and failure behavior are agreed before implementation and linked to both sides. |
+| Contributors change the same policy or database through different files | Stackcord detects overlap in policies, contracts, DB entities, UI flows, and migrations, not only paths. |
+| A submodule checkout and the commit recorded by the root disagree | Child HEAD and root pointer are checked separately; only reviewed commits are integrated. |
+| A clone or compacted AI context loses current state | Repository evidence and fingerprints reconstruct confirmed, stale, and unknown state. |
+| Users and developers test different releases | One root/UI/frontend/backend commit set becomes the shared release candidate. |
 
-Speak to Codex instead of memorizing commands.
+## Use it through Codex
+
+Start in a Codex conversation with the Plugin installed. Stackcord asks one material question at a time.
 
 ```text
-“Start a new service with me.”
-“Adopt this existing project and understand its current state.”
-“Continue this project. What should I do next?”
+User: Start a reservation service with me.
+
+Stackcord: First, how does a reservation become confirmed?
+
+A. An administrator approves it (Recommended)
+B. Successful payment confirms it automatically
+C. The request confirms immediately
+You can also provide free-form input.
+
+User: A
+
+Stackcord: I recorded administrator approval as the confirmation policy.
+Next, we should decide what happens if another user takes the slot before approval.
 ```
 
-Skills own conversation and judgment. The Go CLI deterministically verifies actual Git state, identity, safety, and conflicts.
+| What the conversation establishes | Stored result |
+| --- | --- |
+| Service purpose, users, and key journeys | Normalized product meaning under `specs/` |
+| “Confirm after administrator approval” | Service policy and decision |
+| Double booking or payment failure | Success and failure scenarios |
+| Important unanswered decisions | Open questions |
+
+Raw conversation and speaking style are not stored. Only development-relevant meaning is normalized so another clone can recover the same basis.
+
+## From questions to release
+
+| Stage | What the user says | What Stackcord does |
+| --- | --- | --- |
+| Start | “Start a service” or “Adopt this project” | Reads files, Git, and existing configuration, then starts non-destructively. |
+| Define | Answer a choice or use free-form input | Checkpoints product meaning, policies, and scenarios after each material answer. |
+| Design | “Define the UI first” | Establishes role/journey UI coverage and contract/DBML boundaries. |
+| Plan | “Build account recovery” | Defines the checklist, TDD order, ownership scope, and merge order. |
+| Implement | Continue with natural-language requests | Delivers small changes and integrates contracts, migrations, and pointers in dependency order. |
+| Recover | “Continue this project” | Reconstructs context from actual repositories and proposes one safe next action. |
+| Release | “Prepare the release” | Binds technical evidence and user approval to the same candidate. |
 
 ```mermaid
 flowchart LR
-    A["Product questions and checkpoints"] --> B["Whole-product meaning and UI coverage"]
-    X["External mockup or optional UI tool"] --> U["Editable ui/"]
-    B --> U
+    Q["Questions and checkpoints"] --> U["ui/ baseline"]
+    Q --> C["contracts and DBML"]
     U --> F["frontend/ TDD"]
-    B --> C["contracts and DBML"]
-    C --> D["backend/ TDD"]
-    F --> I["Integration"]
-    D --> I
+    C --> B["backend/ TDD"]
+    F --> I["Integration and root pointer"]
+    B --> I
     I --> R["One exact RC"]
 ```
 
-## Core capabilities
+This is not a waterfall process. Stackcord first understands whole-product roles, journeys, and UI coverage, then continuously integrates small role, domain, and journey slices.
 
-| Capability | Effect |
-| --- | --- |
-| Discovery checkpoints | Store normalized product meaning rather than raw conversation and ask one material question at a time. |
-| Framework-neutral start and adoption | Create a new project or add the harness without overwriting an existing repository. |
-| Editable UI workspace | Classify mockups as `reference`, `seed`, or `canonical`, then bring in all or selected material for editing. |
-| Git collaboration diagnosis | Inspect branches, dirtiness, ahead/behind, divergence, worktrees, submodule HEADs, and root pointers. |
-| Semantic collision and reservation | Detect overlap in paths, policies, scenarios, contracts, DB entities, migrations, UI flows, dependencies, and pointers. |
-| Contracts and DBML | Manage service obligations and failure behavior while comparing canonical Git DBML with isolated dbdiagram proposals. |
-| Context recovery | Recompute confirmed, stale, and unknown state from stable IDs and fingerprints after clone, pause, or compaction. |
-| Exact release | Bind technical and user verification to one root/UI/frontend/backend candidate. |
+## It recommends practices and collaboration tools when needed
 
-There are only five user-facing Skills: `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, and `recover-and-release-project`.
-
-## Start locally in five minutes
-
-Go 1.26 or newer is required.
-
-```bash
-cd cli
-go test ./...
-go build -o ../bin/orchestrator ./cmd/orchestrator
-cd ..
-./bin/orchestrator doctor --json
-```
-
-Windows PowerShell:
-
-```powershell
-cd cli
-go test ./...
-go build -o ..\bin\orchestrator.exe .\cmd\orchestrator
-cd ..
-.\bin\orchestrator.exe doctor --json
-```
-
-To add the Codex Plugin as a local marketplace, run this, restart Codex, and install it from Plugins:
-
-```bash
-codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
-```
-
-A generated repository can continue without the Plugin through `.agents/skills/use-project-harness/` and its Markdown fallback.
-
-## Real project flow
-
-1. Diagnose repositories and tools, then checkpoint material product answers.
-2. Establish whole-product roles, journeys, and UI coverage while integrating small role/domain/journey changes continuously.
-3. When useful, add an existing remote as the `ui/` submodule and register the workspace.
-4. Inspect an external mockup, bring all or selected files into `ui/`, and edit them as ordinary files.
-5. Publish the UI commit, bind it as a baseline, and make `frontend/` work reference that exact fingerprint.
-6. Agree on shared contracts and DBML boundaries, then implement frontend and backend behavior with TDD.
-7. Review child commits, integrate root pointers, and validate one candidate technically and with the user.
-
-UI Skills such as MengTo/Skills, Figma, Penpot, Superpowers, BMAD, GitHub Issues, Jira, and Beads can be selected when useful. They can help create artifacts or manage live task status, but they do not replace canonical service meaning or release identity.
-
-## Generated core structure
+Stackcord does not recreate Superpowers, BMAD, or Beads. When a real need appears, it inspects the repository and available tools, compares realistic options, and connects only the user's choice.
 
 ```text
-project/
-├── specs/                         # product meaning, policies, scenarios
-├── contracts/registry.yaml        # service obligations and provider/consumer links
-├── ui/                            # optional editable UI directory/submodule
-├── frontend/                      # production frontend
-├── backend/                       # production backend
-├── .agents/skills/use-project-harness/
-└── .harness/
-    ├── workspaces.yaml
-    ├── work/provider.yaml
-    ├── ui/baselines/
-    └── local/context/             # ignored, reproducible cache
+User: Three people will split frontend and backend development.
+
+Stackcord: This repository already uses GitHub, so we should select one live task source.
+
+A. GitHub Issues + Git reservation (Recommended) — visible ownership and status in GitHub
+B. Beads + Git reservation — useful for a complex distributed dependency graph
+C. Git-local — lightweight and requires no hosted task service
+
+User: A
+
+Stackcord: GitHub Issues will own visible status. Stackcord will reserve policy, contract, DB, and UI scope.
 ```
 
-Users rarely edit `.harness/` directly; the AI summarizes state and plans safe changes. Collaborative Git uses ordinary conventions such as `feature/account-recovery` and `feat(account): add recovery challenge`. Branch and commit names never include AI markers.
+| Need | Possible choice | Stackcord still owns |
+| --- | --- | --- |
+| Design, TDD, debugging, and review discipline | Superpowers | Service meaning and actual repository state |
+| Formal roles, PRDs, and story-driven delivery | BMAD | Git/submodule truth, contracts, and release identity |
+| Task status and dependencies | Git-local, GitHub Issues, Jira, Beads | Executable checklist and semantic reservation |
+| UI creation and collaboration | Figma, Penpot, UI Skills | Approved `ui/` commit and frontend baseline |
+| Database visualization | dbdiagram CLI | Git DBML, migration, and rollback evidence |
 
-The reproducible context cache lives at the ignored `.harness/local/context/` path.
-The selected live task source is recorded at `.harness/work/provider.yaml`.
+## Core capabilities
 
-## Core mode and strict release
+| Situation | What Stackcord does | Result |
+| --- | --- | --- |
+| New or existing project | Framework-neutral init/adopt | A harness that preserves existing files |
+| Long discovery conversation | Normalized checkpoint after each material answer | Less repeated questioning and context loss |
+| Technology decision | Compares product, quality, team, operations, and current official evidence | A dated decision with reasons and a review trigger |
+| External UI mockup | Classifies authority as reference, seed, or canonical and imports all or selected files | Editable UI workspace with provenance |
+| Contract or database change | Checks providers, consumers, failures, DBML, and migration impact | Explicit compatibility and implementation order |
+| Concurrent work | Selects a worktree and reserves semantic scope with compare-and-swap | Fewer duplicate implementations and silent conflicts |
+| Clone, pause, or compaction | Recomputes stable IDs, fingerprints, and actual Git state | Confirmed, stale, and unknown context |
+| Release preparation | Combines TDD evidence, pointers, contracts, migrations, and user approval | One verifiable candidate |
 
-Core mode keeps ordinary teams to Git identity, TDD, integration, applicable migration/rollback evidence, and one exact candidate. `strict-release` adds SBOM, provenance, signatures, and stronger approvals only when an organization explicitly selects it.
+## Git and submodule collaboration
 
-## Detailed guides
+```text
+project/                  # orchestration root: product meaning and integration commit
+├── ui/                   # optional UI directory or submodule
+├── frontend/             # independent product repository/submodule
+├── backend/              # independent product repository/submodule
+├── specs/
+├── contracts/registry.yaml
+└── .harness/
+```
 
-- [Getting started](./docs/getting-started/en.md)
-- [UI workspace and external mockups](./docs/guides/ui-workspace-en.md)
-- [Submodules and collaboration](./docs/guides/submodules-en.md)
-- [Task management and work reservation](./docs/guides/task-management-en.md)
-- [DBML and dbdiagram](./docs/guides/dbdiagram-en.md)
-- [Release](./docs/guides/release-en.md)
-- [Troubleshooting](./docs/guides/troubleshooting-en.md)
-- [Development and verification policy](./CONTRIBUTING.md)
+| Collaboration point | Safety behavior |
+| --- | --- |
+| Before work starts | Inspect branch, dirty state, ahead/behind, divergence, worktrees, and submodules. |
+| When work might overlap | Compare paths, policies, scenarios, contracts, DB entities, UI flows, dependencies, and pointers. |
+| When overlap is detected | Agree on ownership, boundaries, or merge order before implementation starts. |
+| After child work finishes | Review the child commit before updating the root submodule pointer. |
+| After another contributor clones | Run `git submodule update --init --recursive`, then let Stackcord recover combined state. |
 
-Before public release, the remaining choices are the final name and identifiers, public repository/account, signing ownership if needed, and authorization for irreversible publication.
+Branches and commits follow ordinary conventions such as `feature/account-recovery` and `feat(account): add recovery challenge`. Names do not contain AI, agent, or model markers.
+
+## Installation
+
+End users do not need Go or internal CLI knowledge. Paste this repository's GitHub URL into Codex and ask:
+
+```text
+Install the Stackcord Plugin from this GitHub link and prepare to start this project.
+<Stackcord GitHub URL>
+```
+
+Codex can configure the marketplace and installation. Complete the security confirmation if prompted, then start a new conversation and say, “Start a new service with me.”
+
+Use the manual fallback only when needed:
+
+```bash
+codex plugin marketplace add <owner>/stackcord
+```
+
+Then install Stackcord from **Plugins** in Codex. A generated repository can continue without the Plugin through `.agents/skills/use-project-harness/` and its Markdown fallback.
+
+## Generated files and modes
+
+| Path | Role |
+| --- | --- |
+| `specs/` | Product summaries, policies, scenarios, decisions, and open questions |
+| `contracts/registry.yaml` | Cross-component obligations, failures, and provider/consumer relationships |
+| `.harness/workspaces.yaml` | Root, UI, frontend, and backend topology |
+| `.harness/work/provider.yaml` | The one selected live task source |
+| `.harness/local/context/` | Ignored, reproducible context cache |
+| `.agents/skills/use-project-harness/` | Repo-local Skill for Plugin-less continuation |
+
+The five user-facing Skills are `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, and `recover-and-release-project`. Users do not need to memorize their names.
+
+Core mode provides Git identity, TDD, conflict and integration checks, applicable migration/rollback evidence, and exact-candidate verification for ordinary teams. `strict-release` adds SBOM, provenance, signatures, and stronger approval policy only when explicitly selected.
+
+Detailed guides: [Getting started](./docs/getting-started/en.md) · [UI workspace](./docs/guides/ui-workspace-en.md) · [Submodules](./docs/guides/submodules-en.md) · [Task management](./docs/guides/task-management-en.md) · [DBML](./docs/guides/dbdiagram-en.md) · [Release](./docs/guides/release-en.md) · [Troubleshooting](./docs/guides/troubleshooting-en.md)

@@ -4,6 +4,23 @@ import validate_docs
 
 
 class DocumentationValidatorTest(unittest.TestCase):
+    def test_public_contract_requires_reader_focused_stackcord_flow(self):
+        old_contract = " ".join((
+            *validate_docs.SKILL_NAMES,
+            "feature/account-recovery feat(account): AI",
+            ".agents/skills/use-project-harness/ .harness/work/provider.yaml",
+            "contracts/registry.yaml .harness/local/context/",
+            "```mermaid ui/ frontend/ strict ui-workspace",
+        ))
+        documents = {"README.md": old_contract, "README.ko.md": old_contract}
+
+        errors = validate_docs.public_contract_errors(documents)
+
+        self.assertTrue(any("Stackcord positioning" in error for error in errors))
+        self.assertTrue(any("recommended choice conversation" in error for error in errors))
+        self.assertTrue(any("external tool recommendation" in error for error in errors))
+        self.assertTrue(any("natural-language installation" in error for error in errors))
+
     def test_repository_keeps_only_current_design_records(self):
         root = validate_docs.ROOT
 

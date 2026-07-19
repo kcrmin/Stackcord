@@ -65,6 +65,33 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
         if not all(token in text for token in ("```mermaid", "ui/", "frontend/", "strict", "ui-workspace")):
             errors.append(f"{path} must show the concise UI-to-release product flow")
 
+    reader_contracts = {
+        "README.md": {
+            "positioning": ("Stackcord", "Question-Driven Development", "full-stack", "release"),
+            "conversation": ("A.", "Recommended", "free-form"),
+            "external": ("GitHub Issues + Git", "Beads + Git", "Superpowers", "BMAD"),
+            "install": ("Install the Stackcord Plugin from this GitHub link", "codex plugin marketplace add"),
+        },
+        "README.ko.md": {
+            "positioning": ("Stackcord", "Question-Driven Development", "풀스택", "release"),
+            "conversation": ("A.", "추천", "직접 입력"),
+            "external": ("GitHub Issues + Git", "Beads + Git", "Superpowers", "BMAD"),
+            "install": ("이 GitHub 링크의 Stackcord Plugin을 설치", "codex plugin marketplace add"),
+        },
+    }
+    for path, contract in reader_contracts.items():
+        text = documents.get(path, "")
+        if not all(token in text for token in contract["positioning"]):
+            errors.append(f"{path} must present the approved Stackcord positioning")
+        if not all(token in text for token in contract["conversation"]):
+            errors.append(f"{path} must show a recommended choice conversation with free-form input")
+        if not all(token in text for token in contract["external"]):
+            errors.append(f"{path} must show an external tool recommendation at the point of need")
+        if not all(token in text for token in contract["install"]):
+            errors.append(f"{path} must lead with natural-language installation and keep CLI as fallback")
+        if "Go 1.26" in text or "go build" in text:
+            errors.append(f"{path} must not present Go source builds as an end-user prerequisite")
+
     concept_requirements = {
         "docs/concepts/en.md": ("Memory is not", "repository evidence", "canonical"),
         "docs/concepts/ko.md": ("Memory는", "저장소 evidence", "canonical"),
