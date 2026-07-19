@@ -22,25 +22,19 @@ type productionDogfoodReport struct {
 }
 
 func TestProductionE2EMultiRepositoryContinuity(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("multi-repository dogfood runs once in its dedicated CI job; Windows keeps CAS, focused E2E, build, and smoke coverage")
+	}
 	repositoryRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
 	require.NoError(t, err)
 	binary := focusedBuildNativeCLI(t)
 	resultPath := filepath.Join(t.TempDir(), "result.json")
 	fixtureRoot := filepath.Join(t.TempDir(), "fixture")
 
-	var process *exec.Cmd
-	if runtime.GOOS == "windows" {
-		process = exec.Command(
-			"powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-			"-File", filepath.Join(repositoryRoot, "dogfood", "run.ps1"),
-			"-Binary", binary, "-Output", resultPath, "-Workspace", fixtureRoot,
-		)
-	} else {
-		process = exec.Command(
-			"bash", filepath.Join(repositoryRoot, "dogfood", "run.sh"),
-			"--binary", binary, "--output", resultPath, "--workspace", fixtureRoot,
-		)
-	}
+	process := exec.Command(
+		"bash", filepath.Join(repositoryRoot, "dogfood", "run.sh"),
+		"--binary", binary, "--output", resultPath, "--workspace", fixtureRoot,
+	)
 	process.Dir = repositoryRoot
 	process.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 	output, err := process.CombinedOutput()
