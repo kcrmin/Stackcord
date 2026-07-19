@@ -24,6 +24,7 @@ Unused provider registries, claims of unsupported Jira/Linear/Beads adapters, du
 - [Editable UI workspace specification](../superpowers/specs/2026-07-18-ui-baseline-submodule-design.md)
 - [Stackcord product naming](../superpowers/specs/2026-07-19-stackcord-naming-design.md)
 - [Stackcord README information design](../superpowers/specs/2026-07-19-readme-information-design.md)
+- [Product authority approval design](../superpowers/specs/2026-07-19-product-governance-design.md)
 - [Core concepts](../concepts/en.md)
 - [Korean core concepts](../concepts/ko.md)
 

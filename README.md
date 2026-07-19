@@ -12,12 +12,15 @@ Users do not memorize commands. In Codex, say “Start a new service with me,”
 
 | Common problem | With Stackcord |
 | --- | --- |
-| Important requirements are asked again after a long conversation | Each material answer becomes a product summary, policy, scenario, decision, or open question. |
-| Frontend and backend implement different assumptions | Shared contracts and failure behavior are agreed before implementation and linked to both sides. |
-| Contributors change the same policy or database through different files | Stackcord detects overlap in policies, contracts, DB entities, UI flows, and migrations, not only paths. |
-| A submodule checkout and the commit recorded by the root disagree | Child HEAD and root pointer are checked separately; only reviewed commits are integrated. |
-| A clone or compacted AI context loses current state | Repository evidence and fingerprints reconstruct confirmed, stale, and unknown state. |
-| Users and developers test different releases | One root/UI/frontend/backend commit set becomes the shared release candidate. |
+| People and AI understand the service differently | Product purpose, policies, scenarios, contracts, and decisions become a shared repository source so any contributor or AI works from the same basis. |
+| The AI forgets settled decisions during a long discovery conversation | Each material answer becomes a product summary, policy, decision, or open question. |
+| Security, accessibility, operations, authorization, or failure recovery is omitted because nobody thought of it | Stackcord checks coverage gaps and raises only questions that materially change the product. |
+| The team rebuilds a capability because it did not know a Skill, Plugin, practice, or external tool already existed | Stackcord inspects the current need and available tools, explains realistic candidates, and connects only the selected one. |
+| Separate `ui/`, `frontend/`, and `backend/` repositories drift into different products | The orchestration root owns shared meaning, contracts, baselines, integration order, and the exact commit set. |
+| An ordinary implementation change silently changes product direction | Contributors may propose a change, but only assigned product authorities can approve policies, contracts, and business rules. |
+| Different files change the same policy, contract, database entity, or UI flow | Stackcord detects semantic overlap before work starts and requires ownership and merge order. |
+| Unclear ownership causes duplicate implementation or late integration conflicts | Executable checklists and semantic scope are connected to a proportional Git reservation. |
+| A clone, AI switch, or context compaction loses the current state and next work | Actual Git, submodules, canonical product sources, and fingerprints reconstruct both state and the next action. |
 
 ## Use it through Codex
 
@@ -47,6 +50,18 @@ Next, we should decide what happens if another user takes the slot before approv
 | Important unanswered decisions | Open questions |
 
 Raw conversation and speaking style are not stored. Only development-relevant meaning is normalized so another clone can recover the same basis.
+
+Product direction can be protected separately.
+
+```text
+Contributor: Change the refund window to 24 hours before the booking.
+
+Stackcord: This changes service policy and the refund contract.
+Your current Git account is not a product authority, so I can prepare the proposal, tests, and implementation but cannot approve it.
+I can open a PR in the selected Git provider and request a product-authority review.
+```
+
+Git display names and email addresses are mutable, so they never grant authority. A real account in the selected Git provider must approve the exact commit. If protected policy or contract meaning changes afterward, the previous approval becomes stale.
 
 ## From questions to release
 
@@ -108,6 +123,7 @@ Stackcord: GitHub Issues will own visible status. Stackcord will reserve policy,
 | Technology decision | Compares product, quality, team, operations, and current official evidence | A dated decision with reasons and a review trigger |
 | External UI mockup | Classifies authority as reference, seed, or canonical and imports all or selected files | Editable UI workspace with provenance |
 | Contract or database change | Checks providers, consumers, failures, DBML, and migration impact | Explicit compatibility and implementation order |
+| Product policy or business-rule change | Verifies an assigned product authority and exact commit through the selected Git provider | Contributors can propose while unapproved direction changes remain blocked |
 | Concurrent work | Selects a worktree and reserves semantic scope with compare-and-swap | Fewer duplicate implementations and silent conflicts |
 | Clone, pause, or compaction | Recomputes stable IDs, fingerprints, and actual Git state | Confirmed, stale, and unknown context |
 | Release preparation | Combines TDD evidence, pointers, contracts, migrations, and user approval | One verifiable candidate |
@@ -161,11 +177,20 @@ Then install Stackcord from **Plugins** in Codex. A generated repository can con
 | `contracts/registry.yaml` | Cross-component obligations, failures, and provider/consumer relationships |
 | `.harness/workspaces.yaml` | Root, UI, frontend, and backend topology |
 | `.harness/work/provider.yaml` | The one selected live task source |
+| `.harness/governance.yaml` | Assigned product authorities and protected product meaning |
 | `.harness/local/context/` | Ignored, reproducible context cache |
 | `.agents/skills/use-project-harness/` | Repo-local Skill for Plugin-less continuation |
 
 The five user-facing Skills are `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, and `recover-and-release-project`. Users do not need to memorize their names.
 
-Core mode provides Git identity, TDD, conflict and integration checks, applicable migration/rollback evidence, and exact-candidate verification for ordinary teams. `strict-release` adds SBOM, provenance, signatures, and stronger approval policy only when explicitly selected.
+Core mode provides account-based product authority, TDD, conflict and integration checks, applicable migration/rollback evidence, and exact-candidate verification. `strict-release` adds SBOM, provenance, signatures, and multi-party or signed approvals only when explicitly selected.
 
-Detailed guides: [Getting started](./docs/getting-started/en.md) · [UI workspace](./docs/guides/ui-workspace-en.md) · [Submodules](./docs/guides/submodules-en.md) · [Task management](./docs/guides/task-management-en.md) · [DBML](./docs/guides/dbdiagram-en.md) · [Release](./docs/guides/release-en.md) · [Troubleshooting](./docs/guides/troubleshooting-en.md)
+## Learn more
+
+| What you want to do | Guide |
+| --- | --- |
+| Start or adopt a project | [Getting started](./docs/getting-started/en.md) |
+| Collaborate across UI, frontend, and backend | [UI workspace](./docs/guides/ui-workspace-en.md) · [Submodules](./docs/guides/submodules-en.md) |
+| Manage work, conflicts, and product authorities | [Task management](./docs/guides/task-management-en.md) · [Product authority](./docs/guides/governance-en.md) |
+| Design the database and prepare a release | [DBML](./docs/guides/dbdiagram-en.md) · [Release](./docs/guides/release-en.md) |
+| Troubleshoot a problem | [Troubleshooting](./docs/guides/troubleshooting-en.md) |

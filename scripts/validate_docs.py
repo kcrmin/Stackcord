@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PAIRS = [
     ("docs/getting-started/en.md", "docs/getting-started/ko.md"),
     ("docs/concepts/en.md", "docs/concepts/ko.md"),
-    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "dbdiagram", "ui-workspace", "release", "troubleshooting")],
+    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "governance", "dbdiagram", "ui-workspace", "release", "troubleshooting")],
     *[(f"docs/security/{name}-en.md", f"docs/security/{name}-ko.md") for name in ("threat-model", "privacy")],
 ]
 SKILL_NAMES = (
@@ -57,7 +57,7 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
         if not all(token in text for token in ("feature/account-recovery", "feat(account):", "AI")):
             errors.append(f"{path} must describe AI-free Git conventions")
         if not all(path_token in text for path_token in (
-            ".agents/skills/use-project-harness/", ".harness/work/provider.yaml", "contracts/registry.yaml",
+            ".agents/skills/use-project-harness/", ".harness/work/provider.yaml", ".harness/governance.yaml", "contracts/registry.yaml",
         )):
             errors.append(f"{path} generated project paths differ from the tested fixture")
         if ".harness/local/context/" not in text or ".harness/state/context-index.json" in text:
@@ -91,6 +91,15 @@ def public_contract_errors(documents: dict[str, str]) -> list[str]:
             errors.append(f"{path} must lead with natural-language installation and keep CLI as fallback")
         if "Go 1.26" in text or "go build" in text:
             errors.append(f"{path} must not present Go source builds as an end-user prerequisite")
+
+    governance_requirements = {
+        "README.md": ("People and AI understand the service differently", "product authorities", "governance-en.md"),
+        "README.ko.md": ("사람과 AI마다 서비스의 목적·정책·동작을 다르게 이해", "제품 책임자", "governance-ko.md"),
+    }
+    for path, required in governance_requirements.items():
+        text = documents.get(path, "")
+        if not all(token in text for token in required):
+            errors.append(f"{path} must explain shared product meaning and product authority")
 
     concept_requirements = {
         "docs/concepts/en.md": ("Memory is not", "repository evidence", "canonical"),
@@ -223,6 +232,7 @@ def validate() -> list[str]:
         ".harness/entry.md",
         ".harness/manifest.yaml",
         ".harness/profile.yaml",
+        ".harness/governance.yaml",
         ".harness/sources.yaml",
         ".harness/workspaces.yaml",
         ".harness/work/provider.yaml",

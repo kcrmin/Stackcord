@@ -10,10 +10,10 @@
   "interface": {
     "displayName": "Full-stack Orchestrator",
     "shortDescription": "Keep service meaning coherent across people, agents, and repositories.",
-    "longDescription": "Use natural language to discover a service, create or adopt a framework-neutral harness, reconcile one external task source with semantic work reservation, recover multi-repository context after cloning or compaction, and verify one exact release candidate.",
+    "longDescription": "Use natural language to discover a service, create or adopt a framework-neutral harness, keep people and AI aligned on product meaning, require assigned Git accounts for protected policy approval, reconcile one external task source with semantic work reservation, recover multi-repository context after cloning or compaction, and verify one exact release candidate.",
     "developerName": "Full-stack Orchestrator contributors",
     "category": "Productivity",
-    "capabilities": ["Service discovery and durable context", "Multi-repository Git continuity", "External task reconciliation", "Semantic work reservation", "Exact release verification"],
+    "capabilities": ["Service discovery and durable context", "Product-authority governance", "Multi-repository Git continuity", "External task reconciliation", "Semantic work reservation", "Exact release verification"],
     "defaultPrompt": [
       "Start a new full-stack service with me.",
       "Continue this cloned project safely.",

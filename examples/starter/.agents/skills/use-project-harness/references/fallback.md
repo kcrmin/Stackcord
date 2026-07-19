@@ -7,5 +7,6 @@
 5. Separate confirmed facts, stale derivations, unknown external state, blockers, active ownership, and local-only work. State one safe next action. Run a context audit when settled questions repeat or sources disagree.
 6. A small private local edit needs no ticket or reservation. Before shared or risky work, define the service meaning, behavioral boundary, first failing test, semantic scope, owner, dependencies, and merge order; then synchronize the selected task source and Git work reservation.
 7. Require test and integration evidence before merge. Bind technical and user validation to one release candidate. Keep strict release optional.
+8. Before protected product meaning becomes canonical, verify the exact commit and fingerprint through `orchestrator governance check --json`. A contributor may prepare a proposal and PR, but Git user.name or user.email never proves product authority. If review state is unavailable, do not integrate or release.
 
 Without the CLI, fingerprint, divergence, atomic remote reservation, semantic-conflict, archive-safety, and exact release-identity verification has reduced coverage. Do not report those checks as passed.

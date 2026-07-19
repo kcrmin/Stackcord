@@ -81,6 +81,21 @@ orchestrator release verify --root . --json
         self.assertTrue(any("threat boundaries" in error for error in errors))
         self.assertTrue(any("provider outage" in error for error in errors))
 
+    def test_readme_and_guides_explain_product_authority_governance(self):
+        root = validate_docs.ROOT
+        english = (root / "docs/guides/governance-en.md").read_text(encoding="utf-8")
+        korean = (root / "docs/guides/governance-ko.md").read_text(encoding="utf-8")
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        readme_ko = (root / "README.ko.md").read_text(encoding="utf-8")
+        for token in ("product authority", "proposal", "user.name", "orchestrator governance check"):
+            self.assertIn(token, english)
+        for token in ("제품 책임자", "제안", "user.name", "orchestrator governance check"):
+            self.assertIn(token, korean)
+        self.assertIn("People and AI understand the service differently", readme)
+        self.assertIn("사람과 AI마다 서비스의 목적·정책·동작을 다르게 이해", readme_ko)
+        self.assertIn("governance-en.md", readme)
+        self.assertIn("governance-ko.md", readme_ko)
+
 
 if __name__ == "__main__":
     unittest.main()
