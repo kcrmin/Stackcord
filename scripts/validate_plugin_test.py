@@ -87,6 +87,19 @@ class PluginContractTest(unittest.TestCase):
         self.assertIn("exact UI baseline", continue_text)
         self.assertNotIn("MengTo/Skills is the source of truth", start)
 
+    def test_protected_product_meaning_requires_real_product_authority(self):
+        coordinate = (
+            ROOT / "skills" / "coordinate-project-work" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        release = (
+            ROOT / "skills" / "recover-and-release-project" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("product authority", coordinate.lower())
+        self.assertIn("orchestrator governance check --json", coordinate)
+        self.assertIn("Git display name and email", coordinate)
+        self.assertIn("may not present it as approved", coordinate)
+        self.assertIn("fresh product-authority approval", release)
+
     def test_manifest_points_to_bundled_hooks(self):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")

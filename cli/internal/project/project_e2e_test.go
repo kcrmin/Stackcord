@@ -28,7 +28,7 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 
 	for _, path := range []string{
 		"AGENTS.md", ".agents/skills/use-project-harness/SKILL.md", ".agents/skills/use-project-harness/references/fallback.md",
-		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/workspaces.yaml",
+		".harness/manifest.yaml", ".harness/entry.md", ".harness/profile.yaml", ".harness/governance.yaml", ".harness/workspaces.yaml",
 		"specs/index.md", "specs/product/summary.md", "specs/policies/policy.account.recovery-proof.md", "specs/scenarios/scenario.account.recovery-success.md",
 		"contracts/registry.yaml", "contracts/product/index.md", "contracts/business/index.md", "contracts/behaviors/index.md", "contracts/interfaces/index.md", "contracts/data/index.md", "docs/index.md",
 	} {
@@ -52,6 +52,9 @@ func TestNewProjectCreatesNeutralHarness(t *testing.T) {
 	manifest, err := os.ReadFile(filepath.Join(root, ".harness", "manifest.yaml"))
 	require.NoError(t, err)
 	require.Contains(t, string(manifest), "project.service-product")
+	governancePolicy := mustRead(t, filepath.Join(root, ".harness", "governance.yaml"))
+	require.Contains(t, governancePolicy, "enabled: false")
+	require.Contains(t, governancePolicy, "product_authorities: []")
 	workspaces := mustRead(t, filepath.Join(root, ".harness", "workspaces.yaml"))
 	require.Contains(t, workspaces, "project_id: project.service-product")
 	_, issues := contextpkg.Refresh(context.Background(), root, contextpkg.ReadOnly)
@@ -71,7 +74,7 @@ func TestGeneratedRepoLocalGuidanceIsFlexibleAndMatchesPluginTemplate(t *testing
 	fallback := mustRead(t, filepath.Join(root, ".agents", "skills", "use-project-harness", "references", "fallback.md"))
 	for _, required := range []string{
 		"natural-language", "initial product request", "A/B/C", "free-form", "small private local edit", "selected task source", "Git work reservation",
-		"service purpose", "business rules", "context audit", "strict release",
+		"service purpose", "business rules", "context audit", "strict release", "product authority", "proposal", "governance check", "Git user.name",
 	} {
 		require.Contains(t, skill+fallback, required)
 	}

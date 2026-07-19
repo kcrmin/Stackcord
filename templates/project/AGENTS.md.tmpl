@@ -1,7 +1,7 @@
 # Agent entry
 
 <!-- orchestrator:begin -->
-Before changing the project, resolve the orchestration root from actual Git state, read `.harness/entry.md`, and refresh context. Product meaning lives in `specs/`; obligations live in `contracts/`; coordination state lives in `.harness/`.
+Before changing the project, resolve the orchestration root from actual Git state, read `.harness/entry.md`, and refresh context. Product meaning lives in `specs/`; obligations live in `contracts/`; coordination state lives in `.harness/`. Protected product meaning stays a proposal until `orchestrator governance check --json` confirms an assigned product authority through the selected Git review provider; Git user.name and user.email never prove authority.
 
 When `workspace.ui` is declared, recover its exact baseline and root pointer before frontend work. Optional UI tools create inputs; committed service specifications, contracts, and the UI baseline remain authoritative.
 <!-- orchestrator:end -->
