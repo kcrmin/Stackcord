@@ -474,13 +474,34 @@ class Dogfood:
             return owner, result, value
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            list(executor.map(claim, clones))
-        self.git(
+            results = list(executor.map(claim, clones))
+        outcomes = [
+            {
+                "owner": owner,
+                "returncode": result.returncode,
+                "status": (value or {}).get("status"),
+                "blockers": [item.get("code") for item in (value or {}).get("blockers", [])],
+                "warnings": [item.get("code") for item in (value or {}).get("warnings", [])],
+            }
+            for owner, result, value in results
+        ]
+        self.git_calls += 1
+        fetched = self.command(
+            [
+                "git", "-c", "core.autocrlf=false", "fetch",
+                str(self.remotes[ROOT_URL].resolve()),
+                "+refs/heads/coordination:refs/remotes/origin/coordination",
+            ],
             root,
-            "fetch",
-            "origin",
-            "+refs/heads/coordination:refs/remotes/origin/coordination",
+            check=False,
         )
+        if fetched.returncode != 0:
+            self.require(
+                "claim.race-single-owner",
+                False,
+                "remote coordination branch absent after concurrent starts: "
+                + json.dumps(outcomes, sort_keys=True),
+            )
         coordination = json.loads(
             self.git_output(root, "show", "refs/remotes/origin/coordination:coordination.json")
         )
