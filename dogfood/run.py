@@ -474,12 +474,17 @@ class Dogfood:
             return owner, result, value
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            results = list(executor.map(claim, clones))
-        winners = [owner for owner, result, value in results if result.returncode == 0 and value and value.get("status") == "passed"]
+            list(executor.map(claim, clones))
+        _, live_status = self.cli_raw("status", "--root", str(root))
+        winners = [
+            item.get("owner")
+            for item in (live_status or {}).get("active_work", [])
+            if item.get("id") == PARENT_WORK and item.get("owner") in {"alex", "sam"}
+        ]
         self.require(
             "claim.race-single-owner",
             len(winners) == 1,
-            "two simultaneous owners produced exactly one observable winner",
+            "two simultaneous owners produced exactly one remotely observable winner",
         )
 
         candidate = self.workspace / "inputs" / "semantic-conflict.yaml"

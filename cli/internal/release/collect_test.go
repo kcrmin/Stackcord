@@ -108,7 +108,7 @@ func newReleaseFixture(t *testing.T) releaseFixture {
 	releaseGit(t, root, "init", "-b", "main")
 	releaseGitIdentity(t, root)
 	releaseGit(t, root, "-c", "protocol.file.allow=always", "submodule", "add", childRemote, "backend")
-	releaseGit(t, filepath.Join(root, "backend"), "config", "core.autocrlf", "false")
+	releaseGitIdentity(t, filepath.Join(root, "backend"))
 	releaseGit(t, filepath.Join(root, "backend"), "remote", "set-url", "origin", "https://example.test/backend.git")
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".gitmodules"), []byte("[submodule \"backend\"]\n\tpath = backend\n\turl = https://example.test/backend.git\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "manifest.yaml"), []byte("schema_version: 1\nid: project.release-fixture\nlocale: en\n"), 0o600))
