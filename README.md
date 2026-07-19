@@ -12,7 +12,7 @@ Users do not memorize commands. Say “Start a new service,” “Build this fea
 
 | Problem | With Stackcord |
 | --- | --- |
-| People and AI understand the service purpose, policies, and behavior differently | Purpose, policies, scenarios, contracts, and decisions become a shared repository source. |
+| People and AI understand the service differently | Purpose, policies, scenarios, contracts, and decisions become a shared repository source. |
 | The AI forgets settled decisions or repeats questions during a long conversation | Each material answer updates product summaries, policies, decisions, and open questions. Raw dialogue and speaking style are not stored. |
 | Security, accessibility, operations, authorization, and failure recovery are overlooked | Stackcord raises uncovered areas proactively, but asks only one product-changing question at a time. |
 | The team rebuilds something because it did not know an existing Skill, Plugin, practice, or external tool | Stackcord inspects the need and available tools, explains the differences, and connects only the selected option. |
@@ -128,7 +128,7 @@ Stackcord does not treat AI judgment as fact; it verifies state that can be reco
 You do not need to know Go or the internal CLI. Paste the public Stackcord GitHub repository link into Codex and ask:
 
 ```text
-Install the Stackcord Plugin from this GitHub repository and prepare the current project.
+Install the Stackcord Plugin from this GitHub link and prepare the current project.
 ```
 
 Approve the security prompt if one appears, then start a new conversation and say, “Start a new service with me.” Use `codex plugin marketplace add <owner>/stackcord` only when manual installation is necessary.
@@ -140,14 +140,14 @@ A generated project can continue in another Codex environment without the Plugin
 | Path | Contents |
 | --- | --- |
 | `specs/` | Product summaries, policies, scenarios, decisions, and open questions |
-| `contracts/` | Service rules and cross-component business, behavior, interface, and data agreements |
+| `contracts/registry.yaml` | Index of service rules and cross-component contracts |
 | `.harness/workspaces.yaml` | Root, UI, frontend, and backend repository topology |
-| `.harness/work/` | Selected task source, checklists, work scope, and reservations |
+| `.harness/work/provider.yaml` | Selected live task status source |
 | `.harness/governance.yaml` | Product authorities and protected product meaning |
-| `.harness/local/` | Reproducible local observations and context cache excluded from Git |
+| `.harness/local/context/` | Reproducible context cache excluded from Git |
 | `.agents/skills/use-project-harness/` | Repo-local Skill for continuing without the Plugin |
 
-The user-facing Skills are consolidated into five roles: start, continue, plan work, coordinate collaboration, and recover/release. Users do not memorize their names. Core mode provides the checks ordinary teams need; `strict-release` adds stronger supply-chain controls such as SBOM, provenance, and signatures only for organizations that select it.
+The five user-facing Skills are `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, and `recover-and-release-project`. Users do not memorize their names. Core mode provides the checks ordinary teams need; `strict-release` adds stronger supply-chain controls such as SBOM, provenance, and signatures only for organizations that select it.
 
 ## Learn more
 
