@@ -17,11 +17,11 @@ jobs:
         include:
           - name: macOS ARM64
             os: macos-14
-            artifact: orchestrator-darwin-arm64
+            artifact: stackcord-darwin-arm64
             extension: ""
           - name: Windows x64
             os: windows-2025
-            artifact: orchestrator-windows-amd64
+            artifact: stackcord-windows-amd64
             extension: .exe
     runs-on: ${{ matrix.os }}
     steps:
@@ -43,13 +43,13 @@ jobs:
         run: |
           mkdir -p dist
           cd cli
-          go build -trimpath -ldflags "-s -w -X main.version=ci" -o "../dist/orchestrator${{ matrix.extension }}" ./cmd/orchestrator
-          "../dist/orchestrator${{ matrix.extension }}" doctor --json
-          "../dist/orchestrator${{ matrix.extension }}" context audit --root ../examples/starter --json
+          go build -trimpath -ldflags "-s -w -X main.version=ci" -o "../dist/stackcord${{ matrix.extension }}" ./cmd/stackcord
+          "../dist/stackcord${{ matrix.extension }}" doctor --json
+          "../dist/stackcord${{ matrix.extension }}" context audit --root ../examples/starter --json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ matrix.artifact }}
-          path: dist/orchestrator${{ matrix.extension }}
+          path: dist/stackcord${{ matrix.extension }}
           if-no-files-found: error
 
   repository-contracts:
@@ -132,7 +132,7 @@ jobs:
           cd cli
           for target in darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
             os=${target%/*}; arch=${target#*/}; ext=""; [ "$os" = windows ] && ext=.exe
-            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=ci" -o "../dist/orchestrator_${os}_${arch}${ext}" ./cmd/orchestrator
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=ci" -o "../dist/stackcord_${os}_${arch}${ext}" ./cmd/stackcord
           done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

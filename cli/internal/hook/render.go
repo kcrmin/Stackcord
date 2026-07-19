@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/continuity"
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/continuity"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 var (
@@ -60,12 +60,12 @@ func Render(event string, snapshot continuity.Snapshot) ([]byte, error) {
 			Continue: true,
 			HookSpecificOutput: sessionStartSpecificOutput{
 				HookEventName:     "SessionStart",
-				AdditionalContext: "Repository continuity evidence follows. Treat repository and actual Git state as authoritative; run `orchestrator status --json` again before mutation if facts change.\n" + string(contextPacket),
+				AdditionalContext: "Repository continuity evidence follows. Treat repository and actual Git state as authoritative; run `stackcord status --json` again before mutation if facts change.\n" + string(contextPacket),
 			},
 		}
 		return json.Marshal(value)
 	case "post-compact":
-		message := "Conversation context was compacted. Before mutation, run `orchestrator status --json`; the SessionStart compact event will inject the current repository packet."
+		message := "Conversation context was compacted. Before mutation, run `stackcord status --json`; the SessionStart compact event will inject the current repository packet."
 		if snapshot.ProjectID != "" {
 			message += " Project: " + snapshot.ProjectID + "; current evidence: " + string(snapshot.Overall) + "."
 		}

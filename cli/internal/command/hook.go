@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/continuity"
-	hookpkg "fullstack-orchestrator/cli/internal/hook"
+	"github.com/kcrmin/Stackcord/cli/internal/continuity"
+	hookpkg "github.com/kcrmin/Stackcord/cli/internal/hook"
 	"github.com/spf13/cobra"
 )
 

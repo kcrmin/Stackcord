@@ -12,16 +12,16 @@ class StagedReleaseTest(unittest.TestCase):
             dist = pathlib.Path(directory)
             lines = []
             for target in verify_staged_release.TARGETS:
-                path = dist / f"orchestrator_1.0.0_{target}"
+                path = dist / f"stackcord_1.0.0_{target}"
                 path.write_bytes(target.encode())
                 lines.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}")
             (dist / "checksums.txt").write_text("\n".join(lines) + "\n")
             self.assertIn("Sigstore checksum bundle is absent", verify_staged_release.verify(dist))
             (dist / "checksums.txt.sigstore.json").write_text("{}")
-            (dist / "orchestrator_1.0.0.sbom.spdx").write_text("SPDXVersion: SPDX-2.3")
+            (dist / "stackcord_1.0.0.sbom.spdx").write_text("SPDXVersion: SPDX-2.3")
             (dist / "package-manifests" / "homebrew").mkdir(parents=True)
             (dist / "package-manifests" / "winget").mkdir(parents=True)
-            (dist / "package-manifests" / "homebrew" / "orchestrator.rb").write_text("class Orchestrator; end")
+            (dist / "package-manifests" / "homebrew" / "stackcord.rb").write_text("class Stackcord; end")
             (dist / "package-manifests" / "winget" / "manifest.yaml").write_text("ManifestType: version")
             self.assertEqual([], verify_staged_release.verify(dist))
 

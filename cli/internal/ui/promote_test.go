@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	uiimport "fullstack-orchestrator/cli/internal/ui"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	uiimport "github.com/kcrmin/Stackcord/cli/internal/ui"
 	"github.com/stretchr/testify/require"
 )
 

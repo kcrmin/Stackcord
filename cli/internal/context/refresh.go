@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/contract"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/contract"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
 )
 

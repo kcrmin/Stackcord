@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 	"go.yaml.in/yaml/v3"
 )
 

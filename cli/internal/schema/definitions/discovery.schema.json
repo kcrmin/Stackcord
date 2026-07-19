@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/discovery.schema.json",
+  "$id": "https://stackcord.invalid/schemas/discovery.schema.json",
   "type": "object",
   "required": ["schema_version", "summary", "current_focus", "roles", "journeys", "capabilities", "policies", "scenarios", "quality", "ui_coverage", "technology_needs", "decisions", "assumptions", "open_questions"],
   "properties": {

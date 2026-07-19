@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://fullstack-orchestrator.local/schemas/result.schema.json",
-  "title": "Orchestrator command result",
+  "$id": "https://stackcord.local/schemas/result.schema.json",
+  "title": "Stackcord command result",
   "type": "object",
   "additionalProperties": false,
   "required": [

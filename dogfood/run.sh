@@ -17,11 +17,11 @@ done
 
 TEMP=""
 if [[ -z "$BINARY" || -z "$OUTPUT" || -z "$WORKSPACE" ]]; then
-  TEMP=$(mktemp -d "${TMPDIR:-/tmp}/orchestrator-dogfood.XXXXXX")
+  TEMP=$(mktemp -d "${TMPDIR:-/tmp}/stackcord-dogfood.XXXXXX")
 fi
 if [[ -z "$BINARY" ]]; then
-  BINARY="$TEMP/orchestrator"
-  (cd "$ROOT/cli" && go build -trimpath -o "$BINARY" ./cmd/orchestrator)
+  BINARY="$TEMP/stackcord"
+  (cd "$ROOT/cli" && go build -trimpath -o "$BINARY" ./cmd/stackcord)
 fi
 if [[ -z "$OUTPUT" ]]; then OUTPUT="$TEMP/result.json"; fi
 if [[ -z "$WORKSPACE" ]]; then WORKSPACE="$TEMP/fixture"; fi

@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 )
 
 const evidenceOutputLimit = 4 << 20

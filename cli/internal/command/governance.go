@@ -3,9 +3,9 @@ package command
 import (
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/governance"
-	"fullstack-orchestrator/cli/internal/workspace"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/governance"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 	"github.com/spf13/cobra"
 )
 

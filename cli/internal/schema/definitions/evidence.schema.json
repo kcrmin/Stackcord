@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/evidence.schema.json",
+  "$id": "https://stackcord.invalid/schemas/evidence.schema.json",
   "type": "object",
   "required": [
     "schema_version", "id", "kind", "work_id", "workspace_id", "started_at",

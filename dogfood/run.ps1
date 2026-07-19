@@ -7,16 +7,16 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$Temporary = Join-Path ([System.IO.Path]::GetTempPath()) ("orchestrator-dogfood-" + [Guid]::NewGuid().ToString("N"))
+$Temporary = Join-Path ([System.IO.Path]::GetTempPath()) ("stackcord-dogfood-" + [Guid]::NewGuid().ToString("N"))
 
 if (-not $Binary -or -not $Output -or -not $Workspace) {
     New-Item -ItemType Directory -Path $Temporary -Force | Out-Null
 }
 if (-not $Binary) {
-    $Binary = Join-Path $Temporary "orchestrator.exe"
+    $Binary = Join-Path $Temporary "stackcord.exe"
     Push-Location (Join-Path $Root "cli")
     try {
-        & go build -trimpath -o $Binary ./cmd/orchestrator
+        & go build -trimpath -o $Binary ./cmd/stackcord
         if ($LASTEXITCODE -ne 0) { throw "Go build failed" }
     } finally {
         Pop-Location

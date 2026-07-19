@@ -13,11 +13,11 @@
 기여자는 “계정 복구 기능 만들어줘” 또는 “지금 뭐 해야 해?”라고 말합니다. AI는 사용자에게 내부 ID를 관리시키지 않고 다음 흐름을 수행합니다.
 
 1. 저장소, 선택 provider, Git remote, branch, worktree, submodule, contract, 기존 결정을 검사합니다.
-2. 결과를 바꾸는 제품 결정만 확인합니다. 조정이 필요한 작업은 `orchestrator work define`으로 정규화된 실행 checklist를 저장하고 작은 개인 변경은 일반 change와 test 안에서 계획합니다.
+2. 결과를 바꾸는 제품 결정만 확인합니다. 조정이 필요한 작업은 `stackcord work define`으로 정규화된 실행 checklist를 저장하고 작은 개인 변경은 일반 change와 test 안에서 계획합니다.
 3. 외부 provider를 선택했다면 고른 connector로 팀에 보이는 issue를 만들거나 갱신합니다. Issue 연결을 기록하고 작업자를 배정하며 매핑된 `in_progress` 상태로 옮깁니다.
-4. 정확한 issue를 다시 읽습니다. Item ID, revision, status, owner, dependency, capability, work fingerprint, 조회 시각, payload hash를 정규화한 뒤 `orchestrator work provider reconcile --apply`를 실행합니다.
-5. 조정이 필요한 작업은 `orchestrator work start --apply`를 실행합니다. CLI는 path·policy·scenario·contract·DB entity·migration·UI flow·dependency·submodule pointer 범위를 비교하고 Git coordination branch에 compare-and-swap을 수행합니다. 이 선점이 성공한 뒤에만 AI가 일반 branch나 worktree를 만듭니다.
-6. Checklist와 TDD로 개발합니다. 상태나 담당자를 바꾸기 전 evidence를 먼저 검증하고, connector로 외부 provider를 갱신한 뒤 새 revision을 다시 읽고 reconcile합니다. 마지막으로 `orchestrator work transition --apply` 또는 `orchestrator work handoff --apply`로 동기화합니다.
+4. 정확한 issue를 다시 읽습니다. Item ID, revision, status, owner, dependency, capability, work fingerprint, 조회 시각, payload hash를 정규화한 뒤 `stackcord work provider reconcile --apply`를 실행합니다.
+5. 조정이 필요한 작업은 `stackcord work start --apply`를 실행합니다. CLI는 path·policy·scenario·contract·DB entity·migration·UI flow·dependency·submodule pointer 범위를 비교하고 Git coordination branch에 compare-and-swap을 수행합니다. 이 선점이 성공한 뒤에만 AI가 일반 branch나 worktree를 만듭니다.
+6. Checklist와 TDD로 개발합니다. 상태나 담당자를 바꾸기 전 evidence를 먼저 검증하고, connector로 외부 provider를 갱신한 뒤 새 revision을 다시 읽고 reconcile합니다. 마지막으로 `stackcord work transition --apply` 또는 `stackcord work handoff --apply`로 동기화합니다.
 
 Issue 담당자 지정 자체는 배타적 lock이 아닙니다. GitHub는 여러 assignee를 표현할 수 있고 issue system은 서비스 contract나 DB 의미를 이해하지 못합니다. Git compare-and-swap 선점이 두 번째 live status 원본이 되지 않으면서 여러 저장소의 의미 범위를 배타적으로 보호합니다.
 

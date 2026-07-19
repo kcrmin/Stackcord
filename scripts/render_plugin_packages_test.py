@@ -32,7 +32,7 @@ class RenderPluginPackagesTest(unittest.TestCase):
             for package in packages:
                 with zipfile.ZipFile(package) as archive:
                     names = set(archive.namelist())
-                    prefix = "fullstack-orchestrator/"
+                    prefix = "stackcord/"
                     self.assertIn(prefix + ".codex-plugin/plugin.json", names)
                     self.assertIn(prefix + ".agents/plugins/marketplace.json", names)
                     self.assertIn(prefix + "distribution/platform.json", names)
@@ -73,7 +73,7 @@ class RenderPluginPackagesTest(unittest.TestCase):
             unpacked = root / "unpacked"
             with zipfile.ZipFile(package) as archive:
                 archive.extractall(unpacked)
-            plugin = unpacked / "fullstack-orchestrator"
+            plugin = unpacked / "stackcord"
             completed = subprocess.run(
                 [sys.executable, str(plugin / "scripts" / "validate_plugin.py"), str(plugin)],
                 text=True,
@@ -92,7 +92,7 @@ class RenderPluginPackagesTest(unittest.TestCase):
             checksum_lines = []
             for os_name, arch in (("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), ("windows", "arm64")):
                 name = asset_name(os_name, arch)
-                source = dist / f"build-{os_name}-{arch}" / ("orchestrator.exe" if os_name == "windows" else "orchestrator")
+                source = dist / f"build-{os_name}-{arch}" / ("stackcord.exe" if os_name == "windows" else "stackcord")
                 source.parent.mkdir(parents=True)
                 source.write_bytes(f"{os_name}/{arch}".encode())
                 digest = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -119,8 +119,8 @@ class RenderPluginPackagesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory)
             expected_names = {
-                "orchestrator_darwin_arm64",
-                "fullstack-orchestrator_plugin_1.0.0_darwin_arm64.zip",
+                "stackcord_darwin_arm64",
+                "stackcord_plugin_1.0.0_darwin_arm64.zip",
             }
             for name in expected_names:
                 (output / name).write_bytes(name.encode())

@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	uiimport "fullstack-orchestrator/cli/internal/ui"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	uiimport "github.com/kcrmin/Stackcord/cli/internal/ui"
 	"github.com/stretchr/testify/require"
 )
 

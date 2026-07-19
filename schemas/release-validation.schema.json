@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/release-validation.schema.json",
+  "$id": "https://stackcord.invalid/schemas/release-validation.schema.json",
   "type": "object",
   "required": ["schema_version", "candidate_digest", "confirmed", "evidence_digest", "verified_at"],
   "properties": {

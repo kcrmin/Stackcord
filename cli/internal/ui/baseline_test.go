@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/ui"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/ui"
 	"github.com/stretchr/testify/require"
 )
 

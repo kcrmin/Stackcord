@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"fullstack-orchestrator/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
 )
 
 var version = "dev"

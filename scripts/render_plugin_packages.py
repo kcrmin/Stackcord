@@ -31,7 +31,7 @@ def asset_name(os_name: str, arch: str) -> str:
     if (os_name, arch) not in PLATFORMS:
         raise ValueError(f"unsupported platform: {os_name}/{arch}")
     suffix = ".exe" if os_name == "windows" else ""
-    return f"orchestrator_{os_name}_{arch}{suffix}"
+    return f"stackcord_{os_name}_{arch}{suffix}"
 
 
 def _plugin_manifest(root: pathlib.Path) -> dict[str, object]:

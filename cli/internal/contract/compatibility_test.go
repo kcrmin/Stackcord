@@ -3,7 +3,7 @@ package contract_test
 import (
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/contract"
+	"github.com/kcrmin/Stackcord/cli/internal/contract"
 	"github.com/stretchr/testify/require"
 )
 

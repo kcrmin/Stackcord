@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/command"
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
@@ -106,7 +106,7 @@ func TestProjectCheckpointHelpIncludesACompleteInputExample(t *testing.T) {
 	} {
 		require.Contains(t, stdout.String(), field)
 	}
-	require.Contains(t, stdout.String(), "orchestrator project checkpoint")
+	require.Contains(t, stdout.String(), "stackcord project checkpoint")
 }
 
 func TestGitInspectCommandReportsActualState(t *testing.T) {

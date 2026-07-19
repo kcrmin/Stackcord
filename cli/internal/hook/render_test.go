@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/continuity"
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/continuity"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,6 +37,6 @@ func TestRenderPostCompactUsesSupportedSystemMessageOnly(t *testing.T) {
 	var value map[string]any
 	require.NoError(t, json.Unmarshal(data, &value))
 	require.Equal(t, true, value["continue"])
-	require.Contains(t, value["systemMessage"], "orchestrator status")
+	require.Contains(t, value["systemMessage"], "stackcord status")
 	require.NotContains(t, value, "hookSpecificOutput")
 }

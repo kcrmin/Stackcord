@@ -12,11 +12,11 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
-	"fullstack-orchestrator/cli/internal/workspace"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 	"go.yaml.in/yaml/v3"
 )
 

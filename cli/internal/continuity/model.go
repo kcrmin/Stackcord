@@ -1,10 +1,10 @@
 package continuity
 
 import (
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/governance"
-	"fullstack-orchestrator/cli/internal/workspace"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/governance"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 )
 
 // Confidence distinguishes evidence quality instead of collapsing every concern into pass/fail.

@@ -1,4 +1,4 @@
-PackageIdentifier: FullstackOrchestrator.Orchestrator
+PackageIdentifier: Stackcord.Stackcord
 PackageVersion: "{{VERSION}}"
 DefaultLocale: en-US
 ManifestType: version

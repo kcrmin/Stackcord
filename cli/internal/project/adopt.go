@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 // PlanAdopt adds only missing files and managed sections, preserving existing project content.

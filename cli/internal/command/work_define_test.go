@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
 	"github.com/stretchr/testify/require"
 )
 

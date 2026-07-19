@@ -35,7 +35,7 @@ def verify(dist: pathlib.Path) -> list[str]:
     if not any(path.suffix in {".spdx", ".json"} and "sbom" in path.name.lower() for path in dist.rglob("*")):
         errors.append("archive SBOM is absent")
     manifests = dist / "package-manifests"
-    if not (manifests / "homebrew" / "orchestrator.rb").is_file() or not list((manifests / "winget").glob("*.yaml")):
+    if not (manifests / "homebrew" / "stackcord.rb").is_file() or not list((manifests / "winget").glob("*.yaml")):
         errors.append("Homebrew or WinGet manifests are absent")
     return errors
 

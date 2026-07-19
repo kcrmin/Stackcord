@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/policy"
+	"github.com/kcrmin/Stackcord/cli/internal/policy"
 	"github.com/stretchr/testify/require"
 )
 

@@ -4,6 +4,15 @@
 
 Use Git for collaboration; Git is required when a release candidate must be traceable. A Plugin-capable AI client improves discovery, but the generated repository also includes a standalone Skill and Markdown fallback. Go 1.26 or newer is needed only when building from source.
 
+## Install from GitHub
+
+```bash
+codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
+codex plugin add stackcord@stackcord
+```
+
+Start a new Codex conversation after installation so the five Stackcord Skills and lifecycle hooks are loaded from the installed snapshot.
+
 ## Install a verified release bundle
 
 Download the Plugin zip for the current platform together with `checksums.txt`, verify its SHA-256, and unpack it. The bundle contains `.agents/plugins/marketplace.json`, the five Skills, lifecycle hooks, project templates, both bootstrap scripts, and `distribution/platform.json`. That platform record binds the Plugin version to the matching CLI asset and checksum URL.
@@ -11,11 +20,11 @@ Download the Plugin zip for the current platform together with `checksums.txt`, 
 Ask the AI “Install this verified bundle locally.” It can inspect the platform record and run the matching checksum-first bootstrap. To install the unpacked Plugin through Codex CLI, add its directory as a local marketplace and install the listed Plugin from that marketplace:
 
 ```bash
-codex plugin marketplace add /absolute/path/to/unpacked/fullstack-orchestrator
-codex plugin add fullstack-orchestrator@fullstack-orchestrator
+codex plugin marketplace add /absolute/path/to/unpacked/stackcord
+codex plugin add stackcord@stackcord
 ```
 
-The public package name and URL will replace this working name at publication. The bootstrap accepts only HTTPS release URLs, except loopback HTTP used by tests; it verifies the checksum and a `doctor` smoke test before atomically replacing the CLI. Hooks never download or install software.
+The bootstrap accepts only HTTPS release URLs, except loopback HTTP used by tests; it verifies the checksum and a `doctor` smoke test before atomically replacing the CLI. Hooks never download or install software.
 
 ## Build the CLI
 
@@ -24,20 +33,20 @@ From the product repository:
 ```bash
 cd cli
 go test ./...
-go build -o ../bin/orchestrator ./cmd/orchestrator
+go build -o ../bin/stackcord ./cmd/stackcord
 ```
 
-Windows PowerShell uses `go build -o ..\bin\orchestrator.exe .\cmd\orchestrator`. Put the resulting binary on `PATH` or tell the AI its absolute path. Run `orchestrator doctor --json` to inspect Git and optional capabilities. This source-build path is for contributors; ordinary users should prefer the verified bundle.
+Windows PowerShell uses `go build -o ..\bin\stackcord.exe .\cmd\stackcord`. Put the resulting binary on `PATH` or tell the AI its absolute path. Run `stackcord doctor --json` to inspect Git and optional capabilities. This source-build path is for contributors; ordinary users should prefer the verified bundle.
 
 ## Install the optional Plugin
 
 For source-tree development, add this repository as a local marketplace and install it from **Plugins** or Codex CLI:
 
 ```bash
-codex plugin marketplace add /absolute/path/to/fullstack-orchestrator
+codex plugin marketplace add /absolute/path/to/stackcord
 ```
 
-In Codex CLI, open `/plugins` after adding the marketplace. For a GitHub-hosted marketplace use `codex plugin marketplace add owner/repo`. Plugin installation is optional; generated projects retain repo-local behavior.
+In Codex CLI, open `/plugins` after adding the marketplace. Plugin installation is optional; generated projects retain repo-local behavior.
 
 ## Start by talking to the AI
 

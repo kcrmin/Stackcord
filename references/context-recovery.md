@@ -1,6 +1,6 @@
 # Context recovery
 
-Find the nearest project root from any root or child workspace and run `orchestrator status --json`. When context was compacted, settled questions repeat, or sources disagree, run `orchestrator context audit --json` before mutation.
+Find the nearest project root from any root or child workspace and run `stackcord status --json`. When context was compacted, settled questions repeat, or sources disagree, run `stackcord context audit --json` before mutation.
 
 Use this precedence:
 

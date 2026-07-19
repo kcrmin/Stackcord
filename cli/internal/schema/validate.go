@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
@@ -61,7 +61,7 @@ func compiled(kind, filename string) (*jsonschema.Schema, error) {
 	}
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)
-	location := "https://orchestrator.invalid/schemas/" + kind + ".schema.json"
+	location := "https://stackcord.invalid/schemas/" + kind + ".schema.json"
 	if err := compiler.AddResource(location, document); err != nil {
 		return nil, fmt.Errorf("register %s schema: %w", kind, err)
 	}

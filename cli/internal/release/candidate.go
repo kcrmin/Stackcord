@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // Input fixes every core identity and any explicitly enabled strict identity.

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 )
 
 // VerifyCurrent checks whether a record still proves the current workspace and meaning.

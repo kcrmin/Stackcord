@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // Apply executes or resumes a local plan using atomic file replacements and an idempotency receipt.

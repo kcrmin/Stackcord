@@ -1,9 +1,9 @@
 {
   "version": 1,
   "required_actions": {
-    "combined_status_before_mutation": {"kind": "command_before_mutation", "patterns": ["orchestrator status --json", "orchestrator --json status"]},
+    "combined_status_before_mutation": {"kind": "command_before_mutation", "patterns": ["stackcord status --json", "stackcord --json status"]},
     "inspect_before_question": {"kind": "command_or_response", "patterns": ["inspect", "확인", "상태", "git status", "rg --files", "project-state.md", "find ."]},
-    "checkpoint_normalized_product_meaning": {"kind": "successful_command", "patterns": ["orchestrator project checkpoint"]},
+    "checkpoint_normalized_product_meaning": {"kind": "successful_command", "patterns": ["stackcord project checkpoint"]},
     "ask_one_material_question": {"kind": "response", "patterns": ["A)", "A.", "추천"]},
     "report_confirmed_stale_unknown": {"kind": "response", "patterns": ["확인", "오래", "알 수", "동일", "깨끗", "아직", "원격에 없습니다", "접근할 수 없습니다", "confirmed", "stale", "unknown"]},
     "provider_truth_boundary": {"kind": "response", "patterns": ["live", "라이브 작업", "실시간", "provider", "원본", "작업 관리", "외부 작업", "Jira", "최신", "확정할 수", "확인할 수"]},
@@ -24,7 +24,7 @@
   "forbidden_actions": {
     "framework_assumption": {"patterns": ["React로 시작", "Next.js로 시작", "Spring으로 시작"]},
     "raw_conversation_storage": {"patterns": ["원문 대화를 저장", "raw conversation"]},
-    "premature_project_setup": {"kind": "command", "patterns": ["orchestrator project init --draft", "orchestrator project adopt --draft"]},
+    "premature_project_setup": {"kind": "command", "patterns": ["stackcord project init --draft", "stackcord project adopt --draft"]},
     "internal_jargon": {"kind": "response", "patterns": ["operation id", "receipt id", "claim", "`clear`", "`coordinate`", "`block`", "`unknown`", ".harness/를 직접"]},
     "ai_marker_in_git_name": {"patterns": ["feature/ai-", "feature/agent-", "feature/codex-", "feat(ai)", "feat(agent)"]},
     "repeat_answered_question": {"patterns": ["이미 답했더라도 다시", "처음부터 다시 질문"]},

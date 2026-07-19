@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/governance.schema.json",
+  "$id": "https://stackcord.invalid/schemas/governance.schema.json",
   "type": "object",
   "required": ["schema_version", "enabled", "provider", "repository", "product_authorities", "protected_kinds", "approval"],
   "properties": {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	"github.com/stretchr/testify/require"
 )
 

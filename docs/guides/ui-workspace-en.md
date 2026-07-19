@@ -15,8 +15,8 @@ Establish product roles, journeys, and UI coverage, then create small flow slice
 Inspect it as a `seed` and compare it with current UI. Bring in the whole source or selected files, then edit them as ordinary files. If existing files or product meaning conflict, do not overwrite them; decide which behavior remains first.
 
 ```text
-orchestrator ui import --root . --archive mockup.zip --id ui.external.checkout --authority seed --license MIT --apply
-orchestrator ui promote --root . --id ui.external.checkout --workspace workspace.ui --mode selected --path screens/checkout.html --apply
+stackcord ui import --root . --archive mockup.zip --id ui.external.checkout --authority seed --license MIT --apply
+stackcord ui promote --root . --id ui.external.checkout --workspace workspace.ui --mode selected --path screens/checkout.html --apply
 ```
 
 ## C. An external design is already approved
@@ -28,8 +28,8 @@ Register it as `canonical` and bring in an appropriate whole or selected export.
 First create the UI remote in the selected provider. The CLI safely adds only an existing remote; it does not create remotes, commit, or push.
 
 ```text
-orchestrator git submodule add --root . --remote https://example.com/team/product-ui.git --path ui --apply
-orchestrator workspace register --root . --id workspace.ui --kind submodule --path ui --remote https://example.com/team/product-ui.git --responsibility ui-baseline --consumer workspace.frontend --initialize ui --apply
+stackcord git submodule add --root . --remote https://example.com/team/product-ui.git --path ui --apply
+stackcord workspace register --root . --id workspace.ui --kind submodule --path ui --remote https://example.com/team/product-ui.git --responsibility ui-baseline --consumer workspace.frontend --initialize ui --apply
 ```
 
 Use `--kind directory` when the UI workspace is not a submodule.
@@ -39,7 +39,7 @@ Use `--kind directory` when the UI workspace is not a submodule.
 Edit UI files, commit and push with ordinary Git conventions, then bind the baseline.
 
 ```text
-orchestrator ui baseline bind --root . --id ui.baseline.checkout --workspace workspace.ui --source ui.external.checkout --ref ui.checkout --consumer workspace.frontend --apply
+stackcord ui baseline bind --root . --id ui.baseline.checkout --workspace workspace.ui --source ui.external.checkout --ref ui.checkout --consumer workspace.frontend --apply
 ```
 
 Frontend work records this baseline fingerprint. A changed UI commit, source, or root pointer makes older frontend work and evidence stale. For a submodule, integrate the baseline record and new UI gitlink as one reviewable root change.

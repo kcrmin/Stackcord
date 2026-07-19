@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 )
 
 // Submodule captures root pointer, local checkout, URL, and safety state.

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/output"
+	"github.com/kcrmin/Stackcord/cli/internal/output"
 	"github.com/stretchr/testify/require"
 )
 

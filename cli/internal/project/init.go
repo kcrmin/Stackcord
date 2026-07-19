@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 )
 
 // InitRequest is framework-neutral project metadata.

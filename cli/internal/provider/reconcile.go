@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 const MaxLiveSnapshotAge = 15 * time.Minute

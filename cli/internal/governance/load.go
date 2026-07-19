@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 const defaultObservationPath = ".harness/local/governance/approval.yaml"

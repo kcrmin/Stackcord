@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 type mutationKind string
@@ -231,7 +231,7 @@ func worktreeTarget(ctx context.Context, git runner, root, branch, requested str
 		if superproject, err := git.read(ctx, root, "rev-parse", "--show-superproject-working-tree"); err == nil && superproject != "" {
 			placement = filepath.Dir(superproject)
 		}
-		target = filepath.Join(placement, ".orchestrator-worktrees", filepath.Base(root), strings.ReplaceAll(branch, "/", "-"))
+		target = filepath.Join(placement, ".stackcord-worktrees", filepath.Base(root), strings.ReplaceAll(branch, "/", "-"))
 	}
 	target, err := filepath.Abs(target)
 	if err != nil {

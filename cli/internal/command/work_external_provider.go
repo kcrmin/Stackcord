@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/provider"
-	workpkg "fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/provider"
+	workpkg "github.com/kcrmin/Stackcord/cli/internal/work"
 )
 
 // externalProviderObservation is a fresh connector result reconciled against

@@ -12,11 +12,11 @@ import (
 	"sort"
 	"strings"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
-	"fullstack-orchestrator/cli/internal/workspace"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 	"go.yaml.in/yaml/v3"
 )
 

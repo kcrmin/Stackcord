@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/integration"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/integration"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 	"github.com/stretchr/testify/require"
 )
 

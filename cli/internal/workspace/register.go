@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 	"go.yaml.in/yaml/v3"
 )
 

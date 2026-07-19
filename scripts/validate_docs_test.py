@@ -40,17 +40,17 @@ class DocumentationValidatorTest(unittest.TestCase):
 
     def test_extracts_documented_cli_paths_without_arguments(self):
         text = """
-Run `orchestrator status --json`, then:
+Run `stackcord status --json`, then:
 
 ```sh
-orchestrator work define --root . --input /tmp/work.json --apply
-orchestrator release verify --root . --json
+stackcord work define --root . --input /tmp/work.json --apply
+stackcord release verify --root . --json
 ```
 """
 
         self.assertEqual(
             {("status",), ("work", "define"), ("release", "verify")},
-            validate_docs.extract_orchestrator_commands(text),
+            validate_docs.extract_stackcord_commands(text),
         )
 
     def test_public_contract_reports_missing_service_continuity_explanations(self):
@@ -86,6 +86,14 @@ orchestrator release verify --root . --json
         self.assertIn("administrator approval", english)
         self.assertIn("관리자 승인", korean)
 
+    def test_readmes_install_the_public_stackcord_plugin(self):
+        root = validate_docs.ROOT
+        for name in ("README.md", "README.ko.md"):
+            text = (root / name).read_text(encoding="utf-8")
+            self.assertIn("kcrmin/Stackcord", text)
+            self.assertIn("codex plugin add stackcord@stackcord", text)
+            self.assertNotIn("<owner>" + "/stackcord", text)
+
     def test_safety_contract_reports_missing_external_and_archive_boundaries(self):
         errors = validate_docs.safety_contract_errors({
             "docs/security/threat-model-en.md": "prompt injection",
@@ -105,9 +113,9 @@ orchestrator release verify --root . --json
         korean = (root / "docs/guides/governance-ko.md").read_text(encoding="utf-8")
         readme = (root / "README.md").read_text(encoding="utf-8")
         readme_ko = (root / "README.ko.md").read_text(encoding="utf-8")
-        for token in ("product authority", "proposal", "user.name", "orchestrator governance check"):
+        for token in ("product authority", "proposal", "user.name", "stackcord governance check"):
             self.assertIn(token, english)
-        for token in ("제품 책임자", "제안", "user.name", "orchestrator governance check"):
+        for token in ("제품 책임자", "제안", "user.name", "stackcord governance check"):
             self.assertIn(token, korean)
         self.assertIn("People and AI understand the service differently", readme)
         self.assertIn("사람과 AI마다 서비스의 목적·정책·동작을 다르게 이해", readme_ko)

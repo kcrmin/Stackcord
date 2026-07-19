@@ -3,9 +3,9 @@ package integration_test
 import (
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/contract"
-	"fullstack-orchestrator/cli/internal/integration"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/contract"
+	"github.com/kcrmin/Stackcord/cli/internal/integration"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 	"github.com/stretchr/testify/require"
 )
 

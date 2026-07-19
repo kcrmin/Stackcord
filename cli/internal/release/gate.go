@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // Profile controls optional release checks without weakening core verification.

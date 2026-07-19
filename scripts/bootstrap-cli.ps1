@@ -28,13 +28,13 @@ if (-not $Arch) {
     }
 }
 $Asset = switch ($Arch) {
-    "amd64" { "orchestrator_windows_amd64.exe" }
-    "arm64" { "orchestrator_windows_arm64.exe" }
+    "amd64" { "stackcord_windows_amd64.exe" }
+    "arm64" { "stackcord_windows_arm64.exe" }
     default { throw "Unsupported architecture: $Arch" }
 }
 
 $ReleaseUrl = "$($BaseUrl.TrimEnd('/'))/v$Version"
-$TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("orchestrator-bootstrap-" + [guid]::NewGuid().ToString("N"))
+$TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("stackcord-bootstrap-" + [guid]::NewGuid().ToString("N"))
 $Checksums = Join-Path $TempDir "checksums.txt"
 $Download = Join-Path $TempDir $Asset
 $Staged = $null
@@ -61,11 +61,11 @@ try {
 
     & $Download doctor --json | Out-Null
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-    $Target = Join-Path $InstallDir "orchestrator.exe"
-    $Staged = Join-Path $InstallDir (".orchestrator.tmp-" + [guid]::NewGuid().ToString("N") + ".exe")
+    $Target = Join-Path $InstallDir "stackcord.exe"
+    $Staged = Join-Path $InstallDir (".stackcord.tmp-" + [guid]::NewGuid().ToString("N") + ".exe")
     Copy-Item -LiteralPath $Download -Destination $Staged
     if (Test-Path -LiteralPath $Target) {
-        $Backup = Join-Path $InstallDir (".orchestrator.backup-" + [guid]::NewGuid().ToString("N") + ".exe")
+        $Backup = Join-Path $InstallDir (".stackcord.backup-" + [guid]::NewGuid().ToString("N") + ".exe")
         [System.IO.File]::Replace($Staged, $Target, $Backup, $true)
         Remove-Item -LiteralPath $Backup -Force
     } else {
@@ -73,7 +73,7 @@ try {
     }
     $Staged = $null
     & $Target doctor --json
-    Write-Output "Installed verified orchestrator $Version at $Target"
+    Write-Output "Installed verified stackcord $Version at $Target"
 } finally {
     if ($Staged -and (Test-Path -LiteralPath $Staged)) {
         Remove-Item -LiteralPath $Staged -Force

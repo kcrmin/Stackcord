@@ -8,10 +8,10 @@ import shutil
 
 
 ARTIFACTS = {
-    "DARWIN_ARM64_SHA256": "orchestrator_{version}_Darwin_arm64.tar.gz",
-    "DARWIN_AMD64_SHA256": "orchestrator_{version}_Darwin_x86_64.tar.gz",
-    "WINDOWS_ARM64_SHA256": "orchestrator_{version}_Windows_arm64.zip",
-    "WINDOWS_AMD64_SHA256": "orchestrator_{version}_Windows_x86_64.zip",
+    "DARWIN_ARM64_SHA256": "stackcord_{version}_Darwin_arm64.tar.gz",
+    "DARWIN_AMD64_SHA256": "stackcord_{version}_Darwin_x86_64.tar.gz",
+    "WINDOWS_ARM64_SHA256": "stackcord_{version}_Windows_arm64.zip",
+    "WINDOWS_AMD64_SHA256": "stackcord_{version}_Windows_x86_64.zip",
 }
 
 

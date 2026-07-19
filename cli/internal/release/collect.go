@@ -15,17 +15,17 @@ import (
 	"strings"
 	"time"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/contract"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/evidence"
-	"fullstack-orchestrator/cli/internal/gitx"
-	"fullstack-orchestrator/cli/internal/governance"
-	"fullstack-orchestrator/cli/internal/integration"
-	"fullstack-orchestrator/cli/internal/provider"
-	"fullstack-orchestrator/cli/internal/schema"
-	"fullstack-orchestrator/cli/internal/work"
-	"fullstack-orchestrator/cli/internal/workspace"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/contract"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/evidence"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/governance"
+	"github.com/kcrmin/Stackcord/cli/internal/integration"
+	"github.com/kcrmin/Stackcord/cli/internal/provider"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 )
 
 const maxReleaseSourceBytes = 64 << 20
@@ -42,14 +42,14 @@ type ProviderReader interface {
 
 // CollectOptions contains deterministic release choices, not hand-authored repository identities.
 type CollectOptions struct {
-	Version             string
-	Profile             Profile
-	EvidenceStore       EvidenceStore
-	ProviderReader      ProviderReader
-	StrictEvidence      *StrictEvidence
-	ToolVersions        map[string]string
-	OrchestratorVersion string
-	WorkIDs             []string
+	Version          string
+	Profile          Profile
+	EvidenceStore    EvidenceStore
+	ProviderReader   ProviderReader
+	StrictEvidence   *StrictEvidence
+	ToolVersions     map[string]string
+	StackcordVersion string
+	WorkIDs          []string
 }
 
 // LocalEvidenceStore reads only safe evidence records produced by reviewed commands.
@@ -118,11 +118,11 @@ func CollectInput(ctx context.Context, start string, options CollectOptions) (In
 	if input.Profile == "" {
 		input.Profile = ProfileCore
 	}
-	orchestratorVersion := strings.TrimSpace(options.OrchestratorVersion)
-	if orchestratorVersion == "" {
-		orchestratorVersion = input.Version
+	stackcordVersion := strings.TrimSpace(options.StackcordVersion)
+	if stackcordVersion == "" {
+		stackcordVersion = input.Version
 	}
-	input.ToolVersions["orchestrator"] = orchestratorVersion
+	input.ToolVersions["stackcord"] = stackcordVersion
 	if gitVersion, versionErr := commandOutput(ctx, root, "git", "--version"); versionErr == nil {
 		input.ToolVersions["git"] = strings.TrimSpace(strings.TrimPrefix(gitVersion, "git version "))
 	} else {

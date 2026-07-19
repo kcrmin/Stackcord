@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/database"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/database"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 	"github.com/stretchr/testify/require"
 )
 

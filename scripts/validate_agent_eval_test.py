@@ -143,11 +143,11 @@ class AgentEvalContractTest(unittest.TestCase):
 
     def test_runner_exposes_the_built_cli_without_changing_user_path(self):
         base = {"PATH": "/usr/bin", "HOME": "/tmp/home"}
-        cli = pathlib.Path("/tmp/eval-bin/orchestrator")
+        cli = pathlib.Path("/tmp/eval-bin/stackcord")
 
         environment = evaluation_environment(base, cli)
 
-        self.assertEqual(str(cli), environment["ORCHESTRATOR_CLI"])
+        self.assertEqual(str(cli), environment["STACKCORD_CLI"])
         self.assertEqual(f"{cli.parent}:/usr/bin", environment["PATH"])
         self.assertEqual("0", environment["GIT_TERMINAL_PROMPT"])
         self.assertEqual({"PATH": "/usr/bin", "HOME": "/tmp/home"}, base)
@@ -161,14 +161,14 @@ class AgentEvalContractTest(unittest.TestCase):
         passing = score_transcript(
             scenario,
             rubric,
-            commands=["orchestrator status --json", "orchestrator work next --json"],
+            commands=["stackcord status --json", "stackcord work next --json"],
             response="확인된 상태를 기준으로 다음 안전한 작업을 제안합니다.",
         )
         self.assertTrue(passing["passed"])
         failing = score_transcript(
             scenario,
             rubric,
-            commands=["git pull", "orchestrator status --json"],
+            commands=["git pull", "stackcord status --json"],
             response="다음 작업입니다.",
         )
         self.assertFalse(failing["passed"])
@@ -186,8 +186,8 @@ class AgentEvalContractTest(unittest.TestCase):
             scenario,
             rubric,
             commands=[
-                "orchestrator project checkpoint --help",
-                "orchestrator status --json",
+                "stackcord project checkpoint --help",
+                "stackcord status --json",
             ],
             response="상태를 확인했습니다.",
         )
@@ -294,7 +294,7 @@ class AgentEvalContractTest(unittest.TestCase):
             "required_actions": ["checkpoint_normalized_product_meaning"],
             "forbidden_actions": [],
         }
-        command = "orchestrator project checkpoint --input checkpoint.yaml --apply --json"
+        command = "stackcord project checkpoint --input checkpoint.yaml --apply --json"
 
         failed = score_transcript(
             scenario,
@@ -329,7 +329,7 @@ class AgentEvalContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory)
             (output / "events.jsonl").write_text(
-                json.dumps({"item": {"command": "orchestrator status --json"}}) + "\n",
+                json.dumps({"item": {"command": "stackcord status --json"}}) + "\n",
                 encoding="utf-8",
             )
             (output / "final.txt").write_text("이제 다음 작업을 진행합니다.\n", encoding="utf-8")

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 	"github.com/stretchr/testify/require"
 )
 

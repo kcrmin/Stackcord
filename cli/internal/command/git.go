@@ -3,8 +3,8 @@ package command
 import (
 	"strconv"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 	"github.com/spf13/cobra"
 )
 

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/project"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/project"
 	"github.com/stretchr/testify/require"
 )
 
@@ -110,7 +110,7 @@ func TestAdoptExistingProjectPreservesCustomFiles(t *testing.T) {
 	require.Equal(t, customReadme, mustRead(t, filepath.Join(root, "README.md")), "planning is read-only")
 	require.Equal(t, domain.StatusPassed, operation.Apply(context.Background(), plan).Status)
 	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), customReadme)
-	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), "orchestrator:begin")
+	require.Contains(t, mustRead(t, filepath.Join(root, "README.md")), "stackcord:begin")
 	require.Contains(t, mustRead(t, filepath.Join(root, "AGENTS.md")), customAgents)
 	require.True(t, strings.HasPrefix(mustRead(t, filepath.Join(root, ".gitignore")), customGitignore), "ordered ignore rules must remain byte-for-byte at the start")
 	require.Equal(t, "do not touch\n", mustRead(t, filepath.Join(root, "user-dirty.txt")))

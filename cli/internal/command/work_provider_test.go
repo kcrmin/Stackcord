@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/command"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/provider"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/provider"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 )

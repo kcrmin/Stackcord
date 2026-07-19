@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +19,7 @@ func TestCreateWorktreeRefusesDirtyBaseAndDuplicateBranch(t *testing.T) {
 
 	require.Equal(t, domain.StatusBlocked, dirty.Status)
 	require.Contains(t, gitResultCodes(dirty.Blockers), "git.base-dirty")
-	require.NoDirExists(t, filepath.Join(filepath.Dir(root), ".orchestrator-worktrees", filepath.Base(root), "feature-account-recovery"))
+	require.NoDirExists(t, filepath.Join(filepath.Dir(root), ".stackcord-worktrees", filepath.Base(root), "feature-account-recovery"))
 	require.NoError(t, os.Remove(filepath.Join(root, "dirty.txt")))
 
 	created := gitx.CreateWorktree(context.Background(), gitx.CreateWorktreeRequest{Root: root, Branch: "feature/account-recovery", Base: "main"})

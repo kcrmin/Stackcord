@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/manifest.schema.json",
+  "$id": "https://stackcord.invalid/schemas/manifest.schema.json",
   "type": "object",
   "required": ["schema_version", "id", "locale"],
   "properties": {

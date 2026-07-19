@@ -3,7 +3,7 @@ package governance
 import (
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // Status is the effective product-meaning approval state.

@@ -64,9 +64,9 @@ if [[ "$OS_NAME" != darwin || ( "$ARCH" != amd64 && "$ARCH" != arm64 ) ]]; then
   exit 2
 fi
 
-ASSET="orchestrator_${OS_NAME}_${ARCH}"
+ASSET="stackcord_${OS_NAME}_${ARCH}"
 RELEASE_URL="${BASE_URL}/v${VERSION}"
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/orchestrator-bootstrap.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/stackcord-bootstrap.XXXXXX")
 CHECKSUMS="${TEMP_DIR}/checksums.txt"
 DOWNLOAD="${TEMP_DIR}/${ASSET}"
 
@@ -97,11 +97,11 @@ fi
 chmod 0755 "$DOWNLOAD"
 "$DOWNLOAD" doctor --json >/dev/null
 mkdir -p "$INSTALL_DIR"
-TARGET="${INSTALL_DIR}/orchestrator"
-STAGED="${INSTALL_DIR}/.orchestrator.tmp.$$"
+TARGET="${INSTALL_DIR}/stackcord"
+STAGED="${INSTALL_DIR}/.stackcord.tmp.$$"
 cp "$DOWNLOAD" "$STAGED"
 chmod 0755 "$STAGED"
 mv -f "$STAGED" "$TARGET"
 STAGED=""
 "$TARGET" doctor --json
-printf 'Installed verified orchestrator %s at %s\n' "$VERSION" "$TARGET"
+printf 'Installed verified stackcord %s at %s\n' "$VERSION" "$TARGET"

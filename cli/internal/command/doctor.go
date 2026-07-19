@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/continuity"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/workspace"
+	"github.com/kcrmin/Stackcord/cli/internal/continuity"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 )
 
 func doctorFacts(ctx context.Context, root, version string) ([]domain.Item, []domain.Item) {

@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/gitx"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 const coordinationFile = "coordination.json"

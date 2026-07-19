@@ -1,10 +1,10 @@
 package command
 
 import (
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
-	workpkg "fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	workpkg "github.com/kcrmin/Stackcord/cli/internal/work"
 	"github.com/spf13/cobra"
 )
 

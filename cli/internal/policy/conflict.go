@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // ConflictLevel is the pre-implementation coordination decision.

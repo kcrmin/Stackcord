@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/ui-baseline.schema.json",
+  "$id": "https://stackcord.invalid/schemas/ui-baseline.schema.json",
   "type": "object",
   "required": [
     "schema_version", "id", "workspace_id", "workspace_commit", "workspace_remote",

@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/evidence"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/evidence"
 )
 
 // State is normalized live work status owned by the selected provider.

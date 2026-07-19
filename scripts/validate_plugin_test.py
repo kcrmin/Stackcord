@@ -14,6 +14,21 @@ class PluginContractTest(unittest.TestCase):
         self.assertTrue((ROOT / ".codex-plugin" / "plugin.json").is_file())
         self.assertTrue((ROOT / ".agents" / "plugins" / "marketplace.json").is_file())
 
+    def test_public_identity_is_stackcord(self):
+        manifest = json.loads(
+            (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        marketplace = json.loads(
+            (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("stackcord", manifest["name"])
+        self.assertEqual("Stackcord", manifest["interface"]["displayName"])
+        self.assertEqual("https://github.com/kcrmin/Stackcord", manifest["repository"])
+        self.assertEqual("stackcord", marketplace["name"])
+        self.assertEqual("stackcord", marketplace["plugins"][0]["name"])
+
     def test_every_behavior_has_a_focused_skill(self):
         cases = json.loads((ROOT / "testdata" / "plugin" / "behavior.json").read_text())
         for case in cases:
@@ -22,8 +37,8 @@ class PluginContractTest(unittest.TestCase):
             text = skill.read_text()
             self.assertIn(f"name: {case['skill']}", text)
             self.assertIn(case["domain_command"], text)
-            self.assertIn("orchestrator status --json", text)
-            self.assertEqual("orchestrator status --json", case["first_command"])
+            self.assertIn("stackcord status --json", text)
+            self.assertEqual("stackcord status --json", case["first_command"])
             self.assertLessEqual(
                 text.index(case["first_command"]),
                 text.index(case["domain_command"]),
@@ -82,8 +97,8 @@ class PluginContractTest(unittest.TestCase):
         self.assertIn("MengTo/Skills", start)
         self.assertIn("optional UI creation", start)
         self.assertIn("ordinary editable files", coordinate)
-        self.assertIn("orchestrator ui promote", coordinate)
-        self.assertIn("orchestrator ui baseline bind", coordinate)
+        self.assertIn("stackcord ui promote", coordinate)
+        self.assertIn("stackcord ui baseline bind", coordinate)
         self.assertIn("exact UI baseline", continue_text)
         self.assertNotIn("MengTo/Skills is the source of truth", start)
 
@@ -95,7 +110,7 @@ class PluginContractTest(unittest.TestCase):
             ROOT / "skills" / "recover-and-release-project" / "SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn("product authority", coordinate.lower())
-        self.assertIn("orchestrator governance check --json", coordinate)
+        self.assertIn("stackcord governance check --json", coordinate)
         self.assertIn("Git display name and email", coordinate)
         self.assertIn("may not present it as approved", coordinate)
         self.assertIn("fresh product-authority approval", release)
@@ -131,14 +146,14 @@ class PluginContractTest(unittest.TestCase):
         for event in hooks["hooks"].values():
             command = event[0]["hooks"][0]
             self.assertEqual("command", command["type"])
-            self.assertIn("$PLUGIN_ROOT/hooks/run-orchestrator-hook.sh", command["command"])
+            self.assertIn("$PLUGIN_ROOT/hooks/run-stackcord-hook.sh", command["command"])
             self.assertIn("$env:PLUGIN_ROOT", command["commandWindows"])
-            self.assertIn("run-orchestrator-hook.ps1", command["commandWindows"])
-        shell_resolver = (ROOT / "hooks" / "run-orchestrator-hook.sh").read_text(
+            self.assertIn("run-stackcord-hook.ps1", command["commandWindows"])
+        shell_resolver = (ROOT / "hooks" / "run-stackcord-hook.sh").read_text(
             encoding="utf-8"
         )
         powershell_resolver = (
-            ROOT / "hooks" / "run-orchestrator-hook.ps1"
+            ROOT / "hooks" / "run-stackcord-hook.ps1"
         ).read_text(encoding="utf-8")
         self.assertIn('exec "$CLI" hook "$EVENT"', shell_resolver)
         self.assertIn("& $Cli hook $Event", powershell_resolver)

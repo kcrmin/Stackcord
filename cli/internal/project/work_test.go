@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/policy"
-	"fullstack-orchestrator/cli/internal/project"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/policy"
+	"github.com/kcrmin/Stackcord/cli/internal/project"
 	"github.com/stretchr/testify/require"
 )
 

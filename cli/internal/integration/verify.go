@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 var integrationDigest = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)

@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
-	"fullstack-orchestrator/cli/internal/governance"
-	providerpkg "fullstack-orchestrator/cli/internal/provider"
-	"fullstack-orchestrator/cli/internal/release"
-	"fullstack-orchestrator/cli/internal/schema"
-	workpkg "fullstack-orchestrator/cli/internal/work"
-	"fullstack-orchestrator/cli/internal/workspace"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/governance"
+	providerpkg "github.com/kcrmin/Stackcord/cli/internal/provider"
+	"github.com/kcrmin/Stackcord/cli/internal/release"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	workpkg "github.com/kcrmin/Stackcord/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 )
 
 // Collect rebuilds one service continuity snapshot from actual and canonical repository state.

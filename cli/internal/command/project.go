@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/project"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/project"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
@@ -31,7 +31,7 @@ func newProjectCheckpoint(version string, jsonOutput *bool) *cobra.Command {
 		Short: "Save the next normalized service-discovery revision",
 		Long:  "Save a complete normalized service-discovery snapshot. Replace the example values with current product meaning; never copy raw dialogue or tone.",
 		Example: "  # checkpoint.yaml\n" + indentLines(string(example), "  ") +
-			"\n  orchestrator project checkpoint --parent . --id 01JDISCOVERY --input checkpoint.yaml --apply --json",
+			"\n  stackcord project checkpoint --parent . --id 01JDISCOVERY --input checkpoint.yaml --apply --json",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			checkpoint, err := schema.LoadYAML[project.DiscoveryCheckpoint](inputPath)
 			if err != nil {

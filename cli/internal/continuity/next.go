@@ -3,7 +3,7 @@ package continuity
 import (
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 func overallConfidence(issues []domain.Item) Confidence {

@@ -23,19 +23,19 @@ MUTATING_COMMANDS = (
     "git stash",
     "git clean",
     "git submodule update",
-    "orchestrator project init",
-    "orchestrator project adopt",
-    "orchestrator project checkpoint",
-    "orchestrator work define",
-    "orchestrator work start",
-    "orchestrator work transition",
-    "orchestrator work finish",
-    "orchestrator work handoff",
-    "orchestrator git sync",
-    "orchestrator git worktree",
-    "orchestrator ui integrate",
-    "orchestrator integrate plan --apply",
-    "orchestrator release validate",
+    "stackcord project init",
+    "stackcord project adopt",
+    "stackcord project checkpoint",
+    "stackcord work define",
+    "stackcord work start",
+    "stackcord work transition",
+    "stackcord work finish",
+    "stackcord work handoff",
+    "stackcord git sync",
+    "stackcord git worktree",
+    "stackcord ui integrate",
+    "stackcord integrate plan --apply",
+    "stackcord release validate",
 )
 EXTERNAL_RESEARCH_SCENARIO = "current-tool-selection"
 
@@ -191,7 +191,7 @@ def build_codex_command(
 
 def evaluation_environment(base: dict[str, str], cli: pathlib.Path) -> dict[str, str]:
     environment = dict(base)
-    environment["ORCHESTRATOR_CLI"] = str(cli)
+    environment["STACKCORD_CLI"] = str(cli)
     existing_path = environment.get("PATH", "")
     environment["PATH"] = str(cli.parent) + (os.pathsep + existing_path if existing_path else "")
     environment["GIT_TERMINAL_PROMPT"] = "0"
@@ -398,10 +398,10 @@ def run(args: argparse.Namespace) -> int:
             return 2
         with tempfile.TemporaryDirectory(prefix="service-continuity-eval-") as temporary:
             temp_root = pathlib.Path(temporary)
-            cli = temp_root / "bin" / ("orchestrator.exe" if sys.platform == "win32" else "orchestrator")
+            cli = temp_root / "bin" / ("stackcord.exe" if sys.platform == "win32" else "stackcord")
             cli.parent.mkdir(parents=True)
             build = subprocess.run(
-                ["go", "build", "-trimpath", "-o", str(cli), "./cmd/orchestrator"],
+                ["go", "build", "-trimpath", "-o", str(cli), "./cmd/stackcord"],
                 cwd=root / "cli",
                 text=True,
                 stdout=subprocess.PIPE,

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 	"go.yaml.in/yaml/v3"
 )
 

@@ -30,9 +30,9 @@ def headings(text: str) -> list[int]:
     return [len(match.group(1)) for match in re.finditer(r"^(#+) ", text, re.MULTILINE)]
 
 
-def extract_orchestrator_commands(text: str) -> set[tuple[str, ...]]:
+def extract_stackcord_commands(text: str) -> set[tuple[str, ...]]:
     commands: set[tuple[str, ...]] = set()
-    for match in re.finditer(r"(?<![A-Za-z0-9_-])orchestrator(?:[ \t]+[^\s`]+)*", text):
+    for match in re.finditer(r"(?<![A-Za-z0-9_-])stackcord(?:[ \t]+[^\s`]+)*", text):
         try:
             tokens = shlex.split(match.group(0))
         except ValueError:
@@ -171,11 +171,11 @@ def safety_contract_errors(documents: dict[str, str]) -> list[str]:
 
 def verify_documented_commands(commands: set[tuple[str, ...]]) -> list[str]:
     if not commands:
-        return ["public documentation contains no executable orchestrator commands"]
-    with tempfile.TemporaryDirectory(prefix="orchestrator-docs-") as directory:
-        executable = pathlib.Path(directory) / ("orchestrator.exe" if sys.platform == "win32" else "orchestrator")
+        return ["public documentation contains no executable stackcord commands"]
+    with tempfile.TemporaryDirectory(prefix="stackcord-docs-") as directory:
+        executable = pathlib.Path(directory) / ("stackcord.exe" if sys.platform == "win32" else "stackcord")
         build = subprocess.run(
-            ["go", "build", "-trimpath", "-o", str(executable), "./cmd/orchestrator"],
+            ["go", "build", "-trimpath", "-o", str(executable), "./cmd/stackcord"],
             cwd=ROOT / "cli",
             text=True,
             stdout=subprocess.PIPE,
@@ -195,7 +195,7 @@ def verify_documented_commands(commands: set[tuple[str, ...]]) -> list[str]:
                 check=False,
             )
             if result.returncode != 0:
-                errors.append(f"documented CLI command does not exist: orchestrator {' '.join(path)}")
+                errors.append(f"documented CLI command does not exist: stackcord {' '.join(path)}")
         return errors
 
 
@@ -263,7 +263,7 @@ def validate() -> list[str]:
     }
     errors.extend(public_contract_errors(required_documents))
     errors.extend(safety_contract_errors(required_documents))
-    errors.extend(verify_documented_commands(extract_orchestrator_commands(public_text)))
+    errors.extend(verify_documented_commands(extract_stackcord_commands(public_text)))
     return errors
 
 

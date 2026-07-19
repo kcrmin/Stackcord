@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/release"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/release"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,7 +51,7 @@ func TestCandidateDetectsEveryCoreIdentityChange(t *testing.T) {
 		"workspace_commits":            func(i *release.Input) { i.WorkspaceCommits["workspace.root"] = strings.Repeat("b", 40) },
 		"workspace_remotes":            func(i *release.Input) { i.WorkspaceRemotes["workspace.root"] = "https://example.test/other.git" },
 		"provider_revisions":           func(i *release.Input) { i.ProviderRevisions["work.release"] = "provider-r2" },
-		"tool_versions":                func(i *release.Input) { i.ToolVersions["orchestrator"] = "1.0.1" },
+		"tool_versions":                func(i *release.Input) { i.ToolVersions["stackcord"] = "1.0.1" },
 		"artifact_digests":             func(i *release.Input) { i.ArtifactDigests["archive"] = digest("b") },
 		"product_fingerprint":          func(i *release.Input) { i.ProductFingerprint = digest("c") },
 		"docs_fingerprint":             func(i *release.Input) { i.DocsFingerprint = digest("d") },
@@ -183,7 +183,7 @@ func validCoreInput() release.Input {
 		WorkspaceCommits:           map[string]string{"workspace.root": strings.Repeat("a", 40)},
 		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.test/root.git"},
 		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
-		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "stackcord": "1.0.0"},
 		ArtifactDigests:            map[string]string{"archive": digest("a")},
 		ProductFingerprint:         digest("b"),
 		DocsFingerprint:            digest("c"),

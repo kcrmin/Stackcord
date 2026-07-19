@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 // Kind separates service promise, business rule, observable behavior, technical interface, and data obligation.

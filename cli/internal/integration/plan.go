@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 )
 
 // Plan topologically orders product contracts, providers, consumers, UI, migrations, and root pointers.

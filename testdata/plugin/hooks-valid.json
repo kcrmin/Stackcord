@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "orchestrator hook session-start",
+            "command": "stackcord hook session-start",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "orchestrator hook post-compact",
+            "command": "stackcord hook post-compact",
             "timeout": 10
           }
         ]

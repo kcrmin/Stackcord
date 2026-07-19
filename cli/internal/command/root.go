@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/diagnostic"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/output"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/diagnostic"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
-const exitCodeAnnotation = "orchestrator.exit-code"
+const exitCodeAnnotation = "stackcord.exit-code"
 
 // New creates the command tree with explicit output streams for testability.
 func New(version string, stdout, stderr io.Writer) *cobra.Command {
@@ -21,7 +21,7 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	var doctorRoot, diagnosticPath string
 
 	root := &cobra.Command{
-		Use:           "orchestrator",
+		Use:           "stackcord",
 		Short:         "Coordinate full-stack projects from discovery to release",
 		SilenceUsage:  true,
 		SilenceErrors: true,

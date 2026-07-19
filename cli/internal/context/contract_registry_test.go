@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
 	"github.com/stretchr/testify/require"
 )
 

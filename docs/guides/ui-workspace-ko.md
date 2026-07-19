@@ -15,8 +15,8 @@ UI가 별도 소유권·history·permission·review 주기를 가지면 `ui/` su
 목업을 `seed`로 검사하고 현재 UI와 비교합니다. 전체를 가져오거나 필요한 파일만 선택하여 가져온 뒤 일반 파일처럼 수정합니다. 기존 파일과 제품 의미가 충돌하면 덮어쓰지 않고 어느 쪽을 유지할지 먼저 결정합니다.
 
 ```text
-orchestrator ui import --root . --archive mockup.zip --id ui.external.checkout --authority seed --license MIT --apply
-orchestrator ui promote --root . --id ui.external.checkout --workspace workspace.ui --mode selected --path screens/checkout.html --apply
+stackcord ui import --root . --archive mockup.zip --id ui.external.checkout --authority seed --license MIT --apply
+stackcord ui promote --root . --id ui.external.checkout --workspace workspace.ui --mode selected --path screens/checkout.html --apply
 ```
 
 ## C. 이미 승인된 외부 디자인인 경우
@@ -28,8 +28,8 @@ orchestrator ui promote --root . --id ui.external.checkout --workspace workspace
 원격 UI 저장소는 GitHub 등 선택한 provider에서 먼저 만듭니다. CLI는 기존 remote만 안전하게 추가하며 remote 생성·commit·push를 대신하지 않습니다.
 
 ```text
-orchestrator git submodule add --root . --remote https://example.com/team/product-ui.git --path ui --apply
-orchestrator workspace register --root . --id workspace.ui --kind submodule --path ui --remote https://example.com/team/product-ui.git --responsibility ui-baseline --consumer workspace.frontend --initialize ui --apply
+stackcord git submodule add --root . --remote https://example.com/team/product-ui.git --path ui --apply
+stackcord workspace register --root . --id workspace.ui --kind submodule --path ui --remote https://example.com/team/product-ui.git --responsibility ui-baseline --consumer workspace.frontend --initialize ui --apply
 ```
 
 Directory를 사용할 때는 `--kind directory`로 등록합니다.
@@ -39,7 +39,7 @@ Directory를 사용할 때는 `--kind directory`로 등록합니다.
 UI 파일을 수정하고 일반 Git convention으로 commit·push한 뒤 기준선을 묶습니다.
 
 ```text
-orchestrator ui baseline bind --root . --id ui.baseline.checkout --workspace workspace.ui --source ui.external.checkout --ref ui.checkout --consumer workspace.frontend --apply
+stackcord ui baseline bind --root . --id ui.baseline.checkout --workspace workspace.ui --source ui.external.checkout --ref ui.checkout --consumer workspace.frontend --apply
 ```
 
 Frontend 작업 정의는 이 기준선 fingerprint를 기록합니다. UI 커밋·소스·root pointer 중 하나가 바뀌면 이전 frontend 작업과 evidence가 stale로 보입니다. UI가 submodule이면 기준선 파일과 새 UI gitlink를 같은 검토 가능한 root 변경으로 통합합니다.

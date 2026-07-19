@@ -22,8 +22,8 @@ To retain the machine result and temporary repositories, pass explicit paths:
 
 ```sh
 bash dogfood/run.sh \
-  --output /tmp/orchestrator-result.json \
-  --workspace /tmp/orchestrator-fixture
+  --output /tmp/stackcord-result.json \
+  --workspace /tmp/stackcord-fixture
 ```
 
 PowerShell accepts the equivalent `-Output`, `-Workspace`, and optional `-Binary` parameters. The default wrappers build the native CLI from `cli/` and place all generated state under the operating system temporary directory.

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/command"
-	"fullstack-orchestrator/cli/internal/provider"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/provider"
 	"github.com/stretchr/testify/require"
 )
 

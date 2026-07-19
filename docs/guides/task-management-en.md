@@ -13,11 +13,11 @@ Use this machinery only when it creates coordination or recovery value. A small 
 The contributor says “Build account recovery” or “What should I do next?” The AI then performs this flow without asking the user to manage internal IDs:
 
 1. Inspect the repository, selected provider, Git remote, branches, worktrees, submodules, contracts, and existing decisions.
-2. Clarify only product decisions that change the result. For coordinated work, save a normalized executable checklist with `orchestrator work define`; for a small private edit, keep the plan in the ordinary change and tests.
+2. Clarify only product decisions that change the result. For coordinated work, save a normalized executable checklist with `stackcord work define`; for a small private edit, keep the plan in the ordinary change and tests.
 3. If an external provider is selected, create or update its visible issue through the chosen connector. Record the issue relationship, assign the intended owner, and move it to the mapped `in_progress` state.
-4. Re-read the exact issue. Normalize its item ID, revision, status, owner, dependencies, capabilities, work fingerprint, fetch time, and payload hash, then run `orchestrator work provider reconcile --apply`.
-5. For coordinated work, run `orchestrator work start --apply`. The CLI compares path, policy, scenario, contract, DB entity, migration, UI flow, dependency, and submodule-pointer scope, then uses compare-and-swap on the Git coordination branch. Only after that reservation succeeds does the AI create the conventional branch or worktree.
-6. Develop with the checklist and TDD. Before status or ownership changes, verify evidence first, update the external provider through its connector, re-read and reconcile the new revision, then synchronize it with `orchestrator work transition --apply` or `orchestrator work handoff --apply`.
+4. Re-read the exact issue. Normalize its item ID, revision, status, owner, dependencies, capabilities, work fingerprint, fetch time, and payload hash, then run `stackcord work provider reconcile --apply`.
+5. For coordinated work, run `stackcord work start --apply`. The CLI compares path, policy, scenario, contract, DB entity, migration, UI flow, dependency, and submodule-pointer scope, then uses compare-and-swap on the Git coordination branch. Only after that reservation succeeds does the AI create the conventional branch or worktree.
+6. Develop with the checklist and TDD. Before status or ownership changes, verify evidence first, update the external provider through its connector, re-read and reconcile the new revision, then synchronize it with `stackcord work transition --apply` or `stackcord work handoff --apply`.
 
 An issue assignment is not an exclusive lock. GitHub can represent multiple assignees, and issue systems do not understand service contracts or DB meaning. The Git compare-and-swap reservation supplies cross-repository semantic exclusivity without becoming another live status source.
 

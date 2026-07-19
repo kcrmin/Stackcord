@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 var contractIDPattern = regexp.MustCompile(`^contract\.[a-z0-9]+(?:[.-][a-z0-9]+)*$`)

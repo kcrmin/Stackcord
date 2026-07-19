@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/diagnostic"
+	"github.com/kcrmin/Stackcord/cli/internal/diagnostic"
 	"github.com/stretchr/testify/require"
 )
 

@@ -28,7 +28,7 @@ including tests and implementation, but a product authority must approve the exa
 I can create or update a PR and request the configured reviewer.
 ```
 
-The AI runs `orchestrator governance check --json` before treating protected meaning as approved. If the current account is not an authority, it keeps authored meaning proposed and uses the one selected issue system for discussion or status. The PR or equivalent review owns approval of the actual change; an issue assignment or closed status does not.
+The AI runs `stackcord governance check --json` before treating protected meaning as approved. If the current account is not an authority, it keeps authored meaning proposed and uses the one selected issue system for discussion or status. The PR or equivalent review owns approval of the actual change; an issue assignment or closed status does not.
 
 After review, Stackcord refreshes the provider observation and checks the provider, repository, commit, protected fingerprint, review revision, approving account, and freshness. Any protected edit after approval makes that approval stale.
 

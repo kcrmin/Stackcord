@@ -1,7 +1,7 @@
 schema_version: 1
 id: project.starter-example
 locale: en
-generated_by: orchestrator
+generated_by: stackcord
 paths:
   specs: specs
   contracts: contracts

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://orchestrator.invalid/schemas/work-item.schema.json",
+  "$id": "https://stackcord.invalid/schemas/work-item.schema.json",
   "oneOf": [
     { "$ref": "#/$defs/definition" },
     { "$ref": "#/$defs/legacy" }

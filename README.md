@@ -103,7 +103,12 @@ You do not need to know Go or the internal CLI. Paste the public Stackcord GitHu
 Install the Stackcord Plugin from this GitHub link and prepare the current project.
 ```
 
-Approve the security prompt if one appears, then start a new conversation and say, “Start a new service with me.” Use `codex plugin marketplace add <owner>/stackcord` only when manual installation is necessary.
+Approve the security prompt if one appears, then start a new conversation and say, “Start a new service with me.” For manual installation:
+
+```bash
+codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
+codex plugin add stackcord@stackcord
+```
 
 A generated project can continue in another Codex environment without the Plugin through its repo-local Skill and Markdown fallback.
 

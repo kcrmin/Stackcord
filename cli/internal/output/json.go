@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // WriteJSON encodes one normalized command result and a trailing newline.

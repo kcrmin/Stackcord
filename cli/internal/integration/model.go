@@ -1,6 +1,6 @@
 package integration
 
-import "fullstack-orchestrator/cli/internal/domain"
+import "github.com/kcrmin/Stackcord/cli/internal/domain"
 
 // StepKind names one service integration boundary in dependency order.
 type StepKind string

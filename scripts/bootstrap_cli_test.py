@@ -71,9 +71,9 @@ class BootstrapCLITest(unittest.TestCase):
                     check=False,
                 )
             self.assertEqual(0, completed.returncode, completed.stderr)
-            self.assertTrue((install / "orchestrator").is_file())
+            self.assertTrue((install / "stackcord").is_file())
             self.assertIn('"status":"ok"', completed.stdout)
-            self.assertEqual("orchestrator_darwin_arm64", asset)
+            self.assertEqual("stackcord_darwin_arm64", asset)
 
     def test_checksum_mismatch_never_installs(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -93,13 +93,13 @@ class BootstrapCLITest(unittest.TestCase):
                     check=False,
                 )
             self.assertNotEqual(0, completed.returncode)
-            self.assertFalse((install / "orchestrator").exists())
+            self.assertFalse((install / "stackcord").exists())
 
     def test_asset_matrix_is_complete(self):
-        self.assertEqual("orchestrator_darwin_amd64", asset_name("darwin", "amd64"))
-        self.assertEqual("orchestrator_darwin_arm64", asset_name("darwin", "arm64"))
-        self.assertEqual("orchestrator_windows_amd64.exe", asset_name("windows", "amd64"))
-        self.assertEqual("orchestrator_windows_arm64.exe", asset_name("windows", "arm64"))
+        self.assertEqual("stackcord_darwin_amd64", asset_name("darwin", "amd64"))
+        self.assertEqual("stackcord_darwin_arm64", asset_name("darwin", "arm64"))
+        self.assertEqual("stackcord_windows_amd64.exe", asset_name("windows", "amd64"))
+        self.assertEqual("stackcord_windows_arm64.exe", asset_name("windows", "arm64"))
 
     def test_powershell_is_checksum_first_and_atomic(self):
         text = self.powershell.read_text(encoding="utf-8")
@@ -114,8 +114,8 @@ class BootstrapCLITest(unittest.TestCase):
 
     def test_session_hooks_never_download(self):
         hook_files = list((ROOT / "hooks").glob("*"))
-        self.assertTrue((ROOT / "hooks/run-orchestrator-hook.sh").is_file())
-        self.assertTrue((ROOT / "hooks/run-orchestrator-hook.ps1").is_file())
+        self.assertTrue((ROOT / "hooks/run-stackcord-hook.sh").is_file())
+        self.assertTrue((ROOT / "hooks/run-stackcord-hook.ps1").is_file())
         hooks = "\n".join(path.read_text(encoding="utf-8") for path in hook_files if path.is_file())
         self.assertNotIn("curl", hooks)
         self.assertNotIn("Invoke-WebRequest", hooks)
@@ -125,7 +125,7 @@ class BootstrapCLITest(unittest.TestCase):
     def test_skills_offer_bootstrap_only_during_explicit_product_use(self):
         for name in ("start-project", "continue-project"):
             text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
-            self.assertIn("ORCHESTRATOR_CLI", text)
+            self.assertIn("STACKCORD_CLI", text)
             self.assertIn("bootstrap-cli", text)
             self.assertIn("explicit", text.lower())
 
@@ -133,16 +133,16 @@ class BootstrapCLITest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             calls = root / "calls.txt"
-            cli = root / "orchestrator"
+            cli = root / "stackcord"
             cli.write_text(
                 f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {calls}\n",
                 encoding="utf-8",
             )
             cli.chmod(0o755)
             env = dict(os.environ)
-            env["ORCHESTRATOR_CLI"] = str(cli)
+            env["STACKCORD_CLI"] = str(cli)
             completed = subprocess.run(
-                ["bash", str(ROOT / "hooks/run-orchestrator-hook.sh"), "post-compact"],
+                ["bash", str(ROOT / "hooks/run-stackcord-hook.sh"), "post-compact"],
                 env=env,
                 text=True,
                 stdout=subprocess.PIPE,

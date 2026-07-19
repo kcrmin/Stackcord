@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"fullstack-orchestrator/cli/internal/continuity"
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/continuity"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	"github.com/spf13/cobra"
 )
 

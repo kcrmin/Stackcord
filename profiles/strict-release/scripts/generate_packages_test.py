@@ -11,10 +11,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 class PackageGenerationTest(unittest.TestCase):
     def test_replaces_every_release_artifact_checksum(self):
         checksums = "\n".join([
-            "a" * 64 + "  orchestrator_1.0.0_Darwin_arm64.tar.gz",
-            "b" * 64 + "  orchestrator_1.0.0_Darwin_x86_64.tar.gz",
-            "c" * 64 + "  orchestrator_1.0.0_Windows_arm64.zip",
-            "d" * 64 + "  orchestrator_1.0.0_Windows_x86_64.zip",
+            "a" * 64 + "  stackcord_1.0.0_Darwin_arm64.tar.gz",
+            "b" * 64 + "  stackcord_1.0.0_Darwin_x86_64.tar.gz",
+            "c" * 64 + "  stackcord_1.0.0_Windows_arm64.zip",
+            "d" * 64 + "  stackcord_1.0.0_Windows_x86_64.zip",
         ])
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory)

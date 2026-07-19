@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strconv"
 
-	contextpkg "fullstack-orchestrator/cli/internal/context"
-	"fullstack-orchestrator/cli/internal/contract"
-	"fullstack-orchestrator/cli/internal/database"
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	uiimport "fullstack-orchestrator/cli/internal/ui"
+	contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
+	"github.com/kcrmin/Stackcord/cli/internal/contract"
+	"github.com/kcrmin/Stackcord/cli/internal/database"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	uiimport "github.com/kcrmin/Stackcord/cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 

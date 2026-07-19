@@ -16,8 +16,8 @@ def validate(root: pathlib.Path) -> list[str]:
         ".github/workflows/ci.yml", ".github/workflows/security.yml", ".github/workflows/release.yml",
         ".goreleaser.yaml", "scripts/bootstrap-cli.sh", "scripts/bootstrap-cli.ps1",
         "scripts/render_plugin_packages.py", "profiles/strict-release/README.md",
-        "profiles/strict-release/packaging/homebrew/orchestrator.rb",
-        "profiles/strict-release/packaging/winget/FullstackOrchestrator.Orchestrator.installer.yaml",
+        "profiles/strict-release/packaging/homebrew/stackcord.rb",
+        "profiles/strict-release/packaging/winget/Stackcord.Stackcord.installer.yaml",
         "profiles/strict-release/packaging/windows/Product.wxs",
         "profiles/strict-release/scripts/generate_packages.py",
         "profiles/strict-release/scripts/verify_publish_guard.py",
@@ -74,7 +74,7 @@ def validate(root: pathlib.Path) -> list[str]:
             errors.append(f"{name} workflow must not execute model evaluations")
 
     config = (root / ".goreleaser.yaml").read_text(encoding="utf-8") if (root / ".goreleaser.yaml").exists() else ""
-    for token in ("CGO_ENABLED=0", "darwin", "windows", "amd64", "arm64", "-trimpath", "formats: [binary]", "orchestrator_{{ .Os }}_{{ .Arch }}", "checksums.txt"):
+    for token in ("CGO_ENABLED=0", "darwin", "windows", "amd64", "arm64", "-trimpath", "formats: [binary]", "stackcord_{{ .Os }}_{{ .Arch }}", "checksums.txt"):
         if token not in config:
             errors.append(f"GoReleaser configuration missing {token}")
     for strict_token in ("sboms:", "signs:", "cosign"):

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/command"
-	"fullstack-orchestrator/cli/internal/project"
-	"fullstack-orchestrator/cli/internal/release"
+	"github.com/kcrmin/Stackcord/cli/internal/command"
+	"github.com/kcrmin/Stackcord/cli/internal/project"
+	"github.com/kcrmin/Stackcord/cli/internal/release"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 )
@@ -140,7 +140,7 @@ func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *te
 		WorkspaceCommits:           map[string]string{"workspace.root": strings.Repeat("a", 40)},
 		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.invalid/root.git"},
 		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
-		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "stackcord": "1.0.0"},
 		ArtifactDigests:            map[string]string{"archive": focusedDigest("a")},
 		ProductFingerprint:         focusedDigest("b"),
 		DocsFingerprint:            focusedDigest("c"),
@@ -204,7 +204,7 @@ func TestFocusedJourneyNativeBinaryInitializesAdoptsRecoversAndVerifiesRelease(t
 		WorkspaceCommits:           map[string]string{"workspace.root": commit},
 		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.invalid/root.git"},
 		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
-		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "stackcord": "1.0.0"},
 		ArtifactDigests:            map[string]string{"archive": focusedDigest("a")},
 		ProductFingerprint:         focusedDigest("b"),
 		DocsFingerprint:            focusedDigest("c"),
@@ -322,12 +322,12 @@ func focusedBuildNativeCLI(t *testing.T) string {
 	t.Helper()
 	cliRoot, err := filepath.Abs(filepath.Join("..", ".."))
 	require.NoError(t, err)
-	name := "orchestrator"
+	name := "stackcord"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
 	binary := filepath.Join(t.TempDir(), name)
-	command := exec.Command("go", "build", "-trimpath", "-o", binary, "./cmd/orchestrator")
+	command := exec.Command("go", "build", "-trimpath", "-o", binary, "./cmd/stackcord")
 	command.Dir = cliRoot
 	output, err := command.CombinedOutput()
 	require.NoError(t, err, "build native CLI: %s", output)

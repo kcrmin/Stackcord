@@ -2,7 +2,7 @@ package ui
 
 import "sort"
 
-import contextpkg "fullstack-orchestrator/cli/internal/context"
+import contextpkg "github.com/kcrmin/Stackcord/cli/internal/context"
 
 // CoverageReport records journeys without a linked UI baseline.
 type CoverageReport struct {

@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$PLUGIN_ROOT/hooks/run-orchestrator-hook.sh\" session-start",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"& (Join-Path $env:PLUGIN_ROOT 'hooks/run-orchestrator-hook.ps1') 'session-start'\"",
+            "command": "bash \"$PLUGIN_ROOT/hooks/run-stackcord-hook.sh\" session-start",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"& (Join-Path $env:PLUGIN_ROOT 'hooks/run-stackcord-hook.ps1') 'session-start'\"",
             "timeout": 10,
             "statusMessage": "Checking project continuity"
           }
@@ -21,8 +21,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$PLUGIN_ROOT/hooks/run-orchestrator-hook.sh\" post-compact",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"& (Join-Path $env:PLUGIN_ROOT 'hooks/run-orchestrator-hook.ps1') 'post-compact'\"",
+            "command": "bash \"$PLUGIN_ROOT/hooks/run-stackcord-hook.sh\" post-compact",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"& (Join-Path $env:PLUGIN_ROOT 'hooks/run-stackcord-hook.ps1') 'post-compact'\"",
             "timeout": 10,
             "statusMessage": "Recovering project context"
           }

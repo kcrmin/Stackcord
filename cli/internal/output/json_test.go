@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/output"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/output"
 	"github.com/stretchr/testify/require"
 )
 

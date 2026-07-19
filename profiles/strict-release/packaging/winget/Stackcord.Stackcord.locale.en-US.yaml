@@ -1,8 +1,8 @@
-PackageIdentifier: FullstackOrchestrator.Orchestrator
+PackageIdentifier: Stackcord.Stackcord
 PackageVersion: "{{VERSION}}"
 PackageLocale: en-US
-Publisher: Full-stack Orchestrator contributors
-PackageName: Full-stack Orchestrator
+Publisher: Stackcord contributors
+PackageName: Stackcord
 License: Apache-2.0
 ShortDescription: Coordinate durable full-stack product work from discovery through release.
 ManifestType: defaultLocale

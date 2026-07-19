@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
 )
 

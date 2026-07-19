@@ -3,8 +3,8 @@ package workspace
 import (
 	"fmt"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/gitx"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/gitx"
 )
 
 // RootSource states which authoritative relationship located the orchestration root.

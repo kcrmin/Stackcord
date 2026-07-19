@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 // Load reads and validates committed project and workspace identities.

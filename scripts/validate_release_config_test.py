@@ -18,7 +18,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
     def test_strict_release_assets_are_isolated_from_the_default_product(self):
         strict = ROOT / "profiles" / "strict-release"
         self.assertTrue((strict / "README.md").is_file())
-        self.assertTrue((strict / "packaging" / "homebrew" / "orchestrator.rb").is_file())
+        self.assertTrue((strict / "packaging" / "homebrew" / "stackcord.rb").is_file())
         self.assertTrue((strict / "packaging" / "windows" / "Product.wxs").is_file())
         self.assertTrue((strict / "scripts" / "generate_packages.py").is_file())
         self.assertTrue((strict / "scripts" / "verify_publish_guard.py").is_file())
@@ -34,7 +34,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
         self.assertIn("formats: [binary]", goreleaser)
         for asset in (
-            "orchestrator_{{ .Os }}_{{ .Arch }}",
+            "stackcord_{{ .Os }}_{{ .Arch }}",
             "checksums.txt",
         ):
             self.assertIn(asset, goreleaser)

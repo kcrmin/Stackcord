@@ -28,7 +28,7 @@ Stackcord: 이 변경은 비즈니스 규칙과 contract를 바꿉니다. 변경
 PR을 만들거나 갱신하고 지정된 검토자에게 승인을 요청할 수 있습니다.
 ```
 
-AI는 보호된 의미를 승인된 것으로 다루기 전에 `orchestrator governance check --json`을 실행합니다. 현재 계정이 책임자가 아니면 문서 상태를 제안으로 유지하고, 선택된 issue 도구는 논의와 작업 상태에만 사용합니다. 실제 변경 승인은 PR 또는 선택한 provider의 동등한 review가 담당합니다. Issue 담당자 지정이나 완료 상태만으로는 승인되지 않습니다.
+AI는 보호된 의미를 승인된 것으로 다루기 전에 `stackcord governance check --json`을 실행합니다. 현재 계정이 책임자가 아니면 문서 상태를 제안으로 유지하고, 선택된 issue 도구는 논의와 작업 상태에만 사용합니다. 실제 변경 승인은 PR 또는 선택한 provider의 동등한 review가 담당합니다. Issue 담당자 지정이나 완료 상태만으로는 승인되지 않습니다.
 
 검토 후 Stackcord는 provider를 다시 읽어 provider·저장소·commit·보호된 fingerprint·review revision·승인 계정·조회 시점을 확인합니다. 승인 뒤 보호된 내용이 하나라도 바뀌면 기존 승인은 오래된 상태가 됩니다.
 

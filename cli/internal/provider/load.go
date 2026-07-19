@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
 )
 
 // LoadMapping strictly decodes one stable provider mapping.

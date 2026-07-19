@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"fullstack-orchestrator/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
 )
 
 var branchPattern = regexp.MustCompile(`^(feature|fix|bugfix|chore|docs|refactor|test|release)/([A-Za-z0-9]+-)?[a-z0-9]+(?:-[a-z0-9]+)*$`)

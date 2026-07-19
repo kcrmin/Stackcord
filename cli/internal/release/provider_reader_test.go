@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/provider"
-	"fullstack-orchestrator/cli/internal/work"
+	"github.com/kcrmin/Stackcord/cli/internal/provider"
+	"github.com/kcrmin/Stackcord/cli/internal/work"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 )

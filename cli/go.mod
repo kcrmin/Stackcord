@@ -1,4 +1,4 @@
-module fullstack-orchestrator/cli
+module github.com/kcrmin/Stackcord/cli
 
 go 1.26.0
 

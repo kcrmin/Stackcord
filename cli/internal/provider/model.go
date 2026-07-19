@@ -3,7 +3,7 @@ package provider
 import (
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // Confidence states whether provider facts were observed live or are unusable for coordination.

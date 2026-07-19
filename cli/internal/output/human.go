@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"fullstack-orchestrator/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
 )
 
 // WriteHuman prints a concise result whose first line is always the outcome.

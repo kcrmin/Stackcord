@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"fullstack-orchestrator/cli/internal/domain"
-	"fullstack-orchestrator/cli/internal/operation"
-	"fullstack-orchestrator/cli/internal/release"
-	"fullstack-orchestrator/cli/internal/schema"
-	"fullstack-orchestrator/cli/internal/workspace"
+	"github.com/kcrmin/Stackcord/cli/internal/domain"
+	"github.com/kcrmin/Stackcord/cli/internal/operation"
+	"github.com/kcrmin/Stackcord/cli/internal/release"
+	"github.com/kcrmin/Stackcord/cli/internal/schema"
+	"github.com/kcrmin/Stackcord/cli/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +55,7 @@ func newReleasePrepare(version string, jsonOutput *bool) *cobra.Command {
 				}
 				strictEvidence = &loaded
 			}
-			collected, issues := release.CollectInput(cmd.Context(), root, release.CollectOptions{Version: releaseVersion, Profile: profile, StrictEvidence: strictEvidence, OrchestratorVersion: version, WorkIDs: workIDs})
+			collected, issues := release.CollectInput(cmd.Context(), root, release.CollectOptions{Version: releaseVersion, Profile: profile, StrictEvidence: strictEvidence, StackcordVersion: version, WorkIDs: workIDs})
 			if len(issues) > 0 {
 				result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "release.prepare", OperationID: "release-collect-read-only", Status: domain.StatusBlocked, ExitCode: domain.ExitVerification, Summary: "Current service state cannot form a release candidate.", Blockers: issues}
 				return writeResult(cmd, *jsonOutput, result)
@@ -189,7 +189,7 @@ func newReleaseVerify(version string, jsonOutput *bool) *cobra.Command {
 			for workID := range candidate.Input.ProviderRevisions {
 				workIDs = append(workIDs, workID)
 			}
-			input, issues = release.CollectInput(cmd.Context(), root, release.CollectOptions{Version: candidate.Input.Version, Profile: candidate.Input.Profile, StrictEvidence: candidate.Input.StrictEvidence, OrchestratorVersion: version, WorkIDs: workIDs})
+			input, issues = release.CollectInput(cmd.Context(), root, release.CollectOptions{Version: candidate.Input.Version, Profile: candidate.Input.Profile, StrictEvidence: candidate.Input.StrictEvidence, StackcordVersion: version, WorkIDs: workIDs})
 			if len(issues) > 0 {
 				result := domain.Result{SchemaVersion: "1.0", ToolVersion: version, Command: "release.verify", OperationID: "release-collect-read-only", Status: domain.StatusBlocked, ExitCode: domain.ExitVerification, Summary: "Current service state no longer verifies as the candidate.", Blockers: issues}
 				return writeResult(cmd, *jsonOutput, result)

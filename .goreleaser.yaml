@@ -1,15 +1,15 @@
 version: 2
-project_name: orchestrator
+project_name: stackcord
 
 before:
   hooks:
     - sh -c "cd cli && go mod verify && go test ./..."
 
 builds:
-  - id: orchestrator
+  - id: stackcord
     dir: ./cli
-    main: ./cmd/orchestrator
-    binary: orchestrator
+    main: ./cmd/stackcord
+    binary: stackcord
     env:
       - CGO_ENABLED=0
     goos: [darwin, windows]
@@ -21,10 +21,10 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
-  - id: orchestrator
-    ids: [orchestrator]
+  - id: stackcord
+    ids: [stackcord]
     formats: [binary]
-    name_template: "orchestrator_{{ .Os }}_{{ .Arch }}"
+    name_template: "stackcord_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: checksums.txt
