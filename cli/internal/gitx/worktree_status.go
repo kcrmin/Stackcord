@@ -3,6 +3,7 @@ package gitx
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -36,7 +37,7 @@ func inspectWorktrees(ctx context.Context, git runner, root string) ([]Worktree,
 			if current != nil {
 				return nil, fmt.Errorf("invalid Git worktree record")
 			}
-			current = &Worktree{Path: value}
+			current = &Worktree{Path: filepath.Clean(filepath.FromSlash(value))}
 			continue
 		}
 		if current == nil {

@@ -1005,7 +1005,7 @@ class Dogfood:
 
     def git(self, cwd: pathlib.Path, *args: str) -> CommandResult:
         self.git_calls += 1
-        return self.command(["git", *args], cwd)
+        return self.command(["git", "-c", "core.autocrlf=false", *args], cwd)
 
     def git_output(self, cwd: pathlib.Path, *args: str) -> str:
         return self.git(cwd, *args).stdout.strip()
@@ -1034,7 +1034,7 @@ class Dogfood:
         return result
 
     def clone(self, url: str, target: pathlib.Path, *, recurse: bool = False) -> None:
-        argv = ["git", "-c", "protocol.file.allow=always"]
+        argv = ["git", "-c", "core.autocrlf=false", "-c", "protocol.file.allow=always"]
         for source_url, remote in self.remotes.items():
             argv.extend(["-c", f"url.{remote.resolve().as_uri()}.insteadOf={source_url}"])
         argv.extend(["clone"])
@@ -1063,6 +1063,7 @@ class Dogfood:
             )
 
     def git_identity(self, repository: pathlib.Path) -> None:
+        self.git(repository, "config", "core.autocrlf", "false")
         self.git(repository, "config", "user.name", "Dogfood User")
         self.git(repository, "config", "user.email", "dogfood@example.test")
 

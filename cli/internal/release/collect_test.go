@@ -108,6 +108,7 @@ func newReleaseFixture(t *testing.T) releaseFixture {
 	releaseGit(t, root, "init", "-b", "main")
 	releaseGitIdentity(t, root)
 	releaseGit(t, root, "-c", "protocol.file.allow=always", "submodule", "add", childRemote, "backend")
+	releaseGit(t, filepath.Join(root, "backend"), "config", "core.autocrlf", "false")
 	releaseGit(t, filepath.Join(root, "backend"), "remote", "set-url", "origin", "https://example.test/backend.git")
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".gitmodules"), []byte("[submodule \"backend\"]\n\tpath = backend\n\turl = https://example.test/backend.git\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "manifest.yaml"), []byte("schema_version: 1\nid: project.release-fixture\nlocale: en\n"), 0o600))
@@ -163,13 +164,14 @@ func releaseIssueCodes(items []domain.Item) []string {
 
 func releaseGitIdentity(t *testing.T, root string) {
 	t.Helper()
+	releaseGit(t, root, "config", "core.autocrlf", "false")
 	releaseGit(t, root, "config", "user.name", "Release Test")
 	releaseGit(t, root, "config", "user.email", "release@example.test")
 }
 
 func releaseGit(t *testing.T, root string, args ...string) {
 	t.Helper()
-	command := exec.Command("git", args...)
+	command := exec.Command("git", append([]string{"-c", "core.autocrlf=false"}, args...)...)
 	command.Dir = root
 	command.Env = append(os.Environ(), "GIT_ALLOW_PROTOCOL=file")
 	if output, err := command.CombinedOutput(); err != nil {
@@ -179,7 +181,7 @@ func releaseGit(t *testing.T, root string, args ...string) {
 
 func releaseGitOutput(t *testing.T, root string, args ...string) string {
 	t.Helper()
-	command := exec.Command("git", args...)
+	command := exec.Command("git", append([]string{"-c", "core.autocrlf=false"}, args...)...)
 	command.Dir = root
 	output, err := command.CombinedOutput()
 	require.NoError(t, err, string(output))

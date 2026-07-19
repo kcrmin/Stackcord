@@ -136,13 +136,14 @@ func repositoryFixture(t *testing.T) (string, string) {
 
 func configureGit(t *testing.T, root string) {
 	t.Helper()
+	runGit(t, root, "config", "core.autocrlf", "false")
 	runGit(t, root, "config", "user.email", "fixture@example.invalid")
 	runGit(t, root, "config", "user.name", "Fixture User")
 }
 
 func runGit(t *testing.T, root string, args ...string) string {
 	t.Helper()
-	command := exec.Command("git", args...)
+	command := exec.Command("git", append([]string{"-c", "core.autocrlf=false"}, args...)...)
 	if root != "" {
 		command.Dir = root
 	}

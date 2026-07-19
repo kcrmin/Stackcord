@@ -42,11 +42,13 @@ func TestFocusedJourneyCheckpointsInitializesClonesAndRecoversWithoutPlugin(t *t
 	focusedGit(t, root, "init", "--initial-branch=main")
 	focusedGit(t, root, "config", "user.email", "fixture@example.invalid")
 	focusedGit(t, root, "config", "user.name", "Fixture User")
+	focusedGit(t, root, "config", "core.autocrlf", "false")
 	focusedGit(t, root, "add", ".")
 	focusedGit(t, root, "commit", "-m", "chore: initialize project")
 
 	clone := filepath.Join(parent, "clone")
 	focusedGit(t, "", "clone", root, clone)
+	focusedGit(t, clone, "config", "core.autocrlf", "false")
 	audit := runFocusedCommand(t, "context", "audit", "--root", clone, "--json")
 	require.Contains(t, audit, `"status":"passed"`)
 	require.Contains(t, audit, `"context.documents"`)
@@ -60,6 +62,7 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	focusedGit(t, "", "init", "--initial-branch=main", child)
 	focusedGit(t, child, "config", "user.email", "fixture@example.invalid")
 	focusedGit(t, child, "config", "user.name", "Fixture User")
+	focusedGit(t, child, "config", "core.autocrlf", "false")
 	require.NoError(t, os.WriteFile(filepath.Join(child, "README.md"), []byte("backend\n"), 0o600))
 	focusedGit(t, child, "add", "README.md")
 	focusedGit(t, child, "commit", "-m", "chore: initialize backend")
@@ -69,9 +72,11 @@ func TestFocusedJourneyCoordinatesSubmoduleContractsDBMLUIAndConflicts(t *testin
 	focusedGit(t, root, "init", "--initial-branch=main")
 	focusedGit(t, root, "config", "user.email", "fixture@example.invalid")
 	focusedGit(t, root, "config", "user.name", "Fixture User")
+	focusedGit(t, root, "config", "core.autocrlf", "false")
 	focusedGit(t, root, "add", ".")
 	focusedGit(t, root, "commit", "-m", "chore: initialize root")
 	focusedGit(t, root, "-c", "protocol.file.allow=always", "submodule", "add", child, "workspaces/backend")
+	focusedGit(t, filepath.Join(root, "workspaces", "backend"), "config", "core.autocrlf", "false")
 	focusedGit(t, root, "commit", "-am", "build: add backend workspace")
 
 	inspect := runFocusedCommand(t, "git", "inspect", "--root", root, "--json")
@@ -257,7 +262,7 @@ func runFocusedCommand(t *testing.T, args ...string) string {
 
 func focusedGit(t *testing.T, root string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command("git", append([]string{"-c", "core.autocrlf=false"}, args...)...)
 	if root != "" {
 		cmd.Dir = root
 	}
