@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/governance.schema.json",
+  "type": "object",
+  "required": ["schema_version", "enabled", "provider", "repository", "product_authorities", "protected_kinds", "approval"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "enabled": { "type": "boolean" },
+    "provider": { "type": "string" },
+    "repository": { "type": "string" },
+    "product_authorities": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(?:user|team):[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+      "uniqueItems": true
+    },
+    "protected_kinds": {
+      "type": "array",
+      "items": { "enum": ["product", "policy", "business", "contract"] },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "approval": {
+      "type": "object",
+      "required": ["minimum", "authority_self_approval"],
+      "properties": {
+        "minimum": { "type": "integer", "minimum": 1 },
+        "authority_self_approval": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+      "then": {
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "repository": { "type": "string", "minLength": 1 },
+          "product_authorities": { "minItems": 1 }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestrator.invalid/schemas/governance-observation.schema.json",
+  "$defs": {
+    "subject": { "type": "string", "pattern": "^(?:user|team):[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "type": "object",
+  "required": ["schema_version", "provider", "repository", "review_id", "review_revision", "head_commit", "protected_fingerprint", "author_subject", "status", "decisions", "fetched_at", "source", "raw_hash"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "provider": { "type": "string", "minLength": 1 },
+    "repository": { "type": "string", "minLength": 1 },
+    "review_id": { "type": "string", "minLength": 1 },
+    "review_revision": { "type": "string", "minLength": 1 },
+    "head_commit": { "type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" },
+    "protected_fingerprint": { "$ref": "#/$defs/digest" },
+    "author_subject": { "$ref": "#/$defs/subject" },
+    "status": { "enum": ["open", "approved", "merged", "closed"] },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject", "kind", "state", "revision", "submitted_at"],
+        "properties": {
+          "subject": { "$ref": "#/$defs/subject" },
+          "kind": { "enum": ["review", "merge"] },
+          "state": { "enum": ["approved", "rejected", "dismissed"] },
+          "revision": { "type": "string", "minLength": 1 },
+          "submitted_at": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "fetched_at": { "type": "string", "format": "date-time" },
+    "source": { "const": "connector-live" },
+    "raw_hash": { "$ref": "#/$defs/digest" }
+  },
+  "additionalProperties": false
+}
