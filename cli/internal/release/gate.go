@@ -54,6 +54,8 @@ func validateInput(input Input) []domain.Item {
 		{"product_fingerprint", isDigest(input.ProductFingerprint)},
 		{"docs_fingerprint", isDigest(input.DocsFingerprint)},
 		{"contract_fingerprint", isDigest(input.ContractFingerprint)},
+		{"governance_fingerprint", isDigest(input.GovernanceFingerprint)},
+		{"governance_approval_revision", strings.TrimSpace(input.GovernanceApprovalRevision) != ""},
 		{"tdd_evidence", digestMap(input.TDDEvidence)},
 		{"integration_evidence", digestMap(input.IntegrationEvidence)},
 	}

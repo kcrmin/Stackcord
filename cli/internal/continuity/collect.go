@@ -15,6 +15,7 @@ import (
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/gitx"
+	"fullstack-orchestrator/cli/internal/governance"
 	providerpkg "fullstack-orchestrator/cli/internal/provider"
 	"fullstack-orchestrator/cli/internal/release"
 	"fullstack-orchestrator/cli/internal/schema"
@@ -36,6 +37,7 @@ func Collect(ctx context.Context, start string, _ Options) Snapshot {
 		},
 		Workspaces:  []workspace.State{},
 		Provider:    ProviderView{Confidence: Unknown},
+		Governance:  governance.Report{Status: governance.Unknown, Authorities: []string{}, Approvers: []string{}, Issues: []domain.Item{}},
 		ActiveWork:  []WorkView{},
 		Release:     ReleaseView{Confidence: Unknown},
 		Issues:      []domain.Item{},
@@ -82,6 +84,8 @@ func Collect(ctx context.Context, start string, _ Options) Snapshot {
 		snapshot.Issues = append(snapshot.Issues, domain.Item{Code: "context.unknown", Message: "Canonical context has unresolved references or semantic state.", Refs: contextSnapshot.Unknown})
 	}
 	snapshot.CanonicalFingerprint = canonicalFingerprint(snapshot.ProjectID, contextSnapshot)
+	snapshot.Governance = governance.Check(ctx, located.Path, "", time.Now().UTC())
+	snapshot.Issues = append(snapshot.Issues, snapshot.Governance.Issues...)
 
 	snapshot.ActiveWork, err = collectActiveWork(located.Path)
 	if err != nil {

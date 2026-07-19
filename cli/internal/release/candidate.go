@@ -12,23 +12,25 @@ import (
 
 // Input fixes every core identity and any explicitly enabled strict identity.
 type Input struct {
-	Profile             Profile           `json:"profile"`
-	Version             string            `json:"version"`
-	RootCommit          string            `json:"root_commit"`
-	WorkspaceCommits    map[string]string `json:"workspace_commits"`
-	WorkspaceRemotes    map[string]string `json:"workspace_remotes"`
-	ProviderRevisions   map[string]string `json:"provider_revisions"`
-	ToolVersions        map[string]string `json:"tool_versions"`
-	ArtifactDigests     map[string]string `json:"artifact_digests"`
-	ProductFingerprint  string            `json:"product_fingerprint"`
-	DocsFingerprint     string            `json:"docs_fingerprint"`
-	ContractFingerprint string            `json:"contract_fingerprint"`
-	TDDEvidence         map[string]string `json:"tdd_evidence"`
-	IntegrationEvidence map[string]string `json:"integration_evidence"`
-	MigrationRequired   bool              `json:"migration_required"`
-	MigrationEvidence   string            `json:"migration_evidence,omitempty"`
-	RollbackEvidence    string            `json:"rollback_evidence,omitempty"`
-	StrictEvidence      *StrictEvidence   `json:"strict_evidence,omitempty"`
+	Profile                    Profile           `json:"profile"`
+	Version                    string            `json:"version"`
+	RootCommit                 string            `json:"root_commit"`
+	WorkspaceCommits           map[string]string `json:"workspace_commits"`
+	WorkspaceRemotes           map[string]string `json:"workspace_remotes"`
+	ProviderRevisions          map[string]string `json:"provider_revisions"`
+	ToolVersions               map[string]string `json:"tool_versions"`
+	ArtifactDigests            map[string]string `json:"artifact_digests"`
+	ProductFingerprint         string            `json:"product_fingerprint"`
+	DocsFingerprint            string            `json:"docs_fingerprint"`
+	ContractFingerprint        string            `json:"contract_fingerprint"`
+	GovernanceFingerprint      string            `json:"governance_fingerprint"`
+	GovernanceApprovalRevision string            `json:"governance_approval_revision"`
+	TDDEvidence                map[string]string `json:"tdd_evidence"`
+	IntegrationEvidence        map[string]string `json:"integration_evidence"`
+	MigrationRequired          bool              `json:"migration_required"`
+	MigrationEvidence          string            `json:"migration_evidence,omitempty"`
+	RollbackEvidence           string            `json:"rollback_evidence,omitempty"`
+	StrictEvidence             *StrictEvidence   `json:"strict_evidence,omitempty"`
 }
 
 // Candidate is immutable by digest and contains no credentials or user approval.
@@ -76,6 +78,8 @@ func VerifyCandidate(candidate Candidate, current Input, validation UserValidati
 		{"product_fingerprint", candidate.Input.ProductFingerprint == current.ProductFingerprint},
 		{"docs_fingerprint", candidate.Input.DocsFingerprint == current.DocsFingerprint},
 		{"contract_fingerprint", candidate.Input.ContractFingerprint == current.ContractFingerprint},
+		{"governance_fingerprint", candidate.Input.GovernanceFingerprint == current.GovernanceFingerprint},
+		{"governance_approval_revision", candidate.Input.GovernanceApprovalRevision == current.GovernanceApprovalRevision},
 		{"tdd_evidence", reflect.DeepEqual(candidate.Input.TDDEvidence, current.TDDEvidence)},
 		{"integration_evidence", reflect.DeepEqual(candidate.Input.IntegrationEvidence, current.IntegrationEvidence)},
 		{"migration_required", candidate.Input.MigrationRequired == current.MigrationRequired},

@@ -50,11 +50,13 @@ type Step struct {
 
 // MergePlan is deterministic and immutable once evidence is recorded against its identities.
 type MergePlan struct {
-	SchemaVersion       int               `json:"schema_version"`
-	Steps               []Step            `json:"steps"`
-	WorkspaceCommits    map[string]string `json:"workspace_commits"`
-	ContractFingerprint string            `json:"contract_fingerprint,omitempty"`
-	Blockers            []domain.Item     `json:"blockers"`
+	SchemaVersion              int               `json:"schema_version"`
+	Steps                      []Step            `json:"steps"`
+	WorkspaceCommits           map[string]string `json:"workspace_commits"`
+	ContractFingerprint        string            `json:"contract_fingerprint,omitempty"`
+	GovernanceFingerprint      string            `json:"governance_fingerprint,omitempty"`
+	GovernanceApprovalRevision string            `json:"governance_approval_revision,omitempty"`
+	Blockers                   []domain.Item     `json:"blockers"`
 }
 
 // Evidence proves one exact integration step without copying command output.

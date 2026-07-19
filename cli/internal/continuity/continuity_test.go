@@ -29,6 +29,8 @@ func TestCollectDistinguishesUnknownAndLocalOnlyEvidence(t *testing.T) {
 	require.Contains(t, issueCodes(got.Issues), "provider.live-unknown")
 	require.Contains(t, issueCodes(got.Issues), "workspace.local-only")
 	require.Contains(t, issueCodes(got.Issues), "workspace.dirty")
+	require.Equal(t, "disabled", string(got.Governance.Status))
+	require.NotEmpty(t, got.Governance.ProtectedFingerprint)
 	require.Len(t, got.NextActions, 1)
 }
 

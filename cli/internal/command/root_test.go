@@ -137,6 +137,7 @@ func TestCommandSurfaceCoversProjectLifecycle(t *testing.T) {
 	paths := []string{
 		"project checkpoint", "project init", "project adopt",
 		"context audit", "context refresh",
+		"governance check",
 		"git inspect", "git sync-plan", "git sync", "git worktree-plan", "git worktree",
 		"work next", "work conflict", "work start", "work evidence", "work transition", "work finish", "work handoff",
 		"change plan", "contract check", "contract impact",

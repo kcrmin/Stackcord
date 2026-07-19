@@ -24,9 +24,9 @@ func confidenceFromIssues(issues []domain.Item) Confidence {
 
 func confidenceForCode(code string) Confidence {
 	switch {
-	case code == "workspace.pointer-mismatch", code == "workspace.diverged", code == "project.root-unavailable", strings.HasPrefix(code, "context.error"), strings.HasSuffix(code, "-invalid"):
+	case code == "workspace.pointer-mismatch", code == "workspace.diverged", code == "project.root-unavailable", strings.HasPrefix(code, "context.error"), strings.HasSuffix(code, "-invalid"), code == "governance.commit-stale", code == "governance.meaning-stale", code == "governance.provider-mismatch", code == "governance.repository-mismatch":
 		return Blocked
-	case code == "provider.live-unknown", code == "workspace.git-unknown", code == "workspace.missing", code == "context.unknown", code == "project.not-found":
+	case code == "provider.live-unknown", code == "workspace.git-unknown", code == "workspace.missing", code == "context.unknown", code == "project.not-found", code == "governance.approval-unknown", code == "governance.git-unknown":
 		return Unknown
 	case code == "context.stale":
 		return Stale
@@ -57,6 +57,10 @@ func nextActions(snapshot Snapshot) []domain.Item {
 		{"workspace.missing", domain.Item{Code: "workspace.initialize", Message: "Initialize the declared submodule at the root-pinned commit."}},
 		{"context.stale", domain.Item{Code: "context.reconcile", Message: "Reconcile stale canonical dependents before implementation."}},
 		{"context.unknown", domain.Item{Code: "context.resolve", Message: "Resolve the highest-impact unknown product or contract reference."}},
+		{"governance.commit-stale", domain.Item{Code: "governance.refresh-review", Message: "Request product-authority review for the current protected commit."}},
+		{"governance.meaning-stale", domain.Item{Code: "governance.refresh-review", Message: "Request product-authority review again because protected service meaning changed."}},
+		{"governance.approval-unknown", domain.Item{Code: "governance.refresh", Message: "Refresh the selected Git review provider before treating the protected change as approved."}},
+		{"governance.approval-insufficient", domain.Item{Code: "governance.request-review", Message: "Keep the change as a proposal and request approval from a configured product authority."}},
 		{"provider.live-unknown", domain.Item{Code: "provider.reconcile", Message: "Refresh the selected task provider before claiming or starting work."}},
 		{"workspace.local-only", domain.Item{Code: "workspace.share-plan", Message: "Choose how the current work becomes recoverable before another person depends on it."}},
 		{"workspace.dirty", domain.Item{Code: "workspace.scope-review", Message: "Confirm the current dirty paths belong to the intended change."}},

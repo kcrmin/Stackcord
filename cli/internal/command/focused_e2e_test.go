@@ -134,19 +134,21 @@ func TestFocusedJourneyVerifiesTechnicalAndUserEvidenceAgainstOneCandidate(t *te
 	root := filepath.Join(t.TempDir(), "release-project")
 	runFocusedCommand(t, "project", "init", "--root", root, "--id", "project.release", "--locale", "en", "--apply", "--json")
 	input := release.Input{
-		Profile:             release.ProfileCore,
-		Version:             "1.0.0",
-		RootCommit:          strings.Repeat("a", 40),
-		WorkspaceCommits:    map[string]string{"workspace.root": strings.Repeat("a", 40)},
-		WorkspaceRemotes:    map[string]string{"workspace.root": "https://example.invalid/root.git"},
-		ProviderRevisions:   map[string]string{"work.release": "provider-r1"},
-		ToolVersions:        map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
-		ArtifactDigests:     map[string]string{"archive": focusedDigest("a")},
-		ProductFingerprint:  focusedDigest("b"),
-		DocsFingerprint:     focusedDigest("c"),
-		ContractFingerprint: focusedDigest("d"),
-		TDDEvidence:         map[string]string{"tests": focusedDigest("e")},
-		IntegrationEvidence: map[string]string{"integration": focusedDigest("f")},
+		Profile:                    release.ProfileCore,
+		Version:                    "1.0.0",
+		RootCommit:                 strings.Repeat("a", 40),
+		WorkspaceCommits:           map[string]string{"workspace.root": strings.Repeat("a", 40)},
+		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.invalid/root.git"},
+		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ArtifactDigests:            map[string]string{"archive": focusedDigest("a")},
+		ProductFingerprint:         focusedDigest("b"),
+		DocsFingerprint:            focusedDigest("c"),
+		ContractFingerprint:        focusedDigest("d"),
+		GovernanceFingerprint:      focusedDigest("9"),
+		GovernanceApprovalRevision: "disabled",
+		TDDEvidence:                map[string]string{"tests": focusedDigest("e")},
+		IntegrationEvidence:        map[string]string{"integration": focusedDigest("f")},
 	}
 	inputPath := filepath.Join(root, "release-input.json")
 	focusedWriteJSON(t, inputPath, input)
@@ -196,19 +198,21 @@ func TestFocusedJourneyNativeBinaryInitializesAdoptsRecoversAndVerifiesRelease(t
 
 	commit := focusedGit(t, root, "rev-parse", "HEAD")
 	input := release.Input{
-		Profile:             release.ProfileCore,
-		Version:             "1.0.0",
-		RootCommit:          commit,
-		WorkspaceCommits:    map[string]string{"workspace.root": commit},
-		WorkspaceRemotes:    map[string]string{"workspace.root": "https://example.invalid/root.git"},
-		ProviderRevisions:   map[string]string{"work.release": "provider-r1"},
-		ToolVersions:        map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
-		ArtifactDigests:     map[string]string{"archive": focusedDigest("a")},
-		ProductFingerprint:  focusedDigest("b"),
-		DocsFingerprint:     focusedDigest("c"),
-		ContractFingerprint: focusedDigest("d"),
-		TDDEvidence:         map[string]string{"tests": focusedDigest("e")},
-		IntegrationEvidence: map[string]string{"integration": focusedDigest("f")},
+		Profile:                    release.ProfileCore,
+		Version:                    "1.0.0",
+		RootCommit:                 commit,
+		WorkspaceCommits:           map[string]string{"workspace.root": commit},
+		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.invalid/root.git"},
+		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ArtifactDigests:            map[string]string{"archive": focusedDigest("a")},
+		ProductFingerprint:         focusedDigest("b"),
+		DocsFingerprint:            focusedDigest("c"),
+		ContractFingerprint:        focusedDigest("d"),
+		GovernanceFingerprint:      focusedDigest("9"),
+		GovernanceApprovalRevision: "disabled",
+		TDDEvidence:                map[string]string{"tests": focusedDigest("e")},
+		IntegrationEvidence:        map[string]string{"integration": focusedDigest("f")},
 	}
 	inputPath := filepath.Join(parent, "release-input.json")
 	focusedWriteJSON(t, inputPath, input)

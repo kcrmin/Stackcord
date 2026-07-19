@@ -20,6 +20,7 @@ import (
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/evidence"
 	"fullstack-orchestrator/cli/internal/gitx"
+	"fullstack-orchestrator/cli/internal/governance"
 	"fullstack-orchestrator/cli/internal/integration"
 	"fullstack-orchestrator/cli/internal/provider"
 	"fullstack-orchestrator/cli/internal/schema"
@@ -132,6 +133,18 @@ func CollectInput(ctx context.Context, start string, options CollectOptions) (In
 		return input, append(issues, releaseIssue("release.git-unavailable", err.Error()))
 	}
 	input.RootCommit = rootGit.Head
+	governanceReport := governance.Check(ctx, root, "", time.Now().UTC())
+	input.GovernanceFingerprint = governanceReport.ProtectedFingerprint
+	input.GovernanceApprovalRevision = governanceReport.ApprovalRevision
+	if governanceReport.Enabled && governanceReport.Status != governance.Approved {
+		if len(governanceReport.Issues) == 0 {
+			issues = append(issues, releaseIssue("release.governance-unapproved", "Protected product meaning requires approval from a configured product authority."))
+		} else {
+			for _, item := range governanceReport.Issues {
+				issues = append(issues, releaseIssue("release."+item.Code, item.Message, item.Refs...))
+			}
+		}
+	}
 	workspaceStates, workspaceIssues := collectReleaseWorkspaces(ctx, root, located.Manifest, rootGit, &input)
 	issues = append(issues, workspaceIssues...)
 

@@ -13,6 +13,7 @@ import (
 	"fullstack-orchestrator/cli/internal/domain"
 	"fullstack-orchestrator/cli/internal/evidence"
 	"fullstack-orchestrator/cli/internal/gitx"
+	"fullstack-orchestrator/cli/internal/governance"
 	"fullstack-orchestrator/cli/internal/integration"
 	"fullstack-orchestrator/cli/internal/operation"
 	"fullstack-orchestrator/cli/internal/provider"
@@ -54,6 +55,7 @@ func newIntegratePlan(version string, jsonOutput *bool) *cobra.Command {
 		} else {
 			plan.Blockers = append(plan.Blockers, integration.CheckCompatibility(definitions, registry)...)
 		}
+		applyGovernanceToIntegration(cmd, located.Path, &plan)
 		result := integrationPlanResult(version, plan)
 		if len(plan.Blockers) > 0 || !apply {
 			return writeResult(cmd, *jsonOutput, result)
@@ -110,6 +112,7 @@ func newIntegrateVerify(version string, jsonOutput *bool) *cobra.Command {
 		} else {
 			currentPlan.Blockers = append(currentPlan.Blockers, integration.CheckCompatibility(definitions, registry)...)
 		}
+		applyGovernanceToIntegration(cmd, located.Path, &currentPlan)
 		if integrationPlanIdentity(plan) != integrationPlanIdentity(currentPlan) {
 			plan.Blockers = append(plan.Blockers, domain.Item{Code: "integrate.plan-stale", Message: "Current work, provider revision, workspace commit, or integration order differs from the recorded plan."})
 		}
@@ -127,6 +130,21 @@ func newIntegrateVerify(version string, jsonOutput *bool) *cobra.Command {
 	command.Flags().StringVar(&root, "root", ".", "root orchestration repository")
 	command.Flags().StringVar(&planPath, "plan", ".harness/local/integration/plan.json", "recorded local integration plan path relative to root")
 	return command
+}
+
+func applyGovernanceToIntegration(cmd *cobra.Command, root string, plan *integration.MergePlan) {
+	report := governance.Check(cmd.Context(), root, "", time.Now().UTC())
+	plan.GovernanceFingerprint = report.ProtectedFingerprint
+	plan.GovernanceApprovalRevision = report.ApprovalRevision
+	if report.Enabled && report.Status != governance.Approved {
+		if len(report.Issues) == 0 {
+			plan.Blockers = append(plan.Blockers, domain.Item{Code: "integrate.governance-unapproved", Message: "Protected product meaning requires approval from a configured product authority."})
+		} else {
+			for _, item := range report.Issues {
+				plan.Blockers = append(plan.Blockers, domain.Item{Code: "integrate." + item.Code, Message: item.Message, Refs: item.Refs})
+			}
+		}
+	}
 }
 
 func integrationPlanResult(version string, plan integration.MergePlan) domain.Result {

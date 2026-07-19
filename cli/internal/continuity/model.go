@@ -3,6 +3,7 @@ package continuity
 import (
 	contextpkg "fullstack-orchestrator/cli/internal/context"
 	"fullstack-orchestrator/cli/internal/domain"
+	"fullstack-orchestrator/cli/internal/governance"
 	"fullstack-orchestrator/cli/internal/workspace"
 )
 
@@ -56,6 +57,7 @@ type Snapshot struct {
 	Context              contextpkg.Snapshot `json:"context"`
 	Workspaces           []workspace.State   `json:"workspaces"`
 	Provider             ProviderView        `json:"provider"`
+	Governance           governance.Report   `json:"governance"`
 	ActiveWork           []WorkView          `json:"active_work"`
 	Release              ReleaseView         `json:"release"`
 	Issues               []domain.Item       `json:"issues"`

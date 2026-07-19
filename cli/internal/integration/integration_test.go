@@ -84,6 +84,15 @@ func TestVerifyIntegrationRejectsTamperedPlanShape(t *testing.T) {
 	require.Contains(t, integrationCodes(result.Blockers), "integrate.plan-invalid")
 }
 
+func TestIntegrationPlanCarriesExactGovernanceIdentity(t *testing.T) {
+	plan := integration.Plan(nil, nil, integrationWorkspaceStates()[:1])
+	plan.GovernanceFingerprint = integrationDigest("9")
+	plan.GovernanceApprovalRevision = "review-42:r3"
+
+	require.Equal(t, integrationDigest("9"), plan.GovernanceFingerprint)
+	require.Equal(t, "review-42:r3", plan.GovernanceApprovalRevision)
+}
+
 func integrationDefinition() work.Definition {
 	return work.Definition{
 		SchemaVersion: 1, ID: "work.accounts-recovery", Readiness: work.Ready, Fingerprint: integrationDigest("a"),

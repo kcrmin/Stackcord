@@ -78,6 +78,7 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	root.AddCommand(newStatusCommand(&jsonOutput))
 	root.AddCommand(newHookCommand())
 	root.AddCommand(newContextCommand(version, &jsonOutput))
+	root.AddCommand(newGovernanceCommand(version, &jsonOutput))
 	root.AddCommand(newProjectCommand(version, &jsonOutput))
 	root.AddCommand(newGitCommand(version, &jsonOutput))
 	root.AddCommand(newWorkspaceCommand(version, &jsonOutput))

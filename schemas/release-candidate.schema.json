@@ -35,6 +35,8 @@
         "product_fingerprint",
         "docs_fingerprint",
         "contract_fingerprint",
+        "governance_fingerprint",
+        "governance_approval_revision",
         "tdd_evidence",
         "integration_evidence",
         "migration_required"
@@ -66,6 +68,8 @@
         "product_fingerprint": { "$ref": "#/$defs/digest" },
         "docs_fingerprint": { "$ref": "#/$defs/digest" },
         "contract_fingerprint": { "$ref": "#/$defs/digest" },
+        "governance_fingerprint": { "$ref": "#/$defs/digest" },
+        "governance_approval_revision": { "type": "string", "minLength": 1 },
         "tdd_evidence": { "$ref": "#/$defs/digestMap" },
         "integration_evidence": { "$ref": "#/$defs/digestMap" },
         "migration_required": { "type": "boolean" },

@@ -46,18 +46,20 @@ func TestCandidateDetectsEveryCoreIdentityChange(t *testing.T) {
 	validation := validUserValidation(candidate.Digest)
 
 	cases := map[string]func(*release.Input){
-		"version":              func(i *release.Input) { i.Version = "1.0.1" },
-		"root_commit":          func(i *release.Input) { i.RootCommit = strings.Repeat("b", 40) },
-		"workspace_commits":    func(i *release.Input) { i.WorkspaceCommits["workspace.root"] = strings.Repeat("b", 40) },
-		"workspace_remotes":    func(i *release.Input) { i.WorkspaceRemotes["workspace.root"] = "https://example.test/other.git" },
-		"provider_revisions":   func(i *release.Input) { i.ProviderRevisions["work.release"] = "provider-r2" },
-		"tool_versions":        func(i *release.Input) { i.ToolVersions["orchestrator"] = "1.0.1" },
-		"artifact_digests":     func(i *release.Input) { i.ArtifactDigests["archive"] = digest("b") },
-		"product_fingerprint":  func(i *release.Input) { i.ProductFingerprint = digest("c") },
-		"docs_fingerprint":     func(i *release.Input) { i.DocsFingerprint = digest("d") },
-		"contract_fingerprint": func(i *release.Input) { i.ContractFingerprint = digest("e") },
-		"tdd_evidence":         func(i *release.Input) { i.TDDEvidence["tests"] = digest("f") },
-		"integration_evidence": func(i *release.Input) { i.IntegrationEvidence["integration"] = digest("1") },
+		"version":                      func(i *release.Input) { i.Version = "1.0.1" },
+		"root_commit":                  func(i *release.Input) { i.RootCommit = strings.Repeat("b", 40) },
+		"workspace_commits":            func(i *release.Input) { i.WorkspaceCommits["workspace.root"] = strings.Repeat("b", 40) },
+		"workspace_remotes":            func(i *release.Input) { i.WorkspaceRemotes["workspace.root"] = "https://example.test/other.git" },
+		"provider_revisions":           func(i *release.Input) { i.ProviderRevisions["work.release"] = "provider-r2" },
+		"tool_versions":                func(i *release.Input) { i.ToolVersions["orchestrator"] = "1.0.1" },
+		"artifact_digests":             func(i *release.Input) { i.ArtifactDigests["archive"] = digest("b") },
+		"product_fingerprint":          func(i *release.Input) { i.ProductFingerprint = digest("c") },
+		"docs_fingerprint":             func(i *release.Input) { i.DocsFingerprint = digest("d") },
+		"contract_fingerprint":         func(i *release.Input) { i.ContractFingerprint = digest("e") },
+		"governance_fingerprint":       func(i *release.Input) { i.GovernanceFingerprint = digest("8") },
+		"governance_approval_revision": func(i *release.Input) { i.GovernanceApprovalRevision = "review-42:r4" },
+		"tdd_evidence":                 func(i *release.Input) { i.TDDEvidence["tests"] = digest("f") },
+		"integration_evidence":         func(i *release.Input) { i.IntegrationEvidence["integration"] = digest("1") },
 		"migration_required": func(i *release.Input) {
 			i.MigrationRequired = true
 			i.MigrationEvidence, i.RollbackEvidence = digest("2"), digest("3")
@@ -175,20 +177,22 @@ func TestCandidateRejectsCredentialBearingRemote(t *testing.T) {
 
 func validCoreInput() release.Input {
 	return release.Input{
-		Profile:             release.ProfileCore,
-		Version:             "1.0.0",
-		RootCommit:          strings.Repeat("a", 40),
-		WorkspaceCommits:    map[string]string{"workspace.root": strings.Repeat("a", 40)},
-		WorkspaceRemotes:    map[string]string{"workspace.root": "https://example.test/root.git"},
-		ProviderRevisions:   map[string]string{"work.release": "provider-r1"},
-		ToolVersions:        map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
-		ArtifactDigests:     map[string]string{"archive": digest("a")},
-		ProductFingerprint:  digest("b"),
-		DocsFingerprint:     digest("c"),
-		ContractFingerprint: digest("d"),
-		TDDEvidence:         map[string]string{"tests": digest("e")},
-		IntegrationEvidence: map[string]string{"integration": digest("f")},
-		MigrationRequired:   false,
+		Profile:                    release.ProfileCore,
+		Version:                    "1.0.0",
+		RootCommit:                 strings.Repeat("a", 40),
+		WorkspaceCommits:           map[string]string{"workspace.root": strings.Repeat("a", 40)},
+		WorkspaceRemotes:           map[string]string{"workspace.root": "https://example.test/root.git"},
+		ProviderRevisions:          map[string]string{"work.release": "provider-r1"},
+		ToolVersions:               map[string]string{"git": "2.50.0", "orchestrator": "1.0.0"},
+		ArtifactDigests:            map[string]string{"archive": digest("a")},
+		ProductFingerprint:         digest("b"),
+		DocsFingerprint:            digest("c"),
+		ContractFingerprint:        digest("d"),
+		GovernanceFingerprint:      digest("9"),
+		GovernanceApprovalRevision: "review-42:r3",
+		TDDEvidence:                map[string]string{"tests": digest("e")},
+		IntegrationEvidence:        map[string]string{"integration": digest("f")},
+		MigrationRequired:          false,
 	}
 }
 
