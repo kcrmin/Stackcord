@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -257,7 +258,7 @@ func worktreeTarget(ctx context.Context, git runner, root, branch, requested str
 	if containing, inspectErr := git.read(ctx, ancestor, "rev-parse", "--show-toplevel"); inspectErr == nil && containing != "" {
 		return "", fmt.Errorf("worktree target is inside another repository")
 	}
-	resolvedAncestor, err := filepath.EvalSymlinks(ancestor)
+	resolvedAncestor, err := pathresolve.Resolve(ancestor)
 	if err != nil {
 		return "", err
 	}
@@ -274,7 +275,7 @@ func canonicalPath(value string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(absolute)
+	return pathresolve.Resolve(absolute)
 }
 
 func existingAncestor(value string) (string, error) {

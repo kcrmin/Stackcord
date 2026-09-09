@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"sort"
@@ -105,7 +106,7 @@ func LoadRegistration(root, id string) (Registration, error) {
 	if err != nil {
 		return Registration{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return Registration{}, err
 	}
@@ -114,7 +115,7 @@ func LoadRegistration(root, id string) (Registration, error) {
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return Registration{}, fmt.Errorf("UI registration must be a regular non-symlink file")
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil || filepath.Clean(resolved) != filepath.Clean(path) {
 		return Registration{}, fmt.Errorf("UI registration cannot use symlinked storage")
 	}

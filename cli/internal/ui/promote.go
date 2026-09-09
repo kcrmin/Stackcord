@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,7 +42,7 @@ func Promote(request PromotionRequest) (operation.Plan, error) {
 	if err != nil {
 		return operation.Plan{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return operation.Plan{}, err
 	}

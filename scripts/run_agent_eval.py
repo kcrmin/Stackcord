@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -40,8 +42,23 @@ MUTATING_COMMANDS = (
 EXTERNAL_RESEARCH_SCENARIO = "current-tool-selection"
 
 
+@contextlib.contextmanager
+def evaluation_workspace(output: pathlib.Path) -> Iterable[pathlib.Path]:
+    """Create ignored scratch space for build products."""
+    with tempfile.TemporaryDirectory(prefix="workspace-", dir=output) as temporary:
+        yield pathlib.Path(temporary)
+
+
+@contextlib.contextmanager
+def fixture_workspace(parent: pathlib.Path, scenario_id: str) -> Iterable[pathlib.Path]:
+    """Keep disposable fixtures inside the ignored evaluation workspace."""
+    yield parent / scenario_id
+
+
 def _contains(text: str, patterns: Iterable[str]) -> list[str]:
-    folded = text.casefold()
+    folded = re.sub(
+        r"&?\s*\$env:stackcord_cli\b", "stackcord", text, flags=re.IGNORECASE
+    ).casefold()
     return [pattern for pattern in patterns if pattern.casefold() in folded]
 
 
@@ -171,6 +188,8 @@ def build_codex_command(
         executable,
         "-a",
         "never",
+    ]
+    command.extend([
         "exec",
         "--ephemeral",
         "--color",
@@ -182,7 +201,7 @@ def build_codex_command(
         "--output-last-message",
         str(output),
         "--json",
-    ]
+    ])
     if model:
         command.extend(("--model", model))
     command.append(prompt)
@@ -204,6 +223,34 @@ def evaluation_environment(base: dict[str, str], cli: pathlib.Path) -> dict[str,
     environment["PATH"] = str(cli.parent) + (os.pathsep + existing_path if existing_path else "")
     environment["GIT_TERMINAL_PROMPT"] = "0"
     return environment
+
+
+def execute_agent(
+    command: list[str],
+    cwd: pathlib.Path,
+    environment: dict[str, str],
+    events_path: pathlib.Path,
+    timeout: float,
+) -> subprocess.CompletedProcess[str]:
+    with events_path.open("w", encoding="utf-8") as events:
+        try:
+            return subprocess.run(
+                command,
+                cwd=cwd,
+                env=environment,
+                stdout=events,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as error:
+            stderr = error.stderr if isinstance(error.stderr, str) else ""
+            return subprocess.CompletedProcess(
+                command,
+                124,
+                stderr=f"{stderr}\nagent evaluation timed out after {timeout} seconds".strip(),
+            )
 
 
 def _walk_strings(value: object) -> Iterable[tuple[str | None, str]]:
@@ -319,7 +366,11 @@ def score_saved_transcript(
     return result
 
 
-def _write_fixture(root: pathlib.Path, scenario: dict[str, Any]) -> None:
+def _write_fixture(
+    root: pathlib.Path,
+    scenario: dict[str, Any],
+    cli: pathlib.Path | None = None,
+) -> None:
     root.mkdir(parents=True, exist_ok=True)
     (root / "AGENTS.md").write_text(
         "# Evaluation fixture\n\n"
@@ -331,13 +382,33 @@ def _write_fixture(root: pathlib.Path, scenario: dict[str, Any]) -> None:
         "# Project state\n\n" + "\n".join(f"- {item}" for item in state) + "\n",
         encoding="utf-8",
     )
-    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
     subprocess.run(["git", "-C", str(root), "config", "user.name", "Fixture User"], check=True)
     subprocess.run(["git", "-C", str(root), "config", "user.email", "fixture@example.invalid"], check=True)
-    subprocess.run(["git", "-C", str(root), "add", "AGENTS.md", "project-state.md"], check=True)
+    if scenario["fixture"] != "new-project" and cli is not None:
+        subprocess.run(
+            [
+                str(cli),
+                "project",
+                "adopt",
+                "--root",
+                str(root),
+                "--id",
+                f"eval.{scenario['id']}",
+                "--name",
+                "Evaluation fixture",
+                "--apply",
+                "--json",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    subprocess.run(["git", "-C", str(root), "add", "--all"], check=True)
     subprocess.run(["git", "-C", str(root), "commit", "-q", "-m", "docs: record project state"], check=True)
     if scenario["fixture"] != "new-project":
-        remote = root.parent / f"{scenario['id']}-remote.git"
+        remote = root / ".git" / "stackcord-eval" / "remote.git"
         subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
         subprocess.run(["git", "-C", str(root), "remote", "add", "origin", str(remote)], check=True)
         subprocess.run(["git", "-C", str(root), "push", "-q", "-u", "origin", "main"], check=True)
@@ -404,8 +475,7 @@ def run(args: argparse.Namespace) -> int:
         if executable is None:
             print(f"ERROR: Codex command is unavailable: {args.command}", file=sys.stderr)
             return 2
-        with tempfile.TemporaryDirectory(prefix="service-continuity-eval-") as temporary:
-            temp_root = pathlib.Path(temporary)
+        with evaluation_workspace(output) as temp_root, contextlib.ExitStack() as fixtures:
             cli = temp_root / "bin" / ("stackcord.exe" if sys.platform == "win32" else "stackcord")
             cli.parent.mkdir(parents=True)
             build = subprocess.run(
@@ -422,8 +492,8 @@ def run(args: argparse.Namespace) -> int:
             for scenario in selected:
                 scenario_output = output / scenario["id"]
                 scenario_output.mkdir(parents=True, exist_ok=True)
-                fixture = temp_root / scenario["id"]
-                _write_fixture(fixture, scenario)
+                fixture = fixtures.enter_context(fixture_workspace(temp_root, scenario["id"]))
+                _write_fixture(fixture, scenario, cli)
                 fixture_cli = stage_fixture_cli(cli, fixture)
                 environment = evaluation_environment(dict(os.environ), fixture_cli)
                 final_path = scenario_output / "final.txt"
@@ -436,17 +506,9 @@ def run(args: argparse.Namespace) -> int:
                     _scenario_prompt(root, scenario),
                     args.model,
                 )
-                with events_path.open("w", encoding="utf-8") as events:
-                    completed = subprocess.run(
-                        command,
-                        cwd=fixture,
-                        env=environment,
-                        stdout=events,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        timeout=args.timeout,
-                        check=False,
-                    )
+                completed = execute_agent(
+                    command, fixture, environment, events_path, args.timeout
+                )
                 response = final_path.read_text(encoding="utf-8") if final_path.is_file() else ""
                 commands = extract_commands(events_path)
                 successful_commands = extract_successful_commands(events_path)

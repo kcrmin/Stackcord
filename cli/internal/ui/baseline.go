@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -143,7 +144,7 @@ func PlanBaseline(ctx context.Context, request BaselineRequest) (Baseline, opera
 	if err != nil {
 		return Baseline{}, operation.Plan{}, nil, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return Baseline{}, operation.Plan{}, nil, err
 	}
@@ -254,7 +255,7 @@ func LoadBaseline(root, id string) (Baseline, error) {
 	if err != nil {
 		return Baseline{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return Baseline{}, err
 	}
@@ -263,7 +264,7 @@ func LoadBaseline(root, id string) (Baseline, error) {
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return Baseline{}, fmt.Errorf("UI baseline must be a regular non-symlink file")
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil || filepath.Clean(resolved) != filepath.Clean(path) {
 		return Baseline{}, fmt.Errorf("UI baseline cannot use symlinked storage")
 	}

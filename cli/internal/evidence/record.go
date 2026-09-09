@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -216,7 +217,7 @@ func canonicalEvidencePath(value string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(absolute)
+	return pathresolve.Resolve(absolute)
 }
 
 func evidencePathWithin(parent, child string) bool {

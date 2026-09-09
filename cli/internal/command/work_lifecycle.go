@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"io"
 	"os"
 	"path/filepath"
@@ -117,7 +118,7 @@ var evidenceArtifactNamePattern = regexp.MustCompile(`^[a-z0-9]+(?:[.-][a-z0-9]+
 
 func collectArtifactDigests(workspacePath string, values []string) (map[string]string, error) {
 	result := map[string]string{}
-	workspace, err := filepath.EvalSymlinks(workspacePath)
+	workspace, err := pathresolve.Resolve(workspacePath)
 	if err != nil {
 		return nil, fmt.Errorf("artifact workspace is unavailable")
 	}
@@ -145,7 +146,7 @@ func collectArtifactDigests(workspacePath string, values []string) (map[string]s
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() == 0 || info.Size() > maxEvidenceArtifactBytes {
 			return nil, fmt.Errorf("artifact must be a non-empty regular file within the size limit: %s", relative)
 		}
-		canonical, err := filepath.EvalSymlinks(path)
+		canonical, err := pathresolve.Resolve(path)
 		if err != nil {
 			return nil, fmt.Errorf("artifact cannot be resolved safely: %s", relative)
 		}

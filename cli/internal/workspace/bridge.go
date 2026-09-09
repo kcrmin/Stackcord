@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -121,7 +122,7 @@ func realDirectory(start string) (string, error) {
 	if !info.IsDir() {
 		absolute = filepath.Dir(absolute)
 	}
-	resolved, err := filepath.EvalSymlinks(absolute)
+	resolved, err := pathresolve.Resolve(absolute)
 	if err != nil {
 		return "", fmt.Errorf("resolve start symlinks: %w", err)
 	}
@@ -173,8 +174,8 @@ func gitRead(ctx context.Context, directory string, args ...string) (string, err
 }
 
 func samePath(left, right string) bool {
-	leftResolved, leftErr := filepath.EvalSymlinks(left)
-	rightResolved, rightErr := filepath.EvalSymlinks(right)
+	leftResolved, leftErr := pathresolve.Resolve(left)
+	rightResolved, rightErr := pathresolve.Resolve(right)
 	return leftErr == nil && rightErr == nil && filepath.Clean(leftResolved) == filepath.Clean(rightResolved)
 }
 

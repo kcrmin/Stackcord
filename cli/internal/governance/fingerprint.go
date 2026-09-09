@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ func ProtectedFingerprint(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return "", err
 	}
