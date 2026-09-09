@@ -30,12 +30,15 @@ var ErrNotConfigured = errors.New("channel is not configured")
 var identifier = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$`)
 
 type RunnerConfig struct {
-	ResultFormat   string   `json:"result_format,omitempty"`
-	Argv           []string `json:"argv"`
-	AllowedKinds   []string `json:"allowed_kinds"`
-	TimeoutSeconds int      `json:"timeout_seconds"`
+	Host           string      `json:"host,omitempty"`
+	Code           *CodePolicy `json:"code,omitempty"`
+	ResultFormat   string      `json:"result_format,omitempty"`
+	Argv           []string    `json:"argv"`
+	AllowedKinds   []string    `json:"allowed_kinds"`
+	TimeoutSeconds int         `json:"timeout_seconds"`
 }
 type RunnerState struct {
+	CodeRepository string   `json:"code_repository,omitempty"`
 	ResultFormat   string   `json:"result_format,omitempty"`
 	Enabled        bool     `json:"enabled"`
 	AllowedKinds   []string `json:"allowed_kinds"`
@@ -53,12 +56,13 @@ type diskConfig struct {
 	PrivateKey string `json:"private_key"`
 }
 type RequestInput struct {
-	To           string   `json:"to"`
-	Kind         string   `json:"kind"`
-	Title        string   `json:"title"`
-	Body         string   `json:"body"`
-	Dependencies []string `json:"dependencies"`
-	Scope        []string `json:"scope"`
+	Code         *CodeRequest `json:"code,omitempty"`
+	To           string       `json:"to"`
+	Kind         string       `json:"kind"`
+	Title        string       `json:"title"`
+	Body         string       `json:"body"`
+	Dependencies []string     `json:"dependencies"`
+	Scope        []string     `json:"scope"`
 }
 type ResultInput struct {
 	RequestID string `json:"request_id"`
@@ -66,20 +70,22 @@ type ResultInput struct {
 	Body      string `json:"body"`
 }
 type Event struct {
-	ID           string   `json:"id"`
-	Channel      string   `json:"channel"`
-	Type         string   `json:"type"`
-	Author       string   `json:"author"`
-	To           string   `json:"to,omitempty"`
-	Kind         string   `json:"kind,omitempty"`
-	Title        string   `json:"title,omitempty"`
-	Body         string   `json:"body"`
-	RequestID    string   `json:"request_id,omitempty"`
-	Status       string   `json:"status,omitempty"`
-	Dependencies []string `json:"dependencies,omitempty"`
-	Scope        []string `json:"scope,omitempty"`
-	CreatedAt    string   `json:"created_at"`
-	Signature    string   `json:"signature"`
+	ID           string        `json:"id"`
+	Channel      string        `json:"channel"`
+	Type         string        `json:"type"`
+	Author       string        `json:"author"`
+	To           string        `json:"to,omitempty"`
+	Kind         string        `json:"kind,omitempty"`
+	Title        string        `json:"title,omitempty"`
+	Body         string        `json:"body"`
+	RequestID    string        `json:"request_id,omitempty"`
+	Status       string        `json:"status,omitempty"`
+	Dependencies []string      `json:"dependencies,omitempty"`
+	Scope        []string      `json:"scope,omitempty"`
+	CreatedAt    string        `json:"created_at"`
+	Signature    string        `json:"signature"`
+	Code         *CodeRequest  `json:"code,omitempty"`
+	Artifact     *CodeArtifact `json:"artifact,omitempty"`
 }
 type RequestState struct {
 	Request       Event  `json:"request"`
@@ -306,6 +312,12 @@ func (s *Store) Trust(peer, key string) (State, error) {
 	return s.state(c, events), e
 }
 func validateRunner(r RunnerConfig) error {
+	if r.Host != "" && r.Host != "codex" && r.Host != "claude" {
+		return errors.New("invalid runner host")
+	}
+	if err := validateCodePolicy(r.Code); err != nil {
+		return err
+	}
 	if r.ResultFormat != "" && r.ResultFormat != "text" && r.ResultFormat != "json" {
 		return errors.New("invalid runner result format")
 	}
@@ -484,11 +496,14 @@ func validate(c diskConfig, events []Event, e Event, signature bool) error {
 	default:
 		return errors.New("unknown event type")
 	}
-	return nil
+	return validateCodeEvent(e, events)
 }
 func (s *Store) state(c diskConfig, events []Event) State {
 	st := State{Configured: true, Channel: c.Channel, Remote: c.Remote, Peer: c.Peer, PublicKey: c.Peers[c.Peer], Peers: c.Peers, Runner: RunnerState{ResultFormat: c.Runner.ResultFormat, Enabled: len(c.Runner.Argv) > 0, AllowedKinds: c.Runner.AllowedKinds, TimeoutSeconds: c.Runner.TimeoutSeconds}, Requests: []RequestState{}}
 	st.Revision = s.revision(c)
+	if c.Runner.Code != nil {
+		st.Runner.CodeRepository = c.Runner.Code.Repository
+	}
 	st.WorkerBlockedReason = s.quarantineReason()
 	results := map[string]Event{}
 	for _, e := range events {
@@ -523,6 +538,16 @@ func (s *Store) state(c diskConfig, events []Event) State {
 		if r.Status == "ready" && r.Request.To == c.Peer && st.WorkerBlockedReason != "" {
 			r.Status = "blocked"
 			r.BlockedReason = st.WorkerBlockedReason
+		}
+		if r.Status == "ready" && r.Request.To == c.Peer {
+			if c.Runner.Code != nil && e.Code == nil {
+				r.Status = "blocked"
+				r.BlockedReason = "code worker requires repository, baseline and scope metadata"
+			}
+			if e.Code != nil && (c.Runner.Code == nil || e.Code.Repository != c.Runner.Code.Repository) {
+				r.Status = "blocked"
+				r.BlockedReason = "code repository is not authorized by this worker"
+			}
 		}
 		st.Requests = append(st.Requests, r)
 	}
@@ -629,6 +654,7 @@ func (s *Store) Send(ctx context.Context, r RequestInput) (Event, error) {
 	ev.Body = r.Body
 	ev.Dependencies = r.Dependencies
 	ev.Scope = r.Scope
+	ev.Code = r.Code
 	return s.append(ctx, c, ev)
 }
 func (s *Store) Respond(ctx context.Context, r ResultInput) (Event, error) {
