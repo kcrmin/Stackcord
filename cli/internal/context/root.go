@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +20,7 @@ func FindRoot(start string) (string, error) {
 	if !info.IsDir() {
 		absolute = filepath.Dir(absolute)
 	}
-	realStart, err := filepath.EvalSymlinks(absolute)
+	realStart, err := pathresolve.Resolve(absolute)
 	if err != nil {
 		return "", fmt.Errorf("resolve start symlinks: %w", err)
 	}

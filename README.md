@@ -138,3 +138,5 @@ The six user-facing Skills are `start-project`, `continue-project`, `plan-projec
 | Troubleshoot a problem | [Troubleshooting](./docs/guides/troubleshooting-en.md) |
 
 Optional settings and review UI: run `stackcord dashboard --root .`. See the [getting started guide](docs/getting-started/en.md) and [policy modes](docs/guides/governance-en.md).
+
+Optional [peer communication](docs/guides/peer-coordination-en.md) connects registered workers on different computers through signed requests, prerequisites and replies. Each computer explicitly selects its trusted peers and local Codex, Claude or custom runner; routine coordination then needs no human message relay.

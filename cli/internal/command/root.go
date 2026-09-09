@@ -77,6 +77,7 @@ func New(version string, stdout, stderr io.Writer) *cobra.Command {
 	root.AddCommand(doctor)
 	root.AddCommand(newStatusCommand(&jsonOutput))
 	root.AddCommand(newDashboardCommand())
+	root.AddCommand(newChannelCommand())
 	root.AddCommand(newReviewCommand(version, &jsonOutput))
 	root.AddCommand(newGitHubIssuesCommand(version, &jsonOutput))
 	root.AddCommand(newSetupCommand(version, &jsonOutput))

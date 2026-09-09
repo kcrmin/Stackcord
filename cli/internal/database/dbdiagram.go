@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -110,7 +111,7 @@ func LoadPreparation(root, operationID string) (Preparation, error) {
 	if err != nil {
 		return Preparation{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return Preparation{}, err
 	}
@@ -119,7 +120,7 @@ func LoadPreparation(root, operationID string) (Preparation, error) {
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return Preparation{}, fmt.Errorf("dbdiagram preparation must be a regular non-symlink file")
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil || filepath.Clean(resolved) != filepath.Clean(path) {
 		return Preparation{}, fmt.Errorf("dbdiagram preparation cannot use symlinked storage")
 	}
@@ -142,7 +143,7 @@ func LoadPreparedCandidate(root, operationID string) ([]byte, time.Time, error) 
 	if err != nil {
 		return nil, time.Time{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -151,7 +152,7 @@ func LoadPreparedCandidate(root, operationID string) ([]byte, time.Time, error) 
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Size() == 0 || info.Size() > maxDBMLEntryBytes {
 		return nil, time.Time{}, fmt.Errorf("dbdiagram candidate must be a safe non-empty regular DBML file")
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil || filepath.Clean(resolved) != filepath.Clean(path) {
 		return nil, time.Time{}, fmt.Errorf("dbdiagram candidate cannot use symlinked storage")
 	}
@@ -167,7 +168,7 @@ func readCanonicalDBML(root, entry string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	rootResolved, err := filepath.EvalSymlinks(rootAbsolute)
+	rootResolved, err := pathresolve.Resolve(rootAbsolute)
 	if err != nil {
 		return nil, fmt.Errorf("resolve project root: %w", err)
 	}
@@ -175,7 +176,7 @@ func readCanonicalDBML(root, entry string) ([]byte, error) {
 	if !filepath.IsAbs(entryAbsolute) {
 		entryAbsolute = filepath.Join(rootResolved, entryAbsolute)
 	}
-	entryResolved, err := filepath.EvalSymlinks(entryAbsolute)
+	entryResolved, err := pathresolve.Resolve(entryAbsolute)
 	if err != nil {
 		return nil, fmt.Errorf("resolve canonical DBML entry: %w", err)
 	}

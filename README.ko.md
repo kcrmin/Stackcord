@@ -138,3 +138,5 @@ Plugin이 없어도 생성된 프로젝트의 repo-local Skill과 Markdown fallb
 | 문제 해결 | [문제 해결](./docs/guides/troubleshooting-ko.md) |
 
 선택형 설정·리뷰 UI: `stackcord dashboard --root .`를 실행하세요. [시작 안내](docs/getting-started/ko.md)와 [보안 모드](docs/guides/governance-ko.md)를 확인하세요.
+
+선택형 [작업자 통신](docs/guides/peer-coordination-ko.md)은 서로 다른 컴퓨터의 등록된 작업자를 서명된 요청·선수 작업·응답으로 연결합니다. 각 컴퓨터에서 신뢰할 상대와 로컬 Codex·Claude·사용자 지정 실행기를 명시적으로 선택하면, 일반적인 조정 메시지는 사람이 전달하지 않아도 이어집니다.

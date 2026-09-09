@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -28,7 +29,7 @@ func PlanRegistration(ctx context.Context, request RegistrationRequest) (operati
 	if err != nil {
 		return operation.Plan{}, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return operation.Plan{}, err
 	}

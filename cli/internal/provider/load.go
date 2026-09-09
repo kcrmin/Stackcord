@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +54,7 @@ func ValidateSnapshotLocation(root, path string) error {
 	if err != nil {
 		return err
 	}
-	resolvedRoot, err := filepath.EvalSymlinks(root)
+	resolvedRoot, err := pathresolve.Resolve(root)
 	if err != nil {
 		return err
 	}
@@ -62,11 +63,11 @@ func ValidateSnapshotLocation(root, path string) error {
 		return err
 	}
 	localRoot := filepath.Join(resolvedRoot, ".harness", "local", "providers")
-	temporaryRoot, tempErr := filepath.EvalSymlinks(os.TempDir())
+	temporaryRoot, tempErr := pathresolve.Resolve(os.TempDir())
 	if tempErr != nil {
 		temporaryRoot = os.TempDir()
 	}
-	resolved, resolveErr := filepath.EvalSymlinks(path)
+	resolved, resolveErr := pathresolve.Resolve(path)
 	if resolveErr != nil {
 		return resolveErr
 	}
@@ -99,11 +100,11 @@ func canonicalProviderLocation(root, path string, directory ...string) bool {
 	if err != nil {
 		return false
 	}
-	resolvedRoot, err := filepath.EvalSymlinks(root)
+	resolvedRoot, err := pathresolve.Resolve(root)
 	if err != nil {
 		return false
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil {
 		return false
 	}

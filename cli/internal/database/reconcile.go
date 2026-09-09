@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"sort"
@@ -158,7 +159,7 @@ func ReconcileProposal(request ReconcileRequest) (Proposal, operation.Plan, []do
 	if err != nil {
 		return Proposal{}, operation.Plan{}, nil, err
 	}
-	planRoot, err = filepath.EvalSymlinks(planRoot)
+	planRoot, err = pathresolve.Resolve(planRoot)
 	if err != nil {
 		return Proposal{}, operation.Plan{}, nil, err
 	}
@@ -205,7 +206,7 @@ func canonicalDBMLRelative(root, entry string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return "", err
 	}
@@ -213,7 +214,7 @@ func canonicalDBMLRelative(root, entry string) (string, error) {
 	if !filepath.IsAbs(entryPath) {
 		entryPath = filepath.Join(root, entryPath)
 	}
-	entryPath, err = filepath.EvalSymlinks(entryPath)
+	entryPath, err = pathresolve.Resolve(entryPath)
 	if err != nil {
 		return "", err
 	}
@@ -229,7 +230,7 @@ func safeProposalPath(root, value string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return "", err
 	}
@@ -241,7 +242,7 @@ func safeProposalPath(root, value string) (string, error) {
 	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return "", fmt.Errorf("proposal record must be a regular non-symlink file")
 	}
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil {
 		return "", err
 	}
@@ -258,7 +259,7 @@ func readProposalCandidate(root, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +268,7 @@ func readProposalCandidate(root, path string) ([]byte, error) {
 		return nil, fmt.Errorf("proposal candidate must be a safe DBML file")
 	}
 	allowed := filepath.Join(root, ".harness", "local", "dbdiagram")
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, err := pathresolve.Resolve(path)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,8 @@ The optional loopback dashboard shares the CLI core with Codex and Claude. Versi
 
 ## Authoritative design records
 
+The optional registered-worker communication extension is specified in the paired [peer coordination guide](../guides/peer-coordination-en.md) and [Korean guide](../guides/peer-coordination-ko.md). It supersedes the historical mailbox exclusion only for explicit project request/reply coordination through a shared Git remote. It does not introduce a mandatory daemon, large-scale swarm manager, or replacement approval authority.
+
 - [Service continuity harness specification](../superpowers/specs/2026-07-18-service-continuity-harness-design.md)
 - [Editable UI workspace specification](../superpowers/specs/2026-07-18-ui-baseline-submodule-design.md)
 - [Stackcord product naming](../superpowers/specs/2026-07-19-stackcord-naming-design.md)

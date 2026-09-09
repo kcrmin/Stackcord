@@ -1,6 +1,9 @@
 import json
 import os
 import pathlib
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -19,6 +22,78 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class AgentEvalContractTest(unittest.TestCase):
+    def test_agent_timeout_returns_a_scored_process_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events = pathlib.Path(directory) / "events.jsonl"
+            completed = run_agent_eval.execute_agent(
+                [sys.executable, "-c", "import time; time.sleep(2)"],
+                pathlib.Path(directory),
+                dict(os.environ),
+                events,
+                timeout=0.01,
+            )
+
+            self.assertEqual(124, completed.returncode)
+            self.assertIn("timed out", completed.stderr)
+
+    def test_clean_clone_fixture_contains_a_readable_canonical_harness(self):
+        go = shutil.which("go")
+        if go is None:
+            self.skipTest("Go is required for the real fixture integration test")
+        scenario = {"id": "clean", "fixture": "clean-clone", "fixture_state": []}
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = pathlib.Path(directory)
+            cli = temporary / ("stackcord.exe" if os.name == "nt" else "stackcord")
+            subprocess.run(
+                [go, "build", "-trimpath", "-o", str(cli), "./cmd/stackcord"],
+                cwd=ROOT / "cli",
+                check=True,
+            )
+            fixture = temporary / "fixture"
+
+            run_agent_eval._write_fixture(fixture, scenario, cli)
+
+            self.assertTrue((fixture / ".harness" / "manifest.yaml").is_file())
+            status = subprocess.run(
+                [str(cli), "status", "--root", str(fixture), "--json"],
+                text=True,
+                stdout=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(0, status.returncode, status.stdout)
+
+    def test_fixture_uses_main_independent_of_the_machine_git_default(self):
+        scenario = {"id": "clean", "fixture": "clean-clone", "fixture_state": []}
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = pathlib.Path(directory) / "fixture"
+
+            run_agent_eval._write_fixture(fixture, scenario)
+
+            branch = subprocess.run(
+                ["git", "-C", str(fixture), "branch", "--show-current"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+            ).stdout.strip()
+            self.assertEqual("main", branch)
+
+    def test_evaluation_workspace_is_created_below_the_ignored_output_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / ".harness" / "local" / "evals" / "drill"
+            output.mkdir(parents=True)
+
+            with run_agent_eval.evaluation_workspace(output) as workspace:
+                self.assertTrue(workspace.is_relative_to(output))
+                self.assertTrue(workspace.is_dir())
+
+            self.assertFalse(workspace.exists())
+
+    def test_fixture_stays_under_the_ignored_evaluation_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory)
+            with run_agent_eval.fixture_workspace(output, "clean-clone") as fixture:
+                self.assertEqual(output / "clean-clone", fixture)
+
     def test_evaluation_cli_is_inside_fixture_without_dirtying_git_state(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
@@ -150,8 +225,10 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertEqual("codex", command[0])
         self.assertIn("--ephemeral", command)
         self.assertIn("read-only", command)
+        self.assertNotIn('sandbox_permissions=["disk-full-read-access"]', command)
         self.assertIn("never", command)
         self.assertIn("gpt-5.4", command)
+        self.assertNotIn("--add-dir", command)
         self.assertLess(command.index("--model"), command.index("gpt-5.4"))
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", command)
 
@@ -188,6 +265,22 @@ class AgentEvalContractTest(unittest.TestCase):
         self.assertFalse(failing["passed"])
         self.assertIn("combined_status_before_mutation", failing["missing_required"])
         self.assertIn("unsafe_mutation", failing["matched_forbidden"])
+
+    def test_configured_cli_environment_invocation_scores_as_stackcord(self):
+        rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")
+        scenario = {
+            "required_actions": ["combined_status_before_mutation"],
+            "forbidden_actions": [],
+        }
+
+        result = score_transcript(
+            scenario,
+            rubric,
+            commands=["& $env:STACKCORD_CLI status --json"],
+            response="상태를 확인했습니다.",
+        )
+
+        self.assertTrue(result["passed"])
 
     def test_help_before_status_is_not_scored_as_a_mutation(self):
         rubric = load_document(ROOT / "evals/agent-behavior/rubric.yaml")

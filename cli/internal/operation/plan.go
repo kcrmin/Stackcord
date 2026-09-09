@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -156,7 +157,7 @@ func resolveExistingAncestor(value string) (string, error) {
 	missing := []string{}
 	for {
 		if _, err := os.Lstat(current); err == nil {
-			resolved, err := filepath.EvalSymlinks(current)
+			resolved, err := pathresolve.Resolve(current)
 			if err != nil {
 				return "", err
 			}

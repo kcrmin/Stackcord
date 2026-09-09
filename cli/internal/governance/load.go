@@ -3,6 +3,7 @@ package governance
 import (
 	"errors"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"os"
 	"path/filepath"
 	"sort"
@@ -65,7 +66,7 @@ func validateObservationLocation(root, path string) error {
 	if err != nil {
 		return err
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = pathresolve.Resolve(root)
 	if err != nil {
 		return err
 	}
@@ -73,12 +74,12 @@ func validateObservationLocation(root, path string) error {
 	if err != nil {
 		return err
 	}
-	parent, err := filepath.EvalSymlinks(filepath.Dir(path))
+	parent, err := pathresolve.Resolve(filepath.Dir(path))
 	if err != nil {
 		return err
 	}
 	resolved := filepath.Join(parent, filepath.Base(path))
-	temporaryRoot, tempErr := filepath.EvalSymlinks(os.TempDir())
+	temporaryRoot, tempErr := pathresolve.Resolve(os.TempDir())
 	if tempErr != nil {
 		temporaryRoot = os.TempDir()
 	}

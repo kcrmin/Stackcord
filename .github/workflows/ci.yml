@@ -108,10 +108,10 @@ jobs:
           python3 -m unittest discover -s profiles/strict-release/scripts -p '*_test.py' -v
       - name: Workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/*.yml
-      - name: Shared control center and HTTP server race checks
+      - name: Shared channel, control center and HTTP server race checks
         if: needs.changes.outputs.full == 'true'
         working-directory: cli
-        run: go test -race ./internal/dashboard ./internal/controlcenter
+        run: go test -race ./internal/channel ./internal/dashboard ./internal/controlcenter
       - name: GoReleaser configuration
         run: go run github.com/goreleaser/goreleaser/v2@v2.17.0 check
 
