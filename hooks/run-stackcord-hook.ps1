@@ -7,13 +7,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$Root = $env:PLUGIN_ROOT
+if (-not $Root) { $Root = $env:CLAUDE_PLUGIN_ROOT }
 $Cli = $null
 if ($env:STACKCORD_CLI -and (Test-Path -LiteralPath $env:STACKCORD_CLI -PathType Leaf)) {
     $Cli = $env:STACKCORD_CLI
 }
-if (-not $Cli -and $env:PLUGIN_ROOT) {
+if (-not $Cli -and $Root) {
     foreach ($Relative in @("cli\stackcord.exe", "bin\stackcord.exe")) {
-        $Candidate = Join-Path $env:PLUGIN_ROOT $Relative
+        $Candidate = Join-Path $Root $Relative
         if (Test-Path -LiteralPath $Candidate -PathType Leaf) {
             $Cli = $Candidate
             break

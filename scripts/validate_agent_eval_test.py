@@ -19,6 +19,18 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class AgentEvalContractTest(unittest.TestCase):
+    def test_evaluation_cli_is_inside_fixture_without_dirtying_git_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source = root / "stackcord.exe"
+            source.write_bytes(b"fixture executable")
+            fixture = root / "scenario"
+            (fixture / ".git").mkdir(parents=True)
+            cli = run_agent_eval.stage_fixture_cli(source, fixture)
+            self.assertTrue(cli.is_relative_to(fixture))
+            self.assertEqual(source.read_bytes(), cli.read_bytes())
+            self.assertEqual(fixture / ".git" / "stackcord-eval" / source.name, cli)
+
     def test_checked_in_evaluation_contract_is_valid(self):
         self.assertEqual([], validate(ROOT))
 

@@ -74,8 +74,8 @@ def validate(root: pathlib.Path) -> list[str]:
         fail(errors, "manifest name is not kebab-case")
     if not SEMVER.fullmatch(str(manifest.get("version", ""))):
         fail(errors, "manifest version is not strict semver")
-    if manifest.get("hooks") != "./hooks/hooks.json":
-        fail(errors, "manifest must point to ./hooks/hooks.json")
+    if manifest.get("hooks") != "./hooks/codex.json":
+        fail(errors, "manifest must point to ./hooks/codex.json")
     if "[TODO:" in manifest_path.read_text(encoding="utf-8"):
         fail(errors, "manifest contains TODO placeholders")
     interface = manifest.get("interface", {})
@@ -131,13 +131,21 @@ def validate(root: pathlib.Path) -> list[str]:
     if not entry.get("category"):
         fail(errors, "marketplace category is required")
 
-    hook_path = root / "hooks" / "hooks.json"
     try:
-        hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+        claude = json.loads((root / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+        if any(claude.get(key) != manifest.get(key) for key in ("name", "version")):
+            fail(errors, "Claude and Codex identities must match")
+        if "hooks" in claude:
+            fail(errors, "Claude must discover its default hooks only once")
     except Exception as error:
-        fail(errors, f"invalid hook document: {error}")
-    else:
-        errors.extend(validate_hook_document(hooks))
+        fail(errors, f"invalid Claude manifest: {error}")
+    for filename in ("hooks.json", "codex.json"):
+        try:
+            hooks = json.loads((root / "hooks" / filename).read_text(encoding="utf-8"))
+        except Exception as error:
+            fail(errors, f"invalid {filename} hook document: {error}")
+        else:
+            errors.extend(validate_hook_document(hooks))
     return errors
 
 

@@ -21,8 +21,9 @@ class CIContractTest(unittest.TestCase):
             "goreleaser",
         ):
             self.assertIn(token, ci)
-        for forbidden in ("run_agent_eval.py", "go test -race", "-fuzz FuzzFingerprint"):
+        for forbidden in ("run_agent_eval.py", "go test -race ./...", "-fuzz FuzzFingerprint"):
             self.assertNotIn(forbidden, ci)
+        self.assertIn("go test -race ./internal/dashboard ./internal/controlcenter", ci)
         self.assertIn('STACKCORD_RUN_DOGFOOD: "1"', ci)
         self.assertEqual(1, ci.count("dogfood/run.sh"))
 

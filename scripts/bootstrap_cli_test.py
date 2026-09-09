@@ -4,6 +4,8 @@ import hashlib
 import http.server
 import os
 import pathlib
+import shlex
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -61,8 +63,8 @@ class BootstrapCLITest(unittest.TestCase):
             with ReleaseServer(root) as base_url:
                 completed = subprocess.run(
                     [
-                        "bash", str(self.shell), "--base-url", base_url,
-                        "--version", "1.2.3", "--install-dir", str(install),
+                        shutil.which("bash"), self.shell.as_posix(), "--base-url", base_url,
+                        "--version", "1.2.3", "--install-dir", install.as_posix(),
                         "--os", "darwin", "--arch", "arm64",
                     ],
                     text=True,
@@ -83,8 +85,8 @@ class BootstrapCLITest(unittest.TestCase):
             with ReleaseServer(root) as base_url:
                 completed = subprocess.run(
                     [
-                        "bash", str(self.shell), "--base-url", base_url,
-                        "--version", "1.2.3", "--install-dir", str(install),
+                        shutil.which("bash"), self.shell.as_posix(), "--base-url", base_url,
+                        "--version", "1.2.3", "--install-dir", install.as_posix(),
                         "--os", "darwin", "--arch", "arm64",
                     ],
                     text=True,
@@ -135,14 +137,15 @@ class BootstrapCLITest(unittest.TestCase):
             calls = root / "calls.txt"
             cli = root / "stackcord"
             cli.write_text(
-                f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {calls}\n",
+                f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {shlex.quote(calls.as_posix())}\n",
                 encoding="utf-8",
+                newline="\n",
             )
             cli.chmod(0o755)
             env = dict(os.environ)
-            env["STACKCORD_CLI"] = str(cli)
+            env["STACKCORD_CLI"] = cli.as_posix()
             completed = subprocess.run(
-                ["bash", str(ROOT / "hooks/run-stackcord-hook.sh"), "post-compact"],
+                [shutil.which("bash"), (ROOT / "hooks/run-stackcord-hook.sh").as_posix(), "post-compact"],
                 env=env,
                 text=True,
                 stdout=subprocess.PIPE,
@@ -151,6 +154,28 @@ class BootstrapCLITest(unittest.TestCase):
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             self.assertEqual("hook post-compact\n", calls.read_text(encoding="utf-8"))
+
+    def test_both_hosts_resolve_same_cli_and_preserve_input_and_project_cwd(self):
+        for variable in ("PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"):
+            with self.subTest(host=variable), tempfile.TemporaryDirectory(prefix="plugin space ") as directory:
+                root = pathlib.Path(directory)
+                (root / "bin").mkdir()
+                cli = root / "bin/stackcord"
+                cli.write_text('#!/bin/sh\nprintf "%s\\n" "$*"\ncat\n', encoding="utf-8", newline="\n")
+                cli.chmod(0o755)
+                env = {k:v for k,v in os.environ.items() if k not in ("PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT", "STACKCORD_CLI")}
+                env[variable] = root.as_posix()
+                result = subprocess.run([shutil.which("bash"), (ROOT / "hooks/run-stackcord-hook.sh").as_posix(), "session-start"],
+                    cwd=ROOT, env=env, input='{"cwd":"project","source":"resume"}', text=True, capture_output=True)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual('hook session-start\n{"cwd":"project","source":"resume"}', result.stdout)
+
+    def test_first_use_ui_offer_remembers_explicit_choice_across_hosts(self):
+        for name in ("start-project", "continue-project"):
+            text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+            for token in ("stackcord setup --ui enable --apply", "stackcord setup --ui disable --apply",
+                          ".harness/local/control-center.json", "plugin cache", "stackcord dashboard"):
+                self.assertIn(token, text)
 
 
 if __name__ == "__main__":

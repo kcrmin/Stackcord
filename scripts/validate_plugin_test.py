@@ -133,7 +133,7 @@ class PluginContractTest(unittest.TestCase):
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
-        self.assertEqual("./hooks/hooks.json", manifest.get("hooks"))
+        self.assertEqual("./hooks/codex.json", manifest.get("hooks"))
 
     def test_manifest_names_the_service_continuity_differentiator(self):
         manifest = json.loads(
@@ -154,7 +154,7 @@ class PluginContractTest(unittest.TestCase):
 
     def test_hooks_use_current_command_schema(self):
         hooks = json.loads(
-            (ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8")
+            (ROOT / "hooks" / "codex.json").read_text(encoding="utf-8")
         )
         self.assertEqual({"SessionStart", "PostCompact"}, set(hooks["hooks"]))
         for event in hooks["hooks"].values():
