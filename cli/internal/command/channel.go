@@ -93,8 +93,10 @@ func newChannelCommand() *cobra.Command {
 		}
 		ctx, cancel := context.WithTimeout(cmd.Context(), waitTimeout)
 		defer cancel()
+		activeRunner := os.Getenv("STACKCORD_ACTIVE_REQUEST") != ""
 		for {
-			state, err := s.State(ctx, true)
+			// Active workers can inspect cached results, but must not wait on a remote.
+			state, err := s.State(ctx, !activeRunner)
 			if err != nil {
 				return err
 			}
@@ -111,7 +113,7 @@ func newChannelCommand() *cobra.Command {
 			if !found {
 				return fmt.Errorf("request is not present in the verified channel")
 			}
-			if os.Getenv("STACKCORD_ACTIVE_REQUEST") != "" {
+			if activeRunner {
 				return fmt.Errorf("active runner cannot wait for unfinished work; return the missing prerequisites as failed so the coordinator can schedule replacement work")
 			}
 			timer := time.NewTimer(waitInterval)

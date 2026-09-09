@@ -49,13 +49,25 @@ func TestChannelActiveRunnerCannotBlockWaitingOrNestWorker(t *testing.T) {
 	require.NoError(t, err)
 	t.Setenv("STACKCORD_ACTIVE_REQUEST", r.ID)
 	t.Setenv("STACKCORD_CHANNEL_ROOT", root)
+	// An active runner must reject pending waits even while the remote is offline.
+	require.NoError(t, os.Rename(remote, remote+".offline"))
 	cmd := newChannelCommand()
-	cmd.SetArgs([]string{"wait", "--root", root, "--request", r.ID, "--timeout", "1s", "--interval", "1s"})
+	cmd.SetArgs([]string{"wait", "--root", root, "--request", r.ID, "--timeout", "30s", "--interval", "1s"})
 	err = cmd.Execute()
 	require.ErrorContains(t, err, "active runner cannot wait")
 	cmd = newChannelCommand()
 	cmd.SetArgs([]string{"worker", "--apply", "--once"})
 	require.ErrorContains(t, cmd.Execute(), "active runner cannot start another worker")
+	require.NoError(t, os.Rename(remote+".offline", remote))
+	_, err = s.Respond(context.Background(), channel.ResultInput{RequestID: r.ID, Status: "success", Body: "completed"})
+	require.NoError(t, err)
+	require.NoError(t, os.Rename(remote, remote+".offline"))
+	cmd = newChannelCommand()
+	out := &bytes.Buffer{}
+	cmd.SetOut(out)
+	cmd.SetArgs([]string{"wait", "--request", r.ID, "--timeout", "30s"})
+	require.NoError(t, cmd.Execute())
+	require.Contains(t, out.String(), "completed")
 }
 
 func TestChannelSetupPreviewDoesNotEnrollOrContactRemote(t *testing.T) {
