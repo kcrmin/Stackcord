@@ -38,13 +38,15 @@ type UICoverage struct {
 
 // DiscoveryDecision keeps a normalized choice and rationale, never raw conversation.
 type DiscoveryDecision struct {
-	ID        string `json:"id" yaml:"id"`
-	Choice    string `json:"choice" yaml:"choice"`
-	Rationale string `json:"rationale" yaml:"rationale"`
+	QuestionID string `json:"question_id,omitempty" yaml:"question_id,omitempty"`
+	ID         string `json:"id" yaml:"id"`
+	Choice     string `json:"choice" yaml:"choice"`
+	Rationale  string `json:"rationale" yaml:"rationale"`
 }
 
 // DiscoveryCheckpoint is the complete replaceable snapshot saved after a material answer.
 type DiscoveryCheckpoint struct {
+	Discovery       *DiscoveryPlan      `json:"discovery,omitempty" yaml:"discovery,omitempty"`
 	SchemaVersion   int                 `json:"schema_version" yaml:"schema_version"`
 	Summary         string              `json:"summary" yaml:"summary"`
 	CurrentFocus    string              `json:"current_focus" yaml:"current_focus"`
@@ -65,6 +67,12 @@ type DiscoveryCheckpoint struct {
 // Values are illustrative product meaning, never copied conversation text.
 func ExampleDiscoveryCheckpoint() DiscoveryCheckpoint {
 	return DiscoveryCheckpoint{
+		Discovery: &DiscoveryPlan{ScopeReady: false, Sections: []DiscoverySection{
+			{ID: "section.scope", Title: "Purpose and scope", Status: "complete", EstimatedRemaining: 0},
+			{ID: "section.policy", Title: "Recovery policy", Status: "active", EstimatedRemaining: 2},
+			{ID: "section.operations", Title: "Operations", Status: "planned", EstimatedRemaining: 2},
+		}, Questions: []DiscoveryQuestion{{QuestionID: "question.payment.failure-boundary", SectionID: "section.policy", RequiresExplicitAnswer: true, Blocking: true,
+			Options: []DiscoveryOption{{ID: "known", Label: "Known recoverable failures"}, {ID: "all", Label: "All observable failures"}}, RecommendedOptionID: "known"}}},
 		SchemaVersion:   1,
 		Summary:         "A service that helps a member recover from a failed payment.",
 		CurrentFocus:    "Decide the first recovery boundary.",
@@ -176,7 +184,7 @@ func validateCheckpoint(checkpoint DiscoveryCheckpoint) error {
 			return fmt.Errorf("decision %s needs a rationale", decision.ID)
 		}
 	}
-	return nil
+	return validateDiscovery(checkpoint)
 }
 
 func checkpointFiles(request CheckpointRequest, revision int, now time.Time) ([]operation.FileChange, error) {

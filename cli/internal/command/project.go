@@ -8,7 +8,6 @@ import (
 	"github.com/kcrmin/Stackcord/cli/internal/domain"
 	"github.com/kcrmin/Stackcord/cli/internal/operation"
 	"github.com/kcrmin/Stackcord/cli/internal/project"
-	"github.com/kcrmin/Stackcord/cli/internal/schema"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
@@ -16,6 +15,7 @@ import (
 func newProjectCommand(version string, jsonOutput *bool) *cobra.Command {
 	parent := &cobra.Command{Use: "project", Short: "Create or adopt a durable framework-neutral project harness"}
 	parent.AddCommand(newProjectCheckpoint(version, jsonOutput))
+	parent.AddCommand(newDiscoveryCommand(version, jsonOutput))
 	parent.AddCommand(newProjectMutation("init", version, jsonOutput, false))
 	parent.AddCommand(newProjectMutation("adopt", version, jsonOutput, true))
 	return parent
@@ -33,7 +33,7 @@ func newProjectCheckpoint(version string, jsonOutput *bool) *cobra.Command {
 		Example: "  # checkpoint.yaml\n" + indentLines(string(example), "  ") +
 			"\n  stackcord project checkpoint --parent . --id 01JDISCOVERY --input checkpoint.yaml --apply --json",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			checkpoint, err := schema.LoadYAML[project.DiscoveryCheckpoint](inputPath)
+			checkpoint, err := project.LoadDiscoveryCheckpoint(inputPath)
 			if err != nil {
 				return err
 			}

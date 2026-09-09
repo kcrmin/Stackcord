@@ -50,7 +50,7 @@ Codex CLI에서는 marketplace 추가 뒤 `/plugins`를 엽니다. Plugin 설치
 
 ## AI와 대화로 시작
 
-빈 parent directory에서는 “새 서비스를 같이 시작해줘”, 기존 저장소에서는 “기존 파일을 덮어쓰지 말고 이 프로젝트에 도입해줘”라고 말합니다. AI는 먼저 filesystem과 Git을 확인하고 알맞은 Skill을 읽은 뒤 결과를 바꾸는 질문을 하나씩 묻습니다. 발견이 이어지는 동안 정규화 checkpoint를 계속 저장합니다.
+빈 parent directory에서는 “새 서비스를 같이 시작해줘”, 기존 저장소에서는 “기존 파일을 덮어쓰지 말고 이 프로젝트에 도입해줘”라고 말합니다. AI는 먼저 filesystem과 Git을 확인하고 알맞은 Skill을 읽은 뒤 독립적인 일반 질문을 권장 답변과 함께 묶어 묻습니다. 권장 답변은 제출 전까지 제안이며, 민감한 결정에는 명시적인 답변이 필요합니다. 정규화 checkpoint를 저장하고 현재 섹션·남은 섹션·대략적인 질문 수를 알려줍니다. 이미 저장한 결정은 다시 묻지 않고 복구합니다.
 
 초기화 후에는 “지금 뭐 해야 해?”, “이 기능 만들어줘”, “Contract와 DB 영향을 확인해줘”, “Production candidate 준비해줘”처럼 요청합니다. 내부 ID나 command argument를 사용자가 관리할 필요가 없어야 합니다.
 
@@ -63,3 +63,11 @@ Codex CLI에서는 marketplace 추가 뒤 `/plugins`를 엽니다. Plugin 설치
 [핵심 개념](../concepts/ko.md)을 읽고 [신규 프로젝트](../guides/new-project-ko.md) 또는 [기존 프로젝트](../guides/existing-project-ko.md)로 갑니다. 병렬 협업 전에는 [작업 관리와 작업 선점](../guides/task-management-ko.md)을 봅니다. Clone·context·Git·선택 도구 상태가 불명확하면 [문제 해결](../guides/troubleshooting-ko.md)을 사용합니다.
 
 편집 가능한 외부 목업이나 별도 UI 저장소가 필요하면 [UI workspace와 외부 목업](../guides/ui-workspace-ko.md)에서 directory와 submodule 중 맞는 경계를 선택합니다.
+
+## 질문 진행 상황 복구
+
+“저장된 질문을 이어서 해줘”라고 말하면 확정된 결정, 현재 섹션, 완료·남은 섹션과 대략적인 남은 질문 수를 보여줍니다. 독립적인 일반 질문은 권장 답변과 함께 묶어서 제시하고, 민감한 질문이나 먼저 답해야 할 질문은 명시적으로 구분합니다. 권장 답변은 제출된 답변이 아닙니다.
+
+직접 확인하려면 하네스 생성 전에는 `stackcord project discovery --draft <draft-root> --json`, 생성 후에는 `stackcord project discovery --root <project-root> --json`을 사용합니다. `--json`을 빼면 읽기 쉬운 요약을 표시하고, `--locale en` 또는 `--locale ko`로 저장된 언어를 바꿔 표시할 수 있습니다. 이 명령은 파일을 변경하지 않습니다. 진행 정보가 없는 기존 checkpoint는 진행 상황을 알 수 없다고 표시합니다.
+
+`stackcord project checkpoint --help`에서 선택적인 `discovery` 입력 전체를 확인할 수 있습니다. 수락한 결정의 저장과 답변한 질문의 제거를 함께 처리하고 섹션별 예상 수를 갱신합니다. 하네스 생성 후 질문·결정의 원문은 `specs/product/`, 섹션 계획은 `.harness/discovery.yaml`에 있어 원래 초안 없이 clone에서도 복구됩니다. 하네스 생성 준비는 범위가 정해지고 표시된 필수 질문이 남지 않았다는 뜻이며, 정책 승인을 부여하거나 하네스를 자동 생성하지 않습니다.
