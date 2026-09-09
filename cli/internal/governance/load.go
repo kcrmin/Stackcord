@@ -22,14 +22,11 @@ func LoadPolicy(root string) (Policy, error) {
 	if err := regularFile(path, "governance policy"); err != nil {
 		return Policy{}, err
 	}
-	raw, err := schema.LoadYAML[map[string]any](path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Policy{}, err
 	}
-	if issues := schema.Validate("governance", raw); len(issues) > 0 {
-		return Policy{}, fmt.Errorf("validate governance policy: %s", issues[0].Message)
-	}
-	policy, err := schema.LoadYAML[Policy](path)
+	policy, err := DecodePolicy(data)
 	if err != nil {
 		return Policy{}, err
 	}

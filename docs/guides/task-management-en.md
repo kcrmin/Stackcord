@@ -78,3 +78,9 @@ If a contributor runs out of tokens, changes computers, or returns later, they s
 If the provider is unavailable, the AI reports unknown and offers reconnection or an explicit decision to switch the single provider. It does not silently copy status into Git-local. If the provider update succeeds but Git reservation compare-and-swap loses a race, no branch work begins; the AI refreshes ownership and conflict scope. If the external status changes without matching semantic coordination, integration and release remain blocked until the exact revisions agree.
 
 Branches, commits, and pull requests use the team's stored conventions, for example `feature/account-recovery`, `feat(account): add recovery challenge`, and “Add account recovery flow.” They never include AI, agent, model, or tool branding.
+
+## Live GitHub Issues
+
+`stackcord issues list --repo owner/repository --json` reads live issues. Preview a creation with `stackcord issues create --repo owner/repository --id work-example --title TITLE --body-file issue.md`; add `--apply` to create it. The stable ID prevents duplicate retries, including when the earlier issue was closed. The UI offers the same preview/create flow.
+
+For existing work definitions, supply a JSON mapping such as `{"work.example": 42}` to `stackcord issues migrate --root . --repo owner/repository --mapping mapping.json`, then apply the reviewed migration with `--apply`. Definitions, dependencies and acceptance references remain in the repository; GitHub owns live status. Migration checks the linked issues and dependencies before updating local mappings. Selected GitHub lifecycle paths refresh authenticated issue data; copied snapshots cannot become live truth. Other projects keep their selected provider.

@@ -1,0 +1,21 @@
+{
+  "name": "stackcord",
+  "version": "1.0.0",
+  "description": "AI-guided service discovery and durable context for multi-repository full-stack collaboration with deterministic local verification.",
+  "author": {
+    "name": "kcrmin",
+    "url": "https://github.com/kcrmin"
+  },
+  "homepage": "https://github.com/kcrmin/Stackcord",
+  "repository": "https://github.com/kcrmin/Stackcord",
+  "license": "Apache-2.0",
+  "keywords": [
+    "full-stack",
+    "harness",
+    "git",
+    "submodule",
+    "contracts",
+    "dbml",
+    "tdd"
+  ]
+}

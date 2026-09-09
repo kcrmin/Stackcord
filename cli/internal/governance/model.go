@@ -25,6 +25,8 @@ type ApprovalPolicy struct {
 
 // Policy is committed product-governance configuration.
 type Policy struct {
+	Mode               string         `json:"mode,omitempty" yaml:"mode,omitempty"`
+	Delegates          []Delegate     `json:"delegates,omitempty" yaml:"delegates,omitempty"`
 	SchemaVersion      int            `json:"schema_version" yaml:"schema_version"`
 	Enabled            bool           `json:"enabled" yaml:"enabled"`
 	Provider           string         `json:"provider" yaml:"provider"`

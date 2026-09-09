@@ -22,7 +22,7 @@ TOP_LEVEL_FILES = (
     "README.ko.md",
     ".agents/plugins/marketplace.json",
 )
-PACKAGE_TREES = (".codex-plugin", "hooks", "skills", "references", "templates", "schemas", "profiles/strict-release")
+PACKAGE_TREES = (".codex-plugin", ".claude-plugin", "hooks", "skills", "references", "templates", "schemas", "profiles/strict-release")
 PACKAGE_SCRIPTS = ("scripts/bootstrap-cli.sh", "scripts/bootstrap-cli.ps1", "scripts/validate_plugin.py")
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 
@@ -71,7 +71,9 @@ def render_packages(
     output: pathlib.Path,
     version: str,
     base_url: str,
+    cli_assets: pathlib.Path | None = None,
 ) -> list[pathlib.Path]:
+    """Render dual-host ZIPs; without cli_assets they are explicitly bootstrap-only."""
     root = root.resolve()
     output = output.resolve()
     if not SEMVER.fullmatch(version):
@@ -85,6 +87,9 @@ def render_packages(
         )
     plugin_name = str(manifest["name"])
     sources = _package_files(root)
+    # Verify the entire set before writing any package. Keep the verified bytes
+    # so an asset replacement between validation and ZIP assembly is not used.
+    binaries = _verified_cli_bytes(cli_assets) if cli_assets is not None else {}
     output.mkdir(parents=True, exist_ok=True)
     rendered: list[pathlib.Path] = []
     for os_name, arch in PLATFORMS:
@@ -98,13 +103,17 @@ def render_packages(
             "asset": asset_name(os_name, arch),
             "checksums": f"{base_url.rstrip('/')}/v{version}/checksums.txt",
             "bootstrap": "scripts/bootstrap-cli.ps1" if os_name == "windows" else "scripts/bootstrap-cli.sh",
+            "bundledCLI": bool(binaries),
         }
         with zipfile.ZipFile(destination, "w") as archive:
             prefix = f"{plugin_name}/"
             for source in sources:
                 relative = source.relative_to(root).as_posix()
-                executable = relative == "scripts/bootstrap-cli.sh"
+                executable = relative.endswith(".sh")
                 _write_entry(archive, prefix + relative, source.read_bytes(), executable)
+            if binaries:
+                binary = "bin/stackcord" + (".exe" if os_name == "windows" else "")
+                _write_entry(archive, prefix + binary, binaries[asset_name(os_name, arch)], True)
             _write_entry(
                 archive,
                 prefix + "distribution/platform.json",
@@ -125,6 +134,26 @@ def _checksum_map(path: pathlib.Path) -> dict[str, str]:
             raise ValueError("checksum manifest contains an invalid or duplicate entry")
         checksums[name] = digest
     return checksums
+
+
+def _verified_cli_bytes(directory: pathlib.Path) -> dict[str, bytes]:
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("CLI asset directory is missing or unsafe")
+    checksum_file = directory / "checksums.txt"
+    if checksum_file.is_symlink() or not checksum_file.is_file():
+        raise ValueError("CLI checksum manifest is missing or unsafe")
+    checksums = _checksum_map(checksum_file)
+    binaries = {}
+    for os_name, arch in PLATFORMS:
+        name = asset_name(os_name, arch)
+        source = directory / name
+        if source.is_symlink() or not source.is_file():
+            raise ValueError(f"CLI asset is missing or unsafe: {name}")
+        data = source.read_bytes()
+        if hashlib.sha256(data).hexdigest() != checksums.get(name):
+            raise ValueError(f"CLI checksum mismatch: {name}")
+        binaries[name] = data
+    return binaries
 
 
 def _atomic_copy(source: pathlib.Path, destination: pathlib.Path) -> None:
@@ -241,12 +270,15 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = parser().parse_args()
-    packages = render_packages(
-        pathlib.Path(args.root), pathlib.Path(args.output), args.version, args.base_url
-    )
     staged = []
+    cli_assets = None
     if args.goreleaser_dist:
-        staged = stage_cli_assets(pathlib.Path(args.goreleaser_dist), pathlib.Path(args.output))
+        cli_assets = pathlib.Path(args.output)
+        staged = stage_cli_assets(pathlib.Path(args.goreleaser_dist), cli_assets)
+    packages = render_packages(
+        pathlib.Path(args.root), pathlib.Path(args.output), args.version, args.base_url,
+        cli_assets=cli_assets,
+    )
     manifest = write_release_checksums(pathlib.Path(args.output))
     assets = packages + [path for path in staged if path.name != "checksums.txt"] + [manifest]
     for package in assets:

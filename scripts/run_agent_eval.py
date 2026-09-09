@@ -189,6 +189,14 @@ def build_codex_command(
     return command
 
 
+def stage_fixture_cli(source: pathlib.Path, fixture: pathlib.Path) -> pathlib.Path:
+    """Keep the test binary under the sandbox root, outside tracked product state."""
+    destination = fixture / ".git" / "stackcord-eval" / source.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    return destination
+
+
 def evaluation_environment(base: dict[str, str], cli: pathlib.Path) -> dict[str, str]:
     environment = dict(base)
     environment["STACKCORD_CLI"] = str(cli)
@@ -411,12 +419,13 @@ def run(args: argparse.Namespace) -> int:
             if build.returncode != 0:
                 print(f"ERROR: cannot build evaluation CLI: {build.stderr[-4000:]}", file=sys.stderr)
                 return 2
-            environment = evaluation_environment(dict(os.environ), cli)
             for scenario in selected:
                 scenario_output = output / scenario["id"]
                 scenario_output.mkdir(parents=True, exist_ok=True)
                 fixture = temp_root / scenario["id"]
                 _write_fixture(fixture, scenario)
+                fixture_cli = stage_fixture_cli(cli, fixture)
+                environment = evaluation_environment(dict(os.environ), fixture_cli)
                 final_path = scenario_output / "final.txt"
                 events_path = scenario_output / "events.jsonl"
                 command = build_codex_command(

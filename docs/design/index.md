@@ -18,6 +18,10 @@ SBOM, provenance, signatures, supply-chain evidence, protected publication check
 
 Unused provider registries, claims of unsupported Jira/Linear/Beads adapters, duplicate Skills, repeated policy prose, user-managed operation identifiers, default publication commands, mandatory package-manager distribution, and future-only abstraction layers were removed from the core.
 
+## Control center extension
+
+The optional loopback dashboard shares the CLI core with Codex and Claude. Version-2 GitHub policy proposals use trusted target-branch reviews, three explicit modes, and scoped temporary reviewers. Live Issues own status only when selected. See the paired [governance guide](../guides/governance-en.md), [task guide](../guides/task-management-en.md), and [setup guide](../getting-started/en.md). Earlier version-1 self-approval examples are legacy; GitHub PR authors cannot approve their own version-2 review.
+
 ## Authoritative design records
 
 - [Service continuity harness specification](../superpowers/specs/2026-07-18-service-continuity-harness-design.md)

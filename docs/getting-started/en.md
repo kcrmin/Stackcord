@@ -71,3 +71,11 @@ Ask “Continue the saved questions.” Stackcord shows accepted decisions, the 
 For direct inspection, use `stackcord project discovery --draft <draft-root> --json` before initialization, or `stackcord project discovery --root <project-root> --json` afterward. Omit `--json` for a readable summary; `--locale en` or `--locale ko` overrides the saved language. The command does not change files. Old checkpoints without progress metadata report unknown progress.
 
 The complete optional `discovery` input is shown by `stackcord project checkpoint --help`. Save accepted decisions and remove answered questions together, then update section estimates. After initialization, question/decision text remains in `specs/product/` and section planning lives in `.harness/discovery.yaml`, so a clone can recover without the original draft. Harness readiness means that scope is known and no marked blocking question remains; it neither grants policy approval nor automatically creates the harness.
+
+## Optional control center
+
+Run `stackcord dashboard --root .` and open the printed local URL. The bundled browser UI needs no Node runtime or hosted account. It shows discovery, live GitHub Issues, PR links, your assigned issues and requested reviews, settings, and diagnostics. Stop the command to close the session; it does not notify while closed.
+
+Use `stackcord setup --json` to inspect the local UI preference, or `stackcord setup --ui enable --apply` (also `disable` or `ask`) to record it. Plugins offer this choice during first use; host installation hooks never install software or open windows. Codex and Claude use the same project files and CLI, with separate host manifests and hook adapters. Claude package validation is exercised; executable fixtures are not proof of every host version's session behavior.
+
+Settings require a preview before applying. Shared edits become working-tree proposals; personal language/UI choices remain local. A stale revision from another session is rejected. Interrupted operations leave receipts/locks for inspection rather than silently overwriting newer state. Commit and review shared changes through the normal feature-branch PR flow.

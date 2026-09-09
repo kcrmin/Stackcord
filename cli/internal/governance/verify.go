@@ -22,6 +22,13 @@ func Check(ctx context.Context, root, observationPath string, now time.Time) Rep
 		report.Issues = append(report.Issues, issue("governance.policy-invalid", err.Error()))
 		return report
 	}
+	if useLive(ctx, root, policy) {
+		return checkGitHub(ctx, root, now)
+	}
+	if old, ok := committedPolicy(ctx, root); ok && old.Enabled && !policy.Enabled {
+		report.Issues = append(report.Issues, issue("governance.policy-transition", "Disabling an existing policy requires approval under the committed policy."))
+		return report
+	}
 	report.Enabled = policy.Enabled
 	report.Authorities = append([]string(nil), policy.ProductAuthorities...)
 	report.ProtectedFingerprint, err = ProtectedFingerprint(root)

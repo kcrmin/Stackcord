@@ -8,8 +8,29 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      full: ${{ steps.scope.outputs.full }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 scripts/ci_scope.py --base "$BASE" --head "$HEAD"
+
   native:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     name: ${{ matrix.name }}
     strategy:
       fail-fast: false
@@ -53,6 +74,7 @@ jobs:
           if-no-files-found: error
 
   repository-contracts:
+    needs: changes
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
@@ -75,6 +97,7 @@ jobs:
             security_scan_test \
             validate_release_config_test \
             validate_ci_test \
+            ci_scope_test \
             -v
           python3 scripts/validate_plugin.py .
           python3 scripts/validate_agent_eval.py .
@@ -85,10 +108,16 @@ jobs:
           python3 -m unittest discover -s profiles/strict-release/scripts -p '*_test.py' -v
       - name: Workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/*.yml
+      - name: Shared control center and HTTP server race checks
+        if: needs.changes.outputs.full == 'true'
+        working-directory: cli
+        run: go test -race ./internal/dashboard ./internal/controlcenter
       - name: GoReleaser configuration
         run: go run github.com/goreleaser/goreleaser/v2@v2.17.0 check
 
   product-dogfood:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
@@ -118,6 +147,8 @@ jobs:
           if-no-files-found: error
 
   cross-build:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
@@ -141,3 +172,17 @@ jobs:
           name: cross-builds
           path: dist/
           if-no-files-found: error
+
+  required-gate:
+    name: CI gate
+    if: always()
+    needs: [changes, repository-contracts, native, product-dogfood, cross-build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - name: Require successful checks for the selected scope
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci_scope.py --gate

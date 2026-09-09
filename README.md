@@ -136,3 +136,5 @@ The six user-facing Skills are `start-project`, `continue-project`, `plan-projec
 | Manage work, conflicts, and product authorities | [Task management](./docs/guides/task-management-en.md) · [Product authority](./docs/guides/governance-en.md) |
 | Design the database and prepare a release | [DBML](./docs/guides/dbdiagram-en.md) · [Release](./docs/guides/release-en.md) |
 | Troubleshoot a problem | [Troubleshooting](./docs/guides/troubleshooting-en.md) |
+
+Optional settings and review UI: run `stackcord dashboard --root .`. See the [getting started guide](docs/getting-started/en.md) and [policy modes](docs/guides/governance-en.md).

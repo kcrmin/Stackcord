@@ -71,3 +71,11 @@ Codex CLI에서는 marketplace 추가 뒤 `/plugins`를 엽니다. Plugin 설치
 직접 확인하려면 하네스 생성 전에는 `stackcord project discovery --draft <draft-root> --json`, 생성 후에는 `stackcord project discovery --root <project-root> --json`을 사용합니다. `--json`을 빼면 읽기 쉬운 요약을 표시하고, `--locale en` 또는 `--locale ko`로 저장된 언어를 바꿔 표시할 수 있습니다. 이 명령은 파일을 변경하지 않습니다. 진행 정보가 없는 기존 checkpoint는 진행 상황을 알 수 없다고 표시합니다.
 
 `stackcord project checkpoint --help`에서 선택적인 `discovery` 입력 전체를 확인할 수 있습니다. 수락한 결정의 저장과 답변한 질문의 제거를 함께 처리하고 섹션별 예상 수를 갱신합니다. 하네스 생성 후 질문·결정의 원문은 `specs/product/`, 섹션 계획은 `.harness/discovery.yaml`에 있어 원래 초안 없이 clone에서도 복구됩니다. 하네스 생성 준비는 범위가 정해지고 표시된 필수 질문이 남지 않았다는 뜻이며, 정책 승인을 부여하거나 하네스를 자동 생성하지 않습니다.
+
+## 선택형 관리 UI
+
+`stackcord dashboard --root .`를 실행하고 출력된 로컬 URL을 여세요. 내장 브라우저 UI는 Node 런타임이나 별도 호스팅 계정이 필요 없습니다. 질문 진행, 실시간 GitHub 이슈, PR 링크, 내게 할당된 이슈와 요청된 리뷰, 설정과 진단을 보여 줍니다. 명령을 종료하면 세션도 끝나며, 닫힌 동안에는 알림을 보내지 않습니다.
+
+`stackcord setup --json`으로 로컬 UI 선택을 확인하거나 `stackcord setup --ui enable --apply`로 저장하세요(`disable`, `ask`도 지원). 플러그인은 첫 사용 때 이 선택을 안내하며, 설치 훅이 소프트웨어를 설치하거나 창을 열지 않습니다. Codex와 Claude는 같은 프로젝트 파일과 CLI를 쓰고 호스트별 매니페스트와 훅 어댑터를 사용합니다. Claude 패키지 유효성 검사를 수행했으며, 실행 가능한 모의 검증이 모든 호스트 버전의 실제 세션 동작까지 증명하지는 않습니다.
+
+설정은 미리보기 후 적용합니다. 공유 설정은 작업 트리의 변경 제안이 되고 개인 언어·UI 선택은 로컬에 남습니다. 다른 세션에서 이미 변경한 오래된 리비전은 거부합니다. 중단된 작업은 새 상태를 덮어쓰지 않고 영수증·잠금 기록을 남겨 확인하게 합니다. 공유 변경은 기존 기능 브랜치와 PR 절차로 커밋·검토하세요.
