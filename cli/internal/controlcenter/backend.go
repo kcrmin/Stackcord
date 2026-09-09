@@ -38,6 +38,7 @@ func (b *Backend) Snapshot(ctx context.Context) (any, error) {
 	}
 	branch, _ := exec.CommandContext(ctx, "git", "-C", b.Root, "branch", "--show-current").Output()
 	state := map[string]any{"project": map[string]string{"name": filepath.Base(b.Root), "path": b.Root, "branch": strings.TrimSpace(string(branch))}, "settings": s, "revision": rev, "issues": []any{}, "pullRequests": []any{}, "diagnostics": []any{}, "errors": []string{}}
+	b.channelSnapshot(ctx, state)
 	errs := []string{}
 	login := ""
 	liveIssues := []github.Issue{}
@@ -112,6 +113,9 @@ func (b *Backend) Snapshot(ctx context.Context) (any, error) {
 func (b *Backend) Action(ctx context.Context, kind string, payload json.RawMessage) (any, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if strings.HasPrefix(kind, "channel.") {
+		return b.channelAction(ctx, kind, payload)
+	}
 	var request struct {
 		Revision string   `json:"revision"`
 		Settings Settings `json:"settings"`
