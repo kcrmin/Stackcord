@@ -10,12 +10,65 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/kcrmin/Stackcord/cli/internal/channel"
 	"github.com/stretchr/testify/require"
 )
+
+func TestChannelCodeConfigurationPreview(t *testing.T) {
+	cmd := newChannelCommand()
+	out := &bytes.Buffer{}
+	cmd.SetOut(out)
+	cmd.SetArgs([]string{"send", "--to", "peer", "--kind", "implementation", "--title", "work", "--scope", "src", "--code-repository", "project", "--base-commit", strings.Repeat("a", 40), "--resource", "contract.api"})
+	require.NoError(t, cmd.Execute())
+	require.Contains(t, out.String(), "base_commit")
+	require.Contains(t, out.String(), "contract.api")
+	cmd = newChannelCommand()
+	out.Reset()
+	cmd.SetOut(out)
+	exe, _ := os.Executable()
+	argv, _ := json.Marshal([]string{exe})
+	cmd.SetArgs([]string{"runner", "--argv", string(argv), "--kind", "implementation", "--code-repository", "project", "--code-remote", "https://example.invalid/code.git", "--verify-argv", string(argv)})
+	require.NoError(t, cmd.Execute())
+	require.Contains(t, out.String(), "code_repository")
+}
+
+func TestChannelActiveRunnerCannotBlockWaitingOrNestWorker(t *testing.T) {
+	root := t.TempDir()
+	remote := filepath.Join(t.TempDir(), "mail.git")
+	data, err := exec.Command("git", "init", "--bare", remote).CombinedOutput()
+	require.NoError(t, err, string(data))
+	s, err := channel.Open(root)
+	require.NoError(t, err)
+	_, err = s.Setup(channel.Config{Channel: "test", Peer: "self", Remote: remote})
+	require.NoError(t, err)
+	r, err := s.Send(context.Background(), channel.RequestInput{To: "self", Kind: "review", Title: "pending"})
+	require.NoError(t, err)
+	t.Setenv("STACKCORD_ACTIVE_REQUEST", r.ID)
+	t.Setenv("STACKCORD_CHANNEL_ROOT", root)
+	// An active runner must reject pending waits even while the remote is offline.
+	require.NoError(t, os.Rename(remote, remote+".offline"))
+	cmd := newChannelCommand()
+	cmd.SetArgs([]string{"wait", "--root", root, "--request", r.ID, "--timeout", "30s", "--interval", "1s"})
+	err = cmd.Execute()
+	require.ErrorContains(t, err, "active runner cannot wait")
+	cmd = newChannelCommand()
+	cmd.SetArgs([]string{"worker", "--apply", "--once"})
+	require.ErrorContains(t, cmd.Execute(), "active runner cannot start another worker")
+	require.NoError(t, os.Rename(remote+".offline", remote))
+	_, err = s.Respond(context.Background(), channel.ResultInput{RequestID: r.ID, Status: "success", Body: "completed"})
+	require.NoError(t, err)
+	require.NoError(t, os.Rename(remote, remote+".offline"))
+	cmd = newChannelCommand()
+	out := &bytes.Buffer{}
+	cmd.SetOut(out)
+	cmd.SetArgs([]string{"wait", "--request", r.ID, "--timeout", "30s"})
+	require.NoError(t, cmd.Execute())
+	require.Contains(t, out.String(), "completed")
+}
 
 func TestChannelSetupPreviewDoesNotEnrollOrContactRemote(t *testing.T) {
 	root := t.TempDir()
@@ -90,6 +143,22 @@ func TestChannelWorkerLoopStopsOnCancellation(t *testing.T) {
 	calls := 0
 	require.NoError(t, runChannelWorker(ctx, time.Millisecond, false, func(context.Context) error { calls++; cancel(); return nil }))
 	require.Equal(t, 1, calls)
+}
+
+func TestChannelWorkerDrainsReadyQueueWithoutPollingDelay(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	calls := 0
+	err := runChannelWorker(ctx, time.Hour, false, func(context.Context) error {
+		calls++
+		if calls == 1 {
+			return errChannelMoreReady
+		}
+		cancel()
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, calls, "ready work must not wait for the idle poll interval")
 }
 
 func TestChannelBodyAllowsEmptyFileAndRejectsOversize(t *testing.T) {

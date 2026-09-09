@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -60,6 +61,9 @@ func (s *Store) WorkOnce(ctx context.Context) (State, error) {
 				return State{}, err
 			}
 			if rec.Result != nil {
+				if err := s.publishCode(ctx, c, *rec.Result); err != nil {
+					return State{}, err
+				}
 				if _, err = s.append(ctx, c, *rec.Result); err != nil {
 					return State{}, err
 				}
@@ -98,22 +102,35 @@ func (s *Store) WorkOnce(ctx context.Context) (State, error) {
 		}
 		u()
 		u = nil
+		job, prepared := s.root, ""
+		var preparationError error
+		if r.Request.Code != nil {
+			job, prepared, preparationError = s.prepareCode(ctx, c, r.Request, events)
+		}
 		resultFormat := c.Runner.ResultFormat
 		timeout := c.Runner.TimeoutSeconds
 		if timeout == 0 {
 			timeout = 300
 		}
 		runCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-		cmd := exec.CommandContext(runCtx, c.Runner.Argv[0], c.Runner.Argv[1:]...)
-		cmd.Dir = s.root
+		args := c.Runner.Argv
+		if r.Request.Code != nil {
+			args = codeRunnerArguments(c.Runner, s.dir)
+		}
+		cmd := exec.CommandContext(runCtx, args[0], args[1:]...)
+		cmd.Dir = job
+		cmd.Env = runnerEnvironment(s.root, r.Request.ID)
 		input, _ := json.Marshal(r.Request)
 		cmd.Stdin = strings.NewReader(string(input))
 		var output limitedBuffer
 		cmd.Stdout = &output
 		cmd.Stderr = nil
 		cmd.WaitDelay = 2 * time.Second
-		err = cmd.Run()
-		interrupted := runCtx.Err() != nil || errors.Is(err, exec.ErrWaitDelay)
+		err = preparationError
+		if err == nil {
+			err = cmd.Run()
+		}
+		interrupted := runCtx.Err() != nil || errors.Is(err, exec.ErrWaitDelay) || errors.Is(err, errCodeInterrupted)
 		cancel()
 		u, e = s.lock()
 		if e != nil {
@@ -144,7 +161,7 @@ func (s *Store) WorkOnce(ctx context.Context) (State, error) {
 		if err != nil {
 			body += "\nrunner failed or timed out"
 		}
-		if resultFormat == "json" {
+		if resultFormat == "json" && preparationError == nil {
 			status, responseBody, parseErr := parseResult(output.String())
 			if parseErr != nil {
 				result.Status = "failed"
@@ -156,9 +173,38 @@ func (s *Store) WorkOnce(ctx context.Context) (State, error) {
 				}
 			}
 		}
+		if preparationError != nil {
+			body = preparationError.Error()
+		}
+		if r.Request.Code != nil && result.Status == "success" {
+			// Verification can be expensive; leave the mailbox available for other requests.
+			u()
+			u = nil
+			artifact, verifyError := s.finishCode(ctx, c, r.Request, job, prepared)
+			u, e = s.lock()
+			if e != nil {
+				return State{}, e
+			}
+			if errors.Is(verifyError, errCodeInterrupted) || ctx.Err() != nil {
+				rec.InterruptedReason = "code verification interrupted; inspect remaining processes before explicit retry"
+				if e = writeJSON(p, rec); e != nil {
+					return State{}, e
+				}
+				activeUnlock()
+				return s.state(c, events), nil
+			}
+			if verifyError != nil {
+				result.Status, body = "failed", verifyError.Error()
+			} else {
+				result.Artifact = artifact
+			}
+		}
 		result.Body = body
 		rec.Result = &result
 		if e = writeJSON(p, rec); e != nil {
+			return State{}, e
+		}
+		if e = s.publishCode(ctx, c, result); e != nil {
 			return State{}, e
 		}
 		if _, e = s.append(ctx, c, result); e != nil {
@@ -212,6 +258,20 @@ func (s *Store) Retry(ctx context.Context, id string) (State, error) {
 			}
 			if rec.Result != nil {
 				return State{}, errors.New("completed result awaits publication; run worker to publish without rerunning")
+			}
+			if r.Request.Code != nil {
+				job := s.jobPath(r.Request.ID)
+				if e = safePath(job); e != nil {
+					return State{}, e
+				}
+				if _, err := os.Lstat(job); err == nil {
+					retained := fmt.Sprintf("%s-interrupted-%d", job, time.Now().UnixNano())
+					if e = os.Rename(job, retained); e != nil {
+						return State{}, e
+					}
+				} else if !os.IsNotExist(err) {
+					return State{}, err
+				}
 			}
 			if e = os.Remove(p); e != nil {
 				return State{}, e

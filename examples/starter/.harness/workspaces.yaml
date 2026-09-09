@@ -1,4 +1,5 @@
 schema_version: 1
+project_id: project.starter-example
 workspaces:
   - id: workspace.root
     kind: root
