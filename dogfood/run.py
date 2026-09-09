@@ -889,10 +889,12 @@ class Dogfood:
               - id: command.{name}-test
                 kind: test
                 argv: [go, test, ./...]
+                environment: [LOCALAPPDATA]
                 timeout_seconds: 120
               - id: command.{name}-merge
                 kind: child-merge
                 argv: [go, test, ./...]
+                environment: [LOCALAPPDATA]
                 timeout_seconds: 120
             """
         )
