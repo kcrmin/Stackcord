@@ -39,6 +39,29 @@ func fixture(t *testing.T) (*Store, *Store) {
 	}
 	return a, b
 }
+
+func TestProjectAliasResolvesButChannelSymlinksRemainBlocked(t *testing.T) {
+	root := t.TempDir()
+	alias := filepath.Join(t.TempDir(), "project-alias")
+	if e := os.Symlink(root, alias); e != nil {
+		t.Skipf("symlink privilege unavailable: %v", e)
+	}
+	s, e := Open(alias)
+	if e != nil {
+		t.Fatal(e)
+	}
+	state, e := s.State(context.Background(), false)
+	if e != nil || state.Configured {
+		t.Fatalf("ordinary project alias: %+v %v", state, e)
+	}
+	target := t.TempDir()
+	if e = os.Symlink(target, filepath.Join(root, ".harness")); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.State(context.Background(), false); e == nil {
+		t.Fatal("channel storage symlink accepted")
+	}
+}
 func TestSignedRoundTripAndDependencies(t *testing.T) {
 	a, b := fixture(t)
 	ctx := context.Background()
@@ -76,6 +99,21 @@ func TestMainWorktreeUntouchedAndSecretNotInState(t *testing.T) {
 	s, e := a.State(context.Background(), false)
 	if e != nil || s.PublicKey == "" {
 		t.Fatalf("%+v %v", s, e)
+	}
+}
+
+func TestRetryRejectsInvalidIDBeforeStorageAccess(t *testing.T) {
+	s, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"", "../outside", `..\outside`, "/absolute", "a/b", "a:b"} {
+		if _, err := s.Retry(context.Background(), id); err == nil || err.Error() != "invalid request identifier" {
+			t.Fatalf("Retry(%q): %v", id, err)
+		}
+	}
+	if _, err := os.Stat(s.dir); !os.IsNotExist(err) {
+		t.Fatalf("invalid retry touched storage: %v", err)
 	}
 }
 

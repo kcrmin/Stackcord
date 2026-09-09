@@ -170,6 +170,9 @@ func (s *Store) WorkOnce(ctx context.Context) (State, error) {
 	return st, nil
 }
 func (s *Store) Retry(ctx context.Context, id string) (State, error) {
+	if !identifier.MatchString(id) {
+		return State{}, errors.New("invalid request identifier")
+	}
 	wu, e := s.workerLock()
 	if e != nil {
 		return State{}, e
@@ -198,7 +201,7 @@ func (s *Store) Retry(ctx context.Context, id string) (State, error) {
 	st := s.state(c, events)
 	for _, r := range st.Requests {
 		if r.Request.ID == id && r.Request.To == c.Peer {
-			p := filepath.Join(s.dir, "receipt-"+id+".json")
+			p := filepath.Join(s.dir, "receipt-"+r.Request.ID+".json")
 			data, e := os.ReadFile(p)
 			if e != nil {
 				return State{}, e

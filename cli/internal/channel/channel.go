@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kcrmin/Stackcord/cli/internal/pathresolve"
 	"net/url"
 	"os"
 	"os/exec"
@@ -105,6 +106,12 @@ type Store struct {
 
 func Open(root string) (*Store, error) {
 	p, e := filepath.Abs(root)
+	if e != nil {
+		return nil, e
+	}
+	// Resolve the project boundary first (macOS /var and user-selected project
+	// aliases are legitimate). Storage below that boundary still rejects links.
+	p, e = pathresolve.Resolve(p)
 	if e != nil {
 		return nil, e
 	}
