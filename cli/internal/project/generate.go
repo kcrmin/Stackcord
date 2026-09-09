@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/kcrmin/Stackcord/cli/internal/operation"
-	"github.com/kcrmin/Stackcord/cli/internal/schema"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -44,7 +43,7 @@ func render(request InitRequest) ([]operation.FileChange, error) {
 		"docs/index.md":                                             "# Project documentation\n\nGuides, runbooks, troubleshooting, and generated summaries live here.\n",
 	}
 	if request.DraftRoot != "" {
-		checkpoint, err := schema.LoadYAML[DiscoveryCheckpoint](filepath.Join(request.DraftRoot, "checkpoint.yaml"))
+		checkpoint, err := LoadDiscoveryCheckpoint(filepath.Join(request.DraftRoot, "checkpoint.yaml"))
 		if err != nil {
 			return nil, fmt.Errorf("load approved discovery checkpoint: %w", err)
 		}
@@ -88,7 +87,7 @@ description: Use when starting, continuing, changing, coordinating, recovering, 
 
 Treat the user's natural-language request as the entry point; do not make them memorize commands or edit ` + "`.harness/`" + `. Read ` + "`.harness/entry.md`" + `, run ` + "`stackcord status --json`" + ` when available, and inspect actual Git, workspace, and submodule state. From a child repository, resolve the actual orchestration root before asserting service-wide context. Read only canonical sources related to the request. ` + "`specs/`" + ` owns product meaning; ` + "`contracts/`" + ` owns service purpose, commitments, non-goals, business rules, failure behavior, interfaces, and data obligations.
 
-When discovering or redefining the product, treat the initial product request as the first material answer. Infer discoverable facts, checkpoint normalized meaning rather than raw dialogue, and verify a successful apply before asking the next material question. When choices help, use 2–3 exclusive options labeled A/B/C, put the recommended option first and mark it recommended, and accept either a letter or free-form input. Keep work management proportional: a small private local edit does not need a ticket or Git work reservation. For shared, long-lived, cross-workspace, or semantically risky work, the selected task source owns live status and the Git work reservation owns exclusive semantic scope. Re-read both, check path and meaning overlap, and set ownership and merge order before parallel work. Before creating a branch, commit, pull request, or issue, read ` + "`.harness/git-conventions.yaml`" + ` when present; otherwise preserve Stackcord's existing branch behavior and the repository's current contribution templates. Never include AI markers.
+When discovering or redefining the product, treat the initial product request as the first material answer. Infer discoverable facts, checkpoint normalized meaning rather than raw dialogue, and verify a successful apply before asking the next material question. Group independent routine questions in the current section with 2–3 exclusive options labeled A/B/C and the recommended option first; accept letters or free-form input. Recommendations remain unaccepted until the user submits answers. Security, permission, irreversible, paid and release decisions require explicit answers. Show current/completed/remaining sections and an approximate question range after every batch; unknown progress stays unknown. Recover accepted decisions and progress with stackcord project discovery --root <root> --json (or --draft <draft-root> before initialization). Never repeat settled questions without explaining changed evidence. Save submitted decisions with question_id links and remove only answered questions; preserve unresolved blockers. Harness readiness is separate from approval and may precede completion of nonblocking discovery. Keep work management proportional: a small private local edit does not need a ticket or Git work reservation. For shared, long-lived, cross-workspace, or semantically risky work, the selected task source owns live status and the Git work reservation owns exclusive semantic scope. Re-read both, check path and meaning overlap, and set ownership and merge order before parallel work. Before creating a branch, commit, pull request, or issue, read ` + "`.harness/git-conventions.yaml`" + ` when present; otherwise preserve Stackcord's existing branch behavior and the repository's current contribution templates. Never include AI markers.
 
 Use TDD for behavior, bugs, contracts, migrations, and UI interactions; exploratory spikes may stay unmerged until evidence exists. Keep coordination internals out of normal replies. If context was compacted, settled questions repeat, or sources disagree, run a context audit before mutation. Use core release normally and enable strict release only for an explicit organizational need. If the CLI is unavailable, follow ` + "`references/fallback.md`" + ` and state reduced verification.
 
@@ -134,6 +133,7 @@ type generatedMetadata struct {
 }
 
 func addDiscoveryFiles(files map[string]string, checkpoint DiscoveryCheckpoint) {
+	files[".harness/discovery.yaml"] = discoveryStateYAML(checkpoint)
 	files["specs/product/summary.md"] = discoveryDocument("decision.product.summary", "decision", "approved", nil, "# Product summary\n\n"+checkpoint.Summary)
 	addFacts := func(directory, kind, status string, facts []DiscoveryFact) {
 		for _, fact := range facts {
