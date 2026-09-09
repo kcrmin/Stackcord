@@ -121,3 +121,33 @@ func TestStaticRoutesDoNotExposeFilesOrAcceptWrites(t *testing.T) {
 		}
 	}
 }
+
+func TestDashboardAssetsExposeSafeChannelAndStructuredDelegateFlows(t *testing.T) {
+	assets := map[string]string{}
+	for _, path := range []string{"/app.js", "/styles.css"} {
+		w := httptest.NewRecorder()
+		New(&testBackend{}, "secret", "127.0.0.1:8123").ServeHTTP(w, httptest.NewRequest("GET", "http://127.0.0.1:8123"+path, nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("asset %s: %d", path, w.Code)
+		}
+		assets[path] = w.Body.String()
+	}
+	app := assets["/app.js"]
+	for _, required := range []string{
+		"channel.setup", "channel.trust", "channel.send", "channel.refresh",
+		"expected_revision", "public_key", "stackcord channel worker --apply",
+		"delegate-row", "expires_at", "Observed checks passed; ready for eligible policy review",
+		"delegateSequence", "dependencyMatch", "ready:{en:'Ready'",
+		"worker_blocked_reason", "awaiting_publication", "stop remaining processes",
+	} {
+		if !strings.Contains(app, required) {
+			t.Errorf("app.js missing %q", required)
+		}
+	}
+	if strings.Contains(app, "private_key") {
+		t.Fatal("dashboard must never name or render channel private keys")
+	}
+	if !strings.Contains(app, "channel-request") {
+		t.Error("channel request presentation is missing")
+	}
+}

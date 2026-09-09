@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PAIRS = [
     ("docs/getting-started/en.md", "docs/getting-started/ko.md"),
     ("docs/concepts/en.md", "docs/concepts/ko.md"),
-    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "governance", "dbdiagram", "ui-workspace", "release", "troubleshooting")],
+    *[(f"docs/guides/{name}-en.md", f"docs/guides/{name}-ko.md") for name in ("new-project", "existing-project", "submodules", "task-management", "governance", "dbdiagram", "ui-workspace", "release", "troubleshooting", "peer-coordination")],
     *[(f"docs/security/{name}-en.md", f"docs/security/{name}-ko.md") for name in ("threat-model", "privacy")],
 ]
 SKILL_NAMES = (
