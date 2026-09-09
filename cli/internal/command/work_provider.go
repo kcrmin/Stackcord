@@ -75,6 +75,13 @@ func newWorkProviderReconcile(version string, jsonOutput *bool) *cobra.Command {
 			}
 			expectation := provider.Expectation{WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Dependencies: definition.Dependencies}
 			state := provider.Reconcile(expectation, mapping, snapshot, time.Now().UTC())
+			if mapping.Provider == "github" {
+				observation, liveErr := readGitHubObservation(cmd.Context(), mapping, definition, time.Now().UTC(), nil)
+				if liveErr != nil {
+					return writeResult(cmd, *jsonOutput, externalObservationBlocked(version, "work.provider.reconcile", observation, liveErr))
+				}
+				snapshot, state = observation.Snapshot, observation.State
+			}
 			result := providerResult(version, state)
 			if state.Confidence != provider.Confirmed || !apply {
 				if state.Confidence == provider.Confirmed {

@@ -78,3 +78,9 @@ Clone은 work definition, mapping, contract, 결정, workspace topology, remote 
 Provider를 사용할 수 없으면 AI는 unknown이라고 보고하고 재연결 또는 단일 provider를 바꾸는 명시적 결정을 제안합니다. Status를 몰래 Git-local로 복사하지 않습니다. 외부 provider 갱신은 성공했지만 Git 선점 compare-and-swap race에서 지면 branch 작업을 시작하지 않고 ownership과 충돌 범위를 새로 읽습니다. 외부 status와 의미 coordination이 다르면 정확한 revision이 맞을 때까지 integration과 release를 차단합니다.
 
 Branch, commit, pull request는 `feature/account-recovery`, `feat(account): add recovery challenge`, “Add account recovery flow” 같은 팀의 저장된 convention을 사용합니다. AI, agent, model, tool 이름을 넣지 않습니다.
+
+## 실시간 GitHub 이슈
+
+`stackcord issues list --repo owner/repository --json`은 실시간 이슈를 읽습니다. `stackcord issues create --repo owner/repository --id work-example --title TITLE --body-file issue.md`로 생성을 미리 보고 `--apply`를 추가해 생성하세요. 안정적인 ID는 이전 이슈가 닫혀 있어도 재시도 중복을 막습니다. UI에서도 같은 미리보기·생성 흐름을 제공합니다.
+
+기존 작업 정의는 `{"work.example": 42}` 같은 JSON 매핑을 `stackcord issues migrate --root . --repo owner/repository --mapping mapping.json`에 전달하고 검토 후 `--apply`로 적용하세요. 정의·의존 관계·인수 기준 참조는 저장소에 유지하고 GitHub가 실시간 상태를 관리합니다. 전환은 연결된 이슈와 의존 관계를 확인한 뒤 로컬 매핑을 바꿉니다. GitHub를 선택한 작업 흐름은 인증된 실시간 이슈 데이터를 새로 읽으며, 복사한 스냅샷을 실시간 원본으로 인정하지 않습니다. 다른 프로젝트는 선택한 제공자를 유지합니다.

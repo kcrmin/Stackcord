@@ -60,15 +60,15 @@ func TestExternalProviderStartUsesFreshAssignmentAndGitSemanticReservation(t *te
 	init := command.New("1.0.0", &bytes.Buffer{}, &bytes.Buffer{})
 	init.SetArgs([]string{"project", "adopt", "--root", root, "--id", "project.external-provider", "--locale", "en", "--apply", "--json"})
 	require.NoError(t, init.Execute())
-	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: github\nlive_status_source: github\nremote: origin\ncoordination_branch: coordination\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".harness", "work", "provider.yaml"), []byte("schema_version: 1\nprovider: fixture-provider\nlive_status_source: fixture-provider\nremote: origin\ncoordination_branch: coordination\n"), 0o600))
 	defineCommandWork(t, root, "work.account-recovery", "services/identity/**")
 	definition, found, err := loadDefinitionFixture(root, "work.account-recovery")
 	require.NoError(t, err)
 	require.True(t, found)
 
-	mapping := provider.Mapping{SchemaVersion: 1, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Provider: "github", ItemID: "42", DependencyItems: map[string]string{}}
+	mapping := provider.Mapping{SchemaVersion: 1, WorkID: definition.ID, DefinitionFingerprint: definition.Fingerprint, Provider: "fixture-provider", ItemID: "42", DependencyItems: map[string]string{}}
 	snapshot := provider.Snapshot{
-		SchemaVersion: 1, Provider: "github", ItemID: "42", Revision: "etag-42", Status: "in_progress", Owner: "alex", Dependencies: []string{},
+		SchemaVersion: 1, Provider: "fixture-provider", ItemID: "42", Revision: "etag-42", Status: "in_progress", Owner: "alex", Dependencies: []string{},
 		Capabilities: provider.Capabilities{Hierarchy: true, Dependencies: true, Claim: "advisory", Revision: true}, DefinitionFingerprint: definition.Fingerprint,
 		FetchedAt: time.Now().UTC(), Source: "connector-live", RawHash: "sha256:" + strings.Repeat("c", 64),
 	}

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -32,6 +33,11 @@ func loadExternalProviderObservation(root string, config taskProviderConfig, def
 	}
 	if mapping.Provider != config.LiveStatusSource || config.Provider != config.LiveStatusSource {
 		return externalProviderObservation{}, fmt.Errorf("provider mapping differs from the selected live status source")
+	}
+	if mapping.Provider == "github" {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		return readGitHubObservation(ctx, mapping, definition, now, nil)
 	}
 	snapshotPath := filepath.Join(root, ".harness", "local", "providers", mapping.Provider, definition.ID+".yaml")
 	if err := provider.ValidateCanonicalSnapshotLocation(root, snapshotPath); err != nil {

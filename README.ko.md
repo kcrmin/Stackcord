@@ -136,3 +136,5 @@ Plugin이 없어도 생성된 프로젝트의 repo-local Skill과 Markdown fallb
 | 작업·충돌·제품 책임자 관리 | [작업 관리](./docs/guides/task-management-ko.md) · [제품 책임자](./docs/guides/governance-ko.md) |
 | DB 설계와 release | [DBML](./docs/guides/dbdiagram-ko.md) · [Release](./docs/guides/release-ko.md) |
 | 문제 해결 | [문제 해결](./docs/guides/troubleshooting-ko.md) |
+
+선택형 설정·리뷰 UI: `stackcord dashboard --root .`를 실행하세요. [시작 안내](docs/getting-started/ko.md)와 [보안 모드](docs/guides/governance-ko.md)를 확인하세요.

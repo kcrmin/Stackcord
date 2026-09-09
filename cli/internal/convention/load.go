@@ -248,3 +248,6 @@ func containsAIMarker(branch string) bool {
 	}
 	return strings.Contains(lower, "generated-by") || strings.Contains(lower, "model-generated") || strings.Contains(lower, "generated-model")
 }
+
+// ValidateConfig validates an in-memory proposal before any canonical file is written.
+func ValidateConfig(config Config) error { return validateConfig(config) }

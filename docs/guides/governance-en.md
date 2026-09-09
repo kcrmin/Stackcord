@@ -47,3 +47,13 @@ The default mode uses provider-account approval. Teams that need provider-indepe
 ## Important limitation
 
 Stackcord cannot stop a person who controls the local filesystem from editing a file. It prevents an unapproved protected change from being recognized as canonical by its own checks and from passing integration or release. The Git provider's repository permissions and branch rules remain responsible for preventing unauthorized merges.
+
+## GitHub review modes and UI proposals
+
+The optional dashboard proposes version-2 governance using three explicit modes: strong requires registered individual administrator accounts; medium also accepts scoped delegates until their UTC expiry; weak disables Stackcord's policy approval gate. GitHub permissions, required checks, and protected branches still apply in every mode. GitHub does not allow PR author self-approval. A solo owner may explicitly choose weak mode or request another eligible reviewer.
+
+Mode, administrator and delegate changes are evaluated under the trusted default branch's existing policy. A proposed downgrade never authorizes itself. Delegates cannot change governance, appoint administrators or extend their own authority. Missing/inaccessible trusted policy, dismissed reviews, moved commits and provider outages do not count as approval. Initial setup requires a GitHub-authenticated repository administrator. Existing version-1 policies require an explicit migration proposal; UI edits preserve existing approval minimum and protected kinds.
+
+Use `stackcord review --repo owner/repository --pr 7 --json` to inspect observed checks, conflict status and live policy reviews. Prepare code, tests and description before opening a PR; request human review after CI and conflict checks pass. This command supplements GitHub's final protection/ruleset enforcement. The dashboard links directly to the PR review. A permitted reviewer can alternatively use `stackcord review --repo owner/repository --pr 7 --head COMMIT --account LOGIN --approve --apply`. This submits an exact-head GitHub review, not a merge.
+
+The dashboard displays proposed working-tree settings, not proof of effective trusted policy. Changes are previewed and saved locally; use the feature-branch PR workflow to make them canonical. Bootstrap, mode changes and purchases/releases are never accepted through routine recommended answers.
