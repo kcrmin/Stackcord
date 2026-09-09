@@ -11,6 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDocumentedExamplesHaveValidWorkspaceIdentity(t *testing.T) {
+	for _, example := range []string{"starter", "multi-repo"} {
+		t.Run(example, func(t *testing.T) {
+			manifest, err := Load(filepath.Join("..", "..", "..", "examples", example))
+			require.NoError(t, err)
+			require.NotEmpty(t, manifest.ProjectID)
+		})
+	}
+}
+
 func TestFindRootFromSubmoduleUsesActualSuperproject(t *testing.T) {
 	root, child := newRootWithChildSubmodule(t)
 
