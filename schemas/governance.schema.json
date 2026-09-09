@@ -2,42 +2,161 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stackcord.invalid/schemas/governance.schema.json",
   "type": "object",
-  "required": ["schema_version", "enabled", "provider", "repository", "product_authorities", "protected_kinds", "approval"],
+  "required": [
+    "schema_version",
+    "enabled",
+    "provider",
+    "repository",
+    "product_authorities",
+    "protected_kinds",
+    "approval"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "enabled": { "type": "boolean" },
-    "provider": { "type": "string" },
-    "repository": { "type": "string" },
+    "schema_version": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
     "product_authorities": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^(?:user|team):[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+      "items": {
+        "type": "string",
+        "pattern": "^(?:user|team):[A-Za-z0-9][A-Za-z0-9._/-]*$"
+      },
       "uniqueItems": true
     },
     "protected_kinds": {
       "type": "array",
-      "items": { "enum": ["product", "policy", "business", "contract"] },
+      "items": {
+        "enum": [
+          "product",
+          "policy",
+          "business",
+          "contract"
+        ]
+      },
       "minItems": 1,
       "uniqueItems": true
     },
     "approval": {
       "type": "object",
-      "required": ["minimum", "authority_self_approval"],
+      "required": [
+        "minimum",
+        "authority_self_approval"
+      ],
       "properties": {
-        "minimum": { "type": "integer", "minimum": 1 },
-        "authority_self_approval": { "type": "boolean" }
+        "minimum": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "authority_self_approval": {
+          "type": "boolean"
+        }
       },
       "additionalProperties": false
+    },
+    "mode": {
+      "enum": [
+        "strong",
+        "medium",
+        "weak"
+      ]
+    },
+    "delegates": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "subject",
+          "repository",
+          "kinds",
+          "expires_at"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "pattern": "^user:[A-Za-z0-9][A-Za-z0-9-]*$"
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 3
+          },
+          "kinds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "product",
+                "policy",
+                "business",
+                "contract"
+              ]
+            }
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
       "then": {
         "properties": {
-          "provider": { "type": "string", "minLength": 1 },
-          "repository": { "type": "string", "minLength": 1 },
-          "product_authorities": { "minItems": 1 }
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_authorities": {
+            "minItems": 1
+          }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "required": [
+          "mode"
+        ]
       }
     }
   ],
