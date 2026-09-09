@@ -91,6 +91,8 @@ class Dogfood:
         self.prove_product_self_adoption()
 
     def prove_external_provider_bridge(self) -> None:
+        # Synthetic normalized observations exercise the generic bridge only.
+        # Actual GitHub status must be fetched through the authenticated live adapter.
         remote = self.workspace / "remotes" / "external-provider.git"
         root = self.workspace / "external-provider"
         self.git(self.workspace, "init", "--bare", "--initial-branch=main", str(remote))
@@ -109,7 +111,7 @@ class Dogfood:
         self.expect_status(adopted, "passed", "external provider adoption")
         self.write(
             root / ".harness" / "work" / "provider.yaml",
-            "schema_version: 1\nprovider: github\nlive_status_source: github\n"
+            "schema_version: 1\nprovider: fixture-provider\nlive_status_source: fixture-provider\n"
             + "remote: origin\ncoordination_branch: coordination\n",
         )
         definition = self.work_definition(
@@ -136,18 +138,18 @@ class Dogfood:
             "schema_version": 1,
             "work_id": "work.provider-bridge",
             "definition_fingerprint": fingerprint,
-            "provider": "github",
+            "provider": "fixture-provider",
             "item_id": "42",
             "dependency_items": {},
         }
         mapping_path = self.workspace / "inputs" / "external-provider-mapping.json"
-        snapshot_path = root / ".harness" / "local" / "providers" / "github" / "work.provider-bridge.yaml"
+        snapshot_path = root / ".harness" / "local" / "providers" / "fixture-provider" / "work.provider-bridge.yaml"
         self.write(mapping_path, json.dumps(mapping, sort_keys=True, indent=2) + "\n")
 
         def snapshot(revision: str, status: str, owner: str, fetched_at: str | None = None) -> dict[str, Any]:
             return {
                 "schema_version": 1,
-                "provider": "github",
+                "provider": "fixture-provider",
                 "item_id": "42",
                 "revision": revision,
                 "status": status,
@@ -1103,7 +1105,7 @@ class Dogfood:
 
     def write(self, path: pathlib.Path, content: str) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        path.write_text(content, encoding="utf-8", newline="\n")
 
     def expect_status(self, value: dict[str, Any], status: str, label: str) -> None:
         if value.get("status") != status:
