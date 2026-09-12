@@ -6,6 +6,12 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Release](https://img.shields.io/github/v/release/kcrmin/Stackcord)](https://github.com/kcrmin/Stackcord/releases/latest)
 
+![Go](https://img.shields.io/badge/Go_1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Cobra](https://img.shields.io/badge/Cobra_CLI-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![JSON Schema](https://img.shields.io/badge/JSON_Schema-000000?style=for-the-badge&logo=json&logoColor=white)
+![YAML](https://img.shields.io/badge/YAML-CB171E?style=for-the-badge&logo=yaml&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+
 [한국어](./README.ko.md)
 
 Stackcord is an open-source full-stack collaboration harness: AI Skills guide **Question-Driven Development (QDD)**, and a Go CLI verifies the repository state. It turns conversations into durable product decisions, coordinates work across repositories, and recovers context when a session ends or another contributor takes over. It understands users, policies, and failure behavior before recommending a framework.

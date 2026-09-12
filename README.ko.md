@@ -6,6 +6,12 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Release](https://img.shields.io/github/v/release/kcrmin/Stackcord)](https://github.com/kcrmin/Stackcord/releases/latest)
 
+![Go](https://img.shields.io/badge/Go_1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Cobra](https://img.shields.io/badge/Cobra_CLI-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![JSON Schema](https://img.shields.io/badge/JSON_Schema-000000?style=for-the-badge&logo=json&logoColor=white)
+![YAML](https://img.shields.io/badge/YAML-CB171E?style=for-the-badge&logo=yaml&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+
 [English](./README.md)
 
 Stackcord는 AI Skill이 **Question-Driven Development(QDD)**를 안내하고 Go CLI가 실제 저장소 상태를 검증하는 오픈소스 풀스택 협업 하네스입니다. 대화를 제품 결정으로 기록하고, 여러 저장소의 작업을 조정하며, 대화가 끝나거나 담당자가 바뀌어도 맥락을 복구합니다. 프레임워크를 고르기 전에 사용자·정책·실패 상황부터 이해합니다.
