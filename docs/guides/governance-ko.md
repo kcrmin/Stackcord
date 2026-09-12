@@ -18,6 +18,30 @@ Stackcord는 선택한 Git review provider, 저장소, 허용된 계정, 보호�
 
 책임자 목록 변경도 현재 책임자 목록으로 보호합니다. 일반 팀원이 자신을 책임자로 추가하고 같은 변경을 승인할 수 없습니다. Git `user.name`과 `user.email`은 표시 정보일 뿐 권한을 증명하지 않습니다.
 
+## 제품 책임자를 안전하게 변경하기
+
+`--subject`를 반복해 정책 파일을 바꾸지 않고 한 명 이상의 책임자 추가 계획을 먼저 확인합니다.
+
+```sh
+stackcord governance authority add --root . --subject user:alex --subject team:platform --json
+```
+
+계획에는 정확한 정책 fingerprint와 변경 전·후 책임자 목록이 나옵니다. 내용을 검토한 뒤 그 계획에 표시된 fingerprint로 적용합니다.
+
+```sh
+stackcord governance authority add --root . --subject user:alex --subject team:platform --expected-policy sha256:0000000000000000000000000000000000000000000000000000000000000000 --apply --json
+```
+
+예시 값이 아니라 계획에서 반환된 fingerprint를 사용하고, 적용할 때도 같은 책임자 목록을 전달해야 합니다. 한 명 이상의 책임자 삭제도 같은 흐름을 사용합니다.
+
+```sh
+stackcord governance authority remove --root . --subject user:alex --subject team:platform --json
+```
+
+각 계획은 원자적으로 처리합니다. 요청한 책임자 중 하나라도 형식이 잘못됐거나, 요청 안에서 중복됐거나, 추가할 때 이미 등록돼 있거나, 삭제할 때 등록돼 있지 않으면 아무도 변경하지 않습니다. 적용 단계에서는 오래된 fingerprint, 마지막 책임자 삭제, 필요한 최소 승인 수를 충족할 수 없게 만드는 삭제도 거부합니다. 다른 정책 항목과 YAML 주석은 그대로 보존합니다.
+
+적용된 파일도 아직 governance 변경 제안입니다. Commit한 뒤 설정된 provider의 review를 마쳐야 하며, 로컬 파일 변경만으로 계정 신원이나 승인이 증명되지는 않습니다.
+
 ## 팀원과 검토자의 흐름
 
 ```text

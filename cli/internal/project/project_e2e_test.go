@@ -74,7 +74,7 @@ func TestGeneratedRepoLocalGuidanceIsFlexibleAndMatchesPluginTemplate(t *testing
 	fallback := mustRead(t, filepath.Join(root, ".agents", "skills", "use-project-harness", "references", "fallback.md"))
 	for _, required := range []string{
 		"natural-language", "initial product request", "A/B/C", "free-form", "small private local edit", "selected task source", "Git work reservation",
-		"service purpose", "business rules", "context audit", "strict release", "product authority", "proposal", "governance check", "Git user.name",
+		"service purpose", "business rules", "context audit", "strict release", "product authority", "proposal", "governance check", "governance authority", "--expected-policy", "multiple authorities", "Git user.name",
 		".harness/git-conventions.yaml", "branch, commit, pull request, or issue",
 	} {
 		require.Contains(t, skill+fallback, required)

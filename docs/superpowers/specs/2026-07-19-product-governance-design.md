@@ -133,6 +133,8 @@ Neither layer silently substitutes for the other.
 The deterministic CLI will:
 
 - validate governance policy syntax and bootstrap invariants;
+- plan one or more product-authority additions or removals as one atomic change before writing, bind apply to the reviewed policy fingerprint, preserve unrelated policy content, and refuse lockout or infeasible approval thresholds;
+- write authority changes only as proposals that still require the configured provider review before integration or release;
 - calculate the protected-change fingerprint;
 - report whether the current actor may approve or only propose;
 - verify normalized provider approval observations;
@@ -169,6 +171,7 @@ Only normalized account identifiers, review revision, timestamps, and hashes ent
 Deterministic tests cover:
 
 - schema acceptance and rejection;
+- single and multi-authority add/remove planning, atomic validation, stale-plan rejection, comment preservation, final-authority lockout, and approval-minimum feasibility;
 - bootstrap authority and self-escalation prevention;
 - contributor proposal versus authority approval;
 - spoofed Git name and email rejection;

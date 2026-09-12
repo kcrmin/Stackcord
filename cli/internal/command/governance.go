@@ -24,6 +24,7 @@ func newGovernanceCommand(version string, jsonOutput *bool) *cobra.Command {
 	check.Flags().StringVar(&root, "root", ".", "project path or any path inside the orchestration root")
 	check.Flags().StringVar(&observation, "observation", "", "fresh normalized review observation; defaults to ignored local governance state")
 	parent.AddCommand(check)
+	parent.AddCommand(newGovernanceAuthorityCommand(version, jsonOutput))
 	return parent
 }
 
