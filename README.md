@@ -1,12 +1,37 @@
 # Stackcord
 
-> A full-stack collaboration harness that defines services through questions and keeps many repositories and contributors aligned around one product context.
+> Keep people, AI agents, and repositories working from the same product decisions.
+
+[![CI](https://github.com/kcrmin/Stackcord/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kcrmin/Stackcord/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/kcrmin/Stackcord)](https://github.com/kcrmin/Stackcord/releases/latest)
 
 [한국어](./README.ko.md)
 
-Stackcord is a **Question-Driven Development (QDD)** tool used through conversations with Codex. It does not pick a framework first. It understands users, policies, and failure behavior before recommending the technologies and collaboration tools the service actually needs.
+Stackcord is an open-source full-stack collaboration harness: AI Skills guide **Question-Driven Development (QDD)**, and a Go CLI verifies the repository state. It turns conversations into durable product decisions, coordinates work across repositories, and recovers context when a session ends or another contributor takes over. It understands users, policies, and failure behavior before recommending a framework.
 
 Users do not memorize commands. Say “Start a new service,” “Build this feature,” or “Continue this project.” **Skills handle questions and judgment; a deterministic verifier checks actual Git, submodule, conflict, and release state.**
+
+[Quick start](#quick-start) · [Product flow](#from-questions-to-release) · [Documentation](#learn-more) · [Contributing](#development-and-contributing)
+
+## Quick start
+
+Paste [this repository link](https://github.com/kcrmin/Stackcord) into Codex and ask:
+
+```text
+Install the Stackcord Plugin from this GitHub link and prepare the current project.
+```
+
+Complete any installation security prompt, then start a new conversation. Manual installation of the published snapshot:
+
+```bash
+codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
+codex plugin add stackcord@stackcord
+```
+
+In an empty parent directory, say **“Start a new service with me.”** In an existing repository, say **“Adopt this project without overwriting my files.”** Answer the product questions, then ask **“Audit the project context and tell me what is next.”** Accepted decisions become repository files, so another session can continue from them.
+
+The tagged release is a fixed snapshot; this README also describes current `main`. For current source installation, CLI setup, platform bundles, and SHA-256 verification, follow [Getting started](./docs/getting-started/en.md). Hooks never download or install software. Generated projects retain a repo-local Skill and Markdown fallback for continuation without the Plugin.
 
 ## What problems does it solve?
 
@@ -55,6 +80,8 @@ Stackcord: GitHub Issues will own assignment and status. Stackcord will manage p
 
 Stackcord does not recreate Superpowers, BMAD, or Beads. **It finds an appropriate tool when the user needs it, including tools the user did not know about, and keeps that tool from taking over the project's source of truth.** Unselected tools are never forced on the project.
 
+These are conditional recommendations: Beads requires its own installed CLI; external task systems require a working authenticated connector or CLI. They are not bundled adapters. Git-local is the default.
+
 ### 3. Let only approved people confirm product direction
 
 ```text
@@ -95,23 +122,6 @@ This is not waterfall delivery. The team shares whole-product meaning and UI cov
 
 `contracts/` defines **what every implementation must obey**. From the same policy, it requires a new reservation to be `pending` and allows only an authorized administrator's approval to change it to `confirmed`. In other words, `contracts/` turn the intent in `specs/` into testable promises shared by frontend and backend.
 
-## Installation
-
-You do not need to know Go or the internal CLI. Paste the public Stackcord GitHub repository link into Codex and ask:
-
-```text
-Install the Stackcord Plugin from this GitHub link and prepare the current project.
-```
-
-Approve the security prompt if one appears, then start a new conversation and say, “Start a new service with me.” For manual installation:
-
-```bash
-codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
-codex plugin add stackcord@stackcord
-```
-
-A generated project can continue in another Codex environment without the Plugin through its repo-local Skill and Markdown fallback.
-
 ## Main files added to a project
 
 | Path | Contents |
@@ -127,6 +137,37 @@ A generated project can continue in another Codex environment without the Plugin
 
 The six user-facing Skills are `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, `recover-and-release-project`, and `use-git-conventions`. The Git-convention Skill records rules supplied by the developer and reuses them before creating or validating a branch, commit, pull request, or issue. Users do not memorize Skill names. Core mode provides the checks ordinary teams need; `strict-release` adds stronger supply-chain controls such as SBOM, provenance, and signatures only for organizations that select it.
 
+## Supported environments and CLI
+
+Release binaries target **macOS and Windows, x64 and ARM64**. CI runs native tests on macOS ARM64 and Windows x64 and cross-builds all four targets. Git is needed for repository collaboration; Go is only needed for source builds. Codex is the primary conversational entry point; Claude manifests and hook adapters share the same CLI and project files. Package validation does not guarantee every host version's session behavior.
+
+After [setting up the CLI](./docs/getting-started/en.md), these commands expose the same evidence used by the Skills:
+
+| Command | Purpose |
+| --- | --- |
+| `stackcord doctor --json` | Inspect Git and optional local capabilities |
+| `stackcord context audit --root . --json` | Check the current project's context against repository evidence |
+| `stackcord project discovery --root . --json` | Read saved discovery decisions and progress |
+| `stackcord dashboard --root .` | Open the optional local control center |
+
+The dashboard serves a loopback browser UI with no Node runtime or hosted account. It shows discovery, GitHub Issues and PR links, review requests, settings, and diagnostics; stopping the command ends the session. Optional [peer communication](./docs/guides/peer-coordination-en.md) connects explicitly trusted workers across computers through signed requests and replies, using selected local Codex, Claude, or custom runners.
+
+## Design and safety boundaries
+
+Skills interpret intent; the CLI checks actual state. Committed `specs/`, `contracts/`, and `.harness/` preserve decisions and coordination rules; generated local caches are disposable. A provider outage or stale review produces unknown or stale evidence, not approval.
+
+Product governance must be configured explicitly. Stackcord checks approval for protected meaning, while Git provider permissions and branch rules enforce merge restrictions. It cannot prevent a filesystem owner from editing files. Dashboard settings are working-tree proposals until committed and reviewed. `strict-release` is optional, and a verified candidate is not an automatic publication. See [governance](./docs/guides/governance-en.md), [threat model](./docs/security/threat-model-en.md), and [privacy](./docs/security/privacy-en.md).
+
+## Development and contributing
+
+Start with [CONTRIBUTING.md](./CONTRIBUTING.md) for source-build checks, review expectations, and contribution conventions. Explore the [Go CLI](./cli), [Skills](./skills), [project templates](./templates), and [starter example](./examples/starter). For README changes, run `python3 scripts/validate_docs.py` from the repository root; it checks documentation contracts and builds the CLI to verify documented commands.
+
+Use [GitHub Issues](https://github.com/kcrmin/Stackcord/issues) for reproducible bugs and feature proposals, [SUPPORT.md](./SUPPORT.md) for help, and [SECURITY.md](./SECURITY.md) for vulnerability reporting. Project decision rules are in [GOVERNANCE.md](./GOVERNANCE.md).
+
+## License
+
+Stackcord is distributed under the [Apache License 2.0](./LICENSE).
+
 ## Learn more
 
 | What you want to do | Guide |
@@ -136,7 +177,3 @@ The six user-facing Skills are `start-project`, `continue-project`, `plan-projec
 | Manage work, conflicts, and product authorities | [Task management](./docs/guides/task-management-en.md) · [Product authority](./docs/guides/governance-en.md) |
 | Design the database and prepare a release | [DBML](./docs/guides/dbdiagram-en.md) · [Release](./docs/guides/release-en.md) |
 | Troubleshoot a problem | [Troubleshooting](./docs/guides/troubleshooting-en.md) |
-
-Optional settings and review UI: run `stackcord dashboard --root .`. See the [getting started guide](docs/getting-started/en.md) and [policy modes](docs/guides/governance-en.md).
-
-Optional [peer communication](docs/guides/peer-coordination-en.md) connects registered workers on different computers through signed requests, prerequisites and replies. Each computer explicitly selects its trusted peers and local Codex, Claude or custom runner; routine coordination then needs no human message relay.

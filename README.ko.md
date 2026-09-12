@@ -1,12 +1,37 @@
 # Stackcord
 
-> 질문으로 서비스를 정의하고, 여러 저장소와 여러 사람의 작업을 하나의 제품 맥락으로 연결하는 풀스택 협업 하네스.
+> 사람, AI 에이전트, 여러 저장소가 같은 제품 결정을 바탕으로 일하도록 연결합니다.
+
+[![CI](https://github.com/kcrmin/Stackcord/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kcrmin/Stackcord/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/kcrmin/Stackcord)](https://github.com/kcrmin/Stackcord/releases/latest)
 
 [English](./README.md)
 
-Stackcord는 Codex와 대화하며 사용하는 **Question-Driven Development(QDD)** 도구입니다. 프레임워크를 먼저 정하지 않고 서비스의 사용자·정책·실패 상황을 이해한 뒤, 필요한 기술과 협업 도구를 선택합니다.
+Stackcord는 AI Skill이 **Question-Driven Development(QDD)**를 안내하고 Go CLI가 실제 저장소 상태를 검증하는 오픈소스 풀스택 협업 하네스입니다. 대화를 제품 결정으로 기록하고, 여러 저장소의 작업을 조정하며, 대화가 끝나거나 담당자가 바뀌어도 맥락을 복구합니다. 프레임워크를 고르기 전에 사용자·정책·실패 상황부터 이해합니다.
 
 사용자는 명령을 외울 필요가 없습니다. “새 서비스 시작해줘”, “이 기능 만들어줘”, “이 프로젝트 이어서 해”라고 말하면 됩니다. **Skill은 질문과 판단을 담당하고, 결정적인 검증기는 실제 Git·submodule·충돌·release 상태를 확인합니다.**
+
+[빠른 시작](#빠른-시작) · [제품 흐름](#질문에서-release까지) · [문서](#더-알아보기) · [기여](#개발과-기여)
+
+## 빠른 시작
+
+Codex에 [저장소 링크](https://github.com/kcrmin/Stackcord)를 붙여 넣고 요청합니다.
+
+```text
+이 GitHub 링크의 Stackcord Plugin을 설치하고, 현재 프로젝트를 시작할 준비를 해줘.
+```
+
+설치 보안 확인이 나타나면 승인한 뒤 새 대화를 시작합니다. 공개된 버전을 직접 설치할 때는 다음 명령을 사용합니다.
+
+```bash
+codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
+codex plugin add stackcord@stackcord
+```
+
+빈 상위 폴더에서는 **“새 서비스를 같이 시작해줘”**, 기존 저장소에서는 **“내 파일을 덮어쓰지 않고 이 프로젝트에 도입해줘”**라고 말합니다. 제품 질문에 답한 뒤 **“프로젝트 맥락을 점검하고 다음 작업을 알려줘”**라고 요청하세요. 합의한 결정은 저장소 파일이 되어 다른 대화에서도 이어갈 수 있습니다.
+
+태그 버전은 고정된 배포본이며 이 README는 현재 `main`의 기능도 설명합니다. 최신 소스 설치, CLI 준비, 플랫폼별 번들 및 SHA-256 검증은 [시작 안내](./docs/getting-started/ko.md)를 참고하세요. Hook은 소프트웨어를 다운로드하거나 설치하지 않습니다. 생성된 프로젝트는 Plugin 없이도 repo-local Skill과 Markdown fallback으로 이어갈 수 있습니다.
 
 ## 어떤 문제를 해결하나요?
 
@@ -55,6 +80,8 @@ Stackcord: GitHub Issues는 담당과 진행 상태를, Stackcord는 정책·con
 
 Stackcord는 Superpowers·BMAD·Beads를 다시 만들지 않습니다. **사용자가 몰랐던 적절한 도구를 필요한 순간에 찾아 연결하고, 그 도구가 프로젝트 원본을 침범하지 않게 관리합니다.** 선택하지 않은 도구는 강제하지 않습니다.
 
+위 추천은 연결 가능할 때만 적용됩니다. Beads는 별도 CLI가 필요하며 외부 작업 시스템에는 실제 인증된 connector나 CLI가 필요합니다. 내장 adapter가 아니며 기본 작업 상태 원본은 Git-local입니다.
+
 ### 3. 제품 방향은 승인된 사람만 확정합니다
 
 ```text
@@ -95,23 +122,6 @@ Waterfall처럼 모든 문서를 끝낸 뒤 한꺼번에 구현하지 않습니�
 
 `contracts/`는 **각 구현이 반드시 지켜야 할 의무**를 정의합니다. 같은 정책에서 “생성된 예약은 `pending`이고, 권한 있는 관리자의 승인만 `confirmed`로 바꿀 수 있다”는 규칙을 frontend와 backend가 함께 지키도록 만듭니다. 즉, `specs/`의 의도를 여러 구현이 테스트할 수 있는 약속으로 구체화한 것이 `contracts/`입니다.
 
-## 설치
-
-Go나 내부 CLI를 알 필요가 없습니다. GitHub에 공개된 Stackcord 저장소 링크를 Codex에 붙여 넣고 이렇게 요청합니다.
-
-```text
-이 GitHub 링크의 Stackcord Plugin을 설치하고, 현재 프로젝트를 시작할 준비를 해줘.
-```
-
-보안 확인이 나타나면 설치를 승인하고 새 대화에서 “새 서비스를 같이 시작해줘”라고 말합니다. 직접 설치할 때는 다음 두 명령만 사용합니다.
-
-```bash
-codex plugin marketplace add kcrmin/Stackcord --ref v1.0.0
-codex plugin add stackcord@stackcord
-```
-
-Plugin이 없어도 생성된 프로젝트의 repo-local Skill과 Markdown fallback으로 다른 Codex 환경에서 이어갈 수 있습니다.
-
 ## 프로젝트에 남는 주요 파일
 
 | 경로 | 내용 |
@@ -127,6 +137,37 @@ Plugin이 없어도 생성된 프로젝트의 repo-local Skill과 Markdown fallb
 
 사용자에게 보이는 여섯 Skill은 `start-project`, `continue-project`, `plan-project-work`, `coordinate-project-work`, `recover-and-release-project`, `use-git-conventions`입니다. Git convention Skill은 개발자가 알려준 규칙을 저장하고 branch·commit·PR·issue를 만들거나 검사하기 전에 다시 사용합니다. Skill 이름을 외울 필요는 없습니다. 기본 mode는 일반 팀 협업에 필요한 검증만 제공하며, `strict-release`는 선택한 조직에만 SBOM·provenance·signature 같은 강한 공급망 검증을 추가합니다.
 
+## 지원 환경과 CLI
+
+배포 바이너리는 **macOS와 Windows의 x64·ARM64**를 대상으로 합니다. CI는 macOS ARM64·Windows x64에서 네이티브 테스트를 실행하고 네 가지 대상을 교차 빌드합니다. 저장소 협업에는 Git이 필요하며 Go는 소스 빌드에만 필요합니다. 기본 대화 진입점은 Codex이고, Claude manifest와 hook adapter도 같은 CLI와 프로젝트 파일을 사용합니다. 패키지 검증이 모든 호스트 버전의 대화 동작을 보장하지는 않습니다.
+
+[CLI를 준비한 뒤](./docs/getting-started/ko.md) Skill이 사용하는 근거를 직접 확인할 수도 있습니다.
+
+| 명령 | 용도 |
+| --- | --- |
+| `stackcord doctor --json` | Git과 선택적 로컬 기능 확인 |
+| `stackcord context audit --root . --json` | 실제 저장소 근거로 현재 프로젝트 맥락 점검 |
+| `stackcord project discovery --root . --json` | 저장된 제품 결정과 질문 진행 상태 조회 |
+| `stackcord dashboard --root .` | 선택형 로컬 관리 화면 실행 |
+
+대시보드는 Node runtime이나 호스팅 계정 없이 loopback 주소에서 동작합니다. 제품 질문, GitHub Issues·PR 링크, 리뷰 요청, 설정과 진단을 보여주며 명령을 종료하면 세션이 끝납니다. 선택형 [작업자 통신](./docs/guides/peer-coordination-ko.md)은 명시적으로 신뢰한 다른 컴퓨터의 작업자를 서명된 요청·응답으로 연결하고, 선택한 로컬 Codex·Claude·사용자 지정 실행기를 사용합니다.
+
+## 설계와 안전 경계
+
+Skill은 의도를 해석하고 CLI는 실제 상태를 확인합니다. Git에 기록한 `specs/`·`contracts/`·`.harness/`가 결정과 조정 규칙을 보존하며 로컬 생성 cache는 재생성할 수 있습니다. Provider 장애나 오래된 리뷰는 승인으로 간주하지 않고 unknown 또는 stale로 보고합니다.
+
+제품 승인 정책은 명시적으로 설정해야 합니다. Stackcord는 보호된 의미의 승인을 검사하고, 실제 merge 제한은 Git 서비스 권한과 branch 규칙이 담당합니다. 파일시스템 소유자의 직접 편집을 막지는 못합니다. 대시보드 설정은 commit과 검토 전까지 작업 폴더의 제안이며 `strict-release`는 선택 사항입니다. 검증된 candidate도 자동 공개하지 않습니다. [제품 책임자](./docs/guides/governance-ko.md), [위협 모델](./docs/security/threat-model-ko.md), [개인정보](./docs/security/privacy-ko.md) 문서에서 경계를 확인할 수 있습니다.
+
+## 개발과 기여
+
+소스 빌드 검증, 리뷰 기준과 기여 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md)에서 시작하세요. [Go CLI](./cli), [Skills](./skills), [프로젝트 템플릿](./templates), [시작 예제](./examples/starter)로 구조를 살펴볼 수 있습니다. README 수정 시 저장소 루트에서 `python3 scripts/validate_docs.py`를 실행하면 문서 계약을 확인하고 CLI를 빌드해 문서에 나온 명령을 검증합니다.
+
+재현 가능한 버그와 기능 제안은 [GitHub Issues](https://github.com/kcrmin/Stackcord/issues), 이용 문의는 [SUPPORT.md](./SUPPORT.md), 취약점 제보는 [SECURITY.md](./SECURITY.md)를 참고하세요. 프로젝트 의사결정 규칙은 [GOVERNANCE.md](./GOVERNANCE.md)에 있습니다.
+
+## 라이선스
+
+Stackcord는 [Apache License 2.0](./LICENSE)으로 배포합니다.
+
 ## 더 알아보기
 
 | 하고 싶은 일 | 문서 |
@@ -136,7 +177,3 @@ Plugin이 없어도 생성된 프로젝트의 repo-local Skill과 Markdown fallb
 | 작업·충돌·제품 책임자 관리 | [작업 관리](./docs/guides/task-management-ko.md) · [제품 책임자](./docs/guides/governance-ko.md) |
 | DB 설계와 release | [DBML](./docs/guides/dbdiagram-ko.md) · [Release](./docs/guides/release-ko.md) |
 | 문제 해결 | [문제 해결](./docs/guides/troubleshooting-ko.md) |
-
-선택형 설정·리뷰 UI: `stackcord dashboard --root .`를 실행하세요. [시작 안내](docs/getting-started/ko.md)와 [보안 모드](docs/guides/governance-ko.md)를 확인하세요.
-
-선택형 [작업자 통신](docs/guides/peer-coordination-ko.md)은 서로 다른 컴퓨터의 등록된 작업자를 서명된 요청·선수 작업·응답으로 연결합니다. 각 컴퓨터에서 신뢰할 상대와 로컬 Codex·Claude·사용자 지정 실행기를 명시적으로 선택하면, 일반적인 조정 메시지는 사람이 전달하지 않아도 이어집니다.
