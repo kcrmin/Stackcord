@@ -11,6 +11,9 @@
 
 ## Local verification
 
+For workflow triggers, required checks, repository setup and draft releases, see
+the [CI/CD guide](docs/guides/ci-cd-en.md) ([한국어](docs/guides/ci-cd-ko.md)).
+
 During development, run the changed package or validator first:
 
 ```sh

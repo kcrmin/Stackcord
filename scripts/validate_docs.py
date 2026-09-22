@@ -12,6 +12,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PAIRS = [
+    ("docs/guides/ci-cd-en.md", "docs/guides/ci-cd-ko.md"),
     ("README.md", "README.ko.md"),
     ("docs/guides/runtime-en.md", "docs/guides/runtime-ko.md"),
     ("docs/guides/harness-en.md", "docs/guides/harness-ko.md"),

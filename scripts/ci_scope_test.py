@@ -1,8 +1,23 @@
 import unittest
-from ci_scope import needs_full_tests, gate_passes
+from ci_scope import needs_full_tests, gate_passes, security_gate_passes
 
 
 class ScopeTest(unittest.TestCase):
+    def test_security_gate_accepts_only_event_expected_checks(self):
+        states = {"codeql": "success", "vulnerability": "success",
+                  "dependency-review": "success", "scheduled-concurrency-and-fuzz": "skipped"}
+        self.assertTrue(security_gate_passes("pull_request", states))
+        for job in states:
+            for result in ("failure", "cancelled"):
+                self.assertFalse(security_gate_passes("pull_request", dict(states, **{job: result})))
+        push = dict(states, **{"dependency-review": "skipped"})
+        self.assertTrue(security_gate_passes("push", push))
+        self.assertFalse(security_gate_passes("schedule", push))
+        scheduled = dict(push, **{"scheduled-concurrency-and-fuzz": "success"})
+        self.assertTrue(security_gate_passes("schedule", scheduled))
+        self.assertFalse(security_gate_passes("unknown", push))
+        self.assertFalse(security_gate_passes("push", {}))
+
     def test_only_documentation_can_skip_platform_jobs(self):
         self.assertFalse(needs_full_tests(["README.md", "docs/concepts/ko.md"]))
         for path in ("cli/a.go", "skills/start-project/SKILL.md", "schemas/a.json",
