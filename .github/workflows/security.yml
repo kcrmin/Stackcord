@@ -6,38 +6,47 @@ on:
     branches: [main]
   schedule:
     - cron: "17 3 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  security-events: write
+
+concurrency:
+  group: security-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  codeql-and-vulnerability:
+  codeql:
+    name: CodeQL
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: |
+            core/go.sum
+            cli/go.sum
       - uses: github/codeql-action/init@02c5e83432fe5497fd85b873b6c9f16a8578e1d9
         with:
           languages: go
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
-        with:
-          go-version: 1.26.6
-          cache-dependency-path: cli/go.sum
-      - name: Build for CodeQL
-        working-directory: cli
-        run: go build ./...
-      - name: Go vulnerability database
-        working-directory: cli
+          build-mode: manual
+      - name: Build both Go modules for CodeQL
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
-          govulncheck ./...
+          (cd core && go build ./...)
+          (cd cli && go build ./...)
       - uses: github/codeql-action/analyze@02c5e83432fe5497fd85b873b6c9f16a8578e1d9
 
-  scheduled-concurrency-and-fuzz:
-    if: github.event_name == 'schedule'
+  vulnerability:
+    name: Go vulnerabilities
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
@@ -45,38 +54,70 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: 1.26.6
-          cache-dependency-path: cli/go.sum
+          cache-dependency-path: |
+            core/go.sum
+            cli/go.sum
+      - name: Install pinned Go vulnerability scanner
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+      - name: Scan core library
+        working-directory: core
+        run: govulncheck ./...
+      - name: Scan CLI, console and harness
+        working-directory: cli
+        run: govulncheck ./...
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      # Requires Dependency graph in repository Settings > Advanced Security.
+      # Keep this fail-closed: a disabled graph must not silently pass review.
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  scheduled-concurrency-and-fuzz:
+    name: Extended race and fuzz
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: |
+            core/go.sum
+            cli/go.sum
+      - name: Core continuity race checks
+        working-directory: core
+        run: go test -race ./...
       - name: Race tests
         working-directory: cli
         run: go test -race ./...
       - name: Fuzz canonical fingerprint parsers
         working-directory: cli
-        run: go test ./internal/context -run '^$' -fuzz FuzzFingerprint -fuzztime 15s
+        run: go test ./internal/harness/context -run '^$' -fuzz FuzzFingerprint -fuzztime 15s
 
-  dependency-review:
-    if: github.event_name == 'pull_request'
+  required-gate:
+    name: Security gate
+    if: always()
+    needs: [codeql, vulnerability, dependency-review, scheduled-concurrency-and-fuzz]
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: read
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           persist-credentials: false
-          fetch-depth: 0
-      - name: Detect Go dependency changes
-        id: dependency-changes
-        shell: bash
-        run: |
-          if git diff --quiet \
-            "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" \
-            -- ':(glob)**/go.mod' ':(glob)**/go.sum'; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.dependency-changes.outputs.changed == 'true'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
-        with:
-          fail-on-severity: moderate
-          deny-licenses: GPL-3.0, AGPL-3.0
+      - name: Require successful security checks for this event
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci_scope.py --security-gate

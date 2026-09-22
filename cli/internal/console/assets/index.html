@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stackcord · Tasks</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <section id="login" class="welcome">
+      <a class="brand" href="/">◈ Stackcord</a>
+      <div class="welcome-card">
+        <span class="eyebrow" data-i18n="welcome"
+          >YOUR WORK, KEPT TOGETHER</span
+        >
+        <h1 data-i18n="connect">Pick up where you left off.</h1>
+        <p data-i18n="credentialHelp">
+          Run stackcord start to open your local workspace. Already have a
+          server? Connect below.
+        </p>
+        <form id="login-form">
+          <label
+            ><span data-i18n="credential">Connection key</span
+            ><input id="token" type="password" autocomplete="off" required
+          /></label>
+          <button class="primary" data-i18n="connectButton">Connect</button>
+        </form>
+        <p class="muted" data-i18n="loginHint">
+          Your tasks stay on your server. No Stackcord account needed.
+        </p>
+      </div>
+    </section>
+    <div id="workspace" class="app" hidden>
+      <aside class="sidebar">
+        <a href="/" class="brand">◈ Stackcord</a>
+        <div class="project-switch">
+          <label for="project" data-i18n="project">PROJECT</label
+          ><select id="project"></select
+          ><button
+            id="new-project"
+            class="text-button"
+            type="button"
+            data-i18n="newProject"
+          >
+            + New project
+          </button>
+        </div>
+        <div class="nav-current">
+          <span>▤</span><span data-i18n="tasks">Tasks</span
+          ><span id="task-count" class="count">0</span>
+        </div>
+        <button id="open-connect" class="nav-button" type="button">
+          <span>↗</span><span data-i18n="connectAI">Use with your AI</span>
+        </button>
+        <button id="open-activity" class="nav-button" type="button">
+          <span>◷</span><span data-i18n="activity">Activity</span>
+        </button>
+        <div class="sidebar-bottom">
+          <span class="connection"
+            ><i></i
+            ><span data-i18n="savedLocally">Connected to workspace</span></span
+          ><button id="open-settings" class="nav-button" type="button">
+            <span>⚙</span><span data-i18n="settings">Settings</span></button
+          ><button id="language" class="text-button" type="button">
+            한국어
+          </button>
+        </div>
+      </aside>
+      <main>
+        <header class="page-header">
+          <div>
+            <p id="project-name" class="eyebrow"></p>
+            <h1 data-i18n="tasks">Tasks</h1>
+          </div>
+          <button
+            id="new-task"
+            class="primary"
+            type="button"
+            data-i18n="newTask"
+          >
+            + New task
+          </button>
+        </header>
+        <div class="work-toolbar">
+          <div class="tabs">
+            <button
+              id="filter-active"
+              class="tab"
+              aria-pressed="true"
+              data-i18n="active"
+            >
+              In progress</button
+            ><button
+              id="filter-all"
+              class="tab"
+              aria-pressed="false"
+              data-i18n="all"
+            >
+              All tasks
+            </button>
+          </div>
+          <button
+            id="refresh"
+            class="text-button"
+            type="button"
+            data-i18n="refresh"
+          >
+            Refresh
+          </button>
+        </div>
+        <div id="empty-state" class="empty-state" hidden>
+          <div class="empty-symbol">✦</div>
+          <h2 data-i18n="emptyTitle">What would you like to work on?</h2>
+          <p data-i18n="emptyHelp">
+            Add a task, share it with your AI, and keep the progress here.
+          </p>
+          <button id="first-task" class="primary" data-i18n="firstTask">
+            Create your first task
+          </button>
+          <p class="empty-caption" data-i18n="emptyCaption">
+            Start with one sentence. Your AI can record the details as it works.
+          </p>
+        </div>
+        <div id="work-area" class="work-area">
+          <section class="task-list" aria-label="Tasks">
+            <div id="tasks"></div>
+          </section>
+          <aside id="detail-panel" class="detail-panel">
+            <div id="context">
+              <div class="detail-placeholder">
+                <span>↖</span>
+                <p data-i18n="selectTask">Select a task to see its progress.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+    <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+    <dialog id="create-dialog" aria-labelledby="create-title">
+      <div class="dialog-heading">
+        <h2 id="create-title" data-i18n="create">New task</h2>
+        <button type="button" data-close="create-dialog" data-i18n="close">
+          Close
+        </button>
+      </div>
+      <form id="create-form">
+        <label
+          ><span data-i18n="goal">What needs to be done?</span
+          ><textarea
+            id="goal"
+            name="goal"
+            required
+            rows="3"
+            maxlength="8192"
+            data-placeholder="goalPlaceholder"
+            placeholder="e.g. Add a reservation API and test duplicate bookings"
+          ></textarea>
+        </label>
+        <details id="task-options">
+          <summary data-i18n="taskOptions">Details (optional)</summary>
+          <div class="details-body">
+            <label
+              ><span data-i18n="projectName">Project</span
+              ><input
+                name="project"
+                pattern="[A-Za-z0-9][A-Za-z0-9_.-]{0,127}"
+                placeholder="my-project"
+              /><small data-i18n="projectHint"
+                >Letters, numbers and hyphens. Leave blank for My
+                project.</small
+              ></label
+            >
+            <label
+              ><span data-i18n="constraints"
+                >Anything the AI should keep in mind?</span
+              ><textarea
+                name="constraints"
+                rows="2"
+                maxlength="8192"
+              ></textarea>
+            </label>
+          </div>
+        </details>
+        <div class="dialog-footer">
+          <button type="button" data-close="create-dialog" data-i18n="cancel">
+            Cancel</button
+          ><button id="create-submit" class="primary" data-i18n="create">
+            New task
+          </button>
+        </div>
+      </form>
+      <p
+        id="create-notice"
+        class="dialog-notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
+    </dialog>
+    <dialog id="connect-dialog" aria-labelledby="connect-title">
+      <div class="dialog-heading">
+        <h2 id="connect-title" data-i18n="connectAI">Use with your AI</h2>
+        <button type="button" data-close="connect-dialog" data-i18n="close">
+          Close
+        </button>
+      </div>
+      <p class="dialog-intro" data-i18n="connectHelp">
+        Paste these instructions into Codex, Claude Code, or another AI with
+        terminal access on this computer.
+      </p>
+      <ol class="connect-steps">
+        <li data-i18n="connectStep1">
+          Open your project in your AI coding tool.
+        </li>
+        <li data-i18n="connectStep2">Copy and paste the instructions below.</li>
+        <li data-i18n="connectStep3">
+          Its reported progress will appear here.
+        </li>
+      </ol>
+      <details>
+        <summary data-i18n="instructionPreview">Preview instructions</summary>
+        <textarea
+          id="connection-prompt"
+          rows="8"
+          readonly
+          aria-label="AI connection instructions"
+        ></textarea>
+      </details>
+      <p class="muted" data-i18n="connectBoundary">
+        Creating a task does not start an AI. Your AI must run the commands and
+        report its progress.
+      </p>
+      <details>
+        <summary data-i18n="anotherPC">Using another computer?</summary>
+        <p data-i18n="remoteHelp">
+          Connect to this server through an SSH tunnel or authenticated HTTPS,
+          and provide the runtime credential securely. This local instruction is
+          for this computer only; do not share the database file.
+        </p>
+      </details>
+      <div class="dialog-footer">
+        <button
+          id="copy-prompt"
+          class="primary"
+          type="button"
+          data-i18n="copyInstructions"
+        >
+          Copy instructions
+        </button>
+      </div>
+      <p
+        id="connect-notice"
+        class="dialog-notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
+    </dialog>
+    <dialog id="activity-dialog" aria-labelledby="activity-title">
+      <div class="dialog-heading">
+        <h2 id="activity-title" data-i18n="activity">Activity</h2>
+        <button type="button" data-close="activity-dialog" data-i18n="close">
+          Close
+        </button>
+      </div>
+      <p class="muted" data-i18n="activityHelp">
+        Task updates reported to this workspace.
+      </p>
+      <div id="events" role="log"></div>
+      <button id="more" type="button" hidden data-i18n="more">Load more</button>
+      <p
+        id="activity-notice"
+        class="dialog-notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
+    </dialog>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-heading">
+        <h2 id="settings-title" data-i18n="settings">Settings</h2>
+        <button type="button" data-close="settings-dialog" data-i18n="close">
+          Close
+        </button>
+      </div>
+      <label class="check"
+        ><input id="auto" type="checkbox" checked /><span data-i18n="auto"
+          >Update progress automatically</span
+        ></label
+      >
+      <details>
+        <summary data-i18n="advanced">Advanced</summary>
+        <div class="details-body">
+          <label
+            ><span data-i18n="budget">Maximum context size (bytes)</span
+            ><input
+              id="budget"
+              type="number"
+              min="1"
+              max="1048576"
+              value="16384"
+          /></label>
+          <p class="muted" data-i18n="budgetHelp">
+            Limits what is fetched for a task. A smaller value can prevent its
+            details from loading.
+          </p>
+          <p class="muted" data-i18n="boundary">
+            Work is saved in the server database. Back it up separately from
+            Git. Reported completion does not verify code or approvals.
+          </p>
+        </div>
+      </details>
+      <div class="dialog-footer">
+        <button id="disconnect" type="button" data-i18n="disconnect">
+          Disconnect
+        </button>
+      </div>
+      <p
+        id="settings-notice"
+        class="dialog-notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
+    </dialog>
+    <script src="/app.js"></script>
+  </body>
+</html>

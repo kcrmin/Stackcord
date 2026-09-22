@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Exact candidate tag, for example v1.0.0
+        description: Existing release tag, for example v1.0.1
         required: true
         type: string
-      rc_digest:
-        description: Exact locally verified sha256 release-candidate digest
+      expected_sha:
+        description: Full 40-character source commit SHA that passed CI and Security on main
         required: true
         type: string
 
@@ -17,39 +17,61 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   stage:
+    # Run the verifier from the maintained main branch, not from an arbitrary tag.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    environment: production
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_sha: ${{ steps.preflight.outputs.source_sha }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
+          ref: main
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ inputs.tag }}
-      - name: Verify exact tag and candidate input
+      - name: Verify exact source and successful main checks
+        id: preflight
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
-          RC_DIGEST: ${{ inputs.rc_digest }}
-        run: |
-          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          [[ "$RC_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
-          test "$(git describe --tags --exact-match HEAD)" = "$TAG"
-          test "$(python3 -c 'import json; print(json.load(open(".codex-plugin/plugin.json"))["version"])')" = "${TAG#v}"
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/release_preflight.py --tag "$TAG" --expected-sha "$EXPECTED_SHA"
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: ${{ steps.preflight.outputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: 1.26.6
-          cache-dependency-path: cli/go.sum
-      - name: Test exact source
+          cache-dependency-path: |
+            core/go.sum
+            cli/go.sum
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24"
+      - name: Core continuity race checks and static analysis
+        working-directory: core
+        run: go test -race ./... && go vet ./...
+      - name: Test exact CLI source
         working-directory: cli
         run: go test -race ./... && go vet ./...
+      - name: Console behavior
+        run: node --test cli/internal/console/console.test.cjs
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94
         with:
           distribution: goreleaser
           version: v2.17.0
           args: release --clean --skip=publish
+        env:
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag }}
       - name: Render deterministic Plugin packages
         env:
           VERSION: ${{ inputs.tag }}
@@ -64,19 +86,50 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: verified-release-staging
-          path: dist/
+          path: dist/release-assets/
           if-no-files-found: error
-      - name: Create draft GitHub release
+          retention-days: 14
+
+  draft:
+    name: Create release draft
+    needs: stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Recheck source and checks before creating the draft
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
-          RC_DIGEST: ${{ inputs.rc_digest }}
+          EXPECTED_SHA: ${{ needs.stage.outputs.source_sha }}
+        run: python3 scripts/release_preflight.py --tag "$TAG" --expected-sha "$EXPECTED_SHA"
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: verified-release-staging
+          path: release-assets
+      - name: Verify staged checksums
+        working-directory: release-assets
+        run: sha256sum --check checksums.txt
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ needs.stage.outputs.source_sha }}
         run: |
           gh release create "$TAG" \
-            dist/release-assets/* \
+            release-assets/* \
             --draft \
             --verify-tag \
             --title "$TAG" \
-            --notes "Release candidate: $RC_DIGEST
+            --notes "Verified source: $SOURCE_SHA
 
-          Verify checksums.txt before installing. Publishing this draft remains an explicit user action."
+          CI and Security passed for this exact main-branch source. Verify checksums.txt before installing. Publishing this draft remains an explicit user action."

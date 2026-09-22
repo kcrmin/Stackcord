@@ -1,5 +1,7 @@
 # Getting started
 
+This guide installs the optional project harness. For the new standalone coordination runtime, see [Runtime](../guides/runtime-en.md).
+
 ## Prerequisites
 
 Use Git for collaboration; Git is required when a release candidate must be traceable. A Plugin-capable AI client improves discovery, but the generated repository also includes a standalone Skill and Markdown fallback. Go 1.26 or newer is needed only when building from source.

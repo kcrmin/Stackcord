@@ -61,7 +61,7 @@ def validate(root: pathlib.Path) -> list[str]:
         errors.append("repository secret scan is duplicated across pull-request workflows")
 
     release = (root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "release.yml").exists() else ""
-    for guard in ("workflow_dispatch", "environment: production", "rc_digest", "--skip=publish", "render_plugin_packages.py", "checksums.txt", "--draft", "gh release create"):
+    for guard in ("workflow_dispatch", "environment: production", "expected_sha", "release_preflight.py", "--skip=publish", "render_plugin_packages.py", "checksums.txt", "--draft", "gh release create"):
         if guard not in release:
             errors.append(f"release workflow missing fail-closed guard: {guard}")
     for strict_token in ("approval_operation_id", "verify_publish_guard.py", "cosign", "sigstore"):

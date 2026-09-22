@@ -5,6 +5,15 @@ import os
 import subprocess
 
 
+def security_gate_passes(event, states):
+    if event not in ("pull_request", "push", "schedule", "workflow_dispatch"):
+        return False
+    expected = {"codeql": "success", "vulnerability": "success",
+                "dependency-review": "success" if event == "pull_request" else "skipped",
+                "scheduled-concurrency-and-fuzz": "success" if event in ("schedule", "workflow_dispatch") else "skipped"}
+    return all(states.get(job) == result for job, result in expected.items())
+
+
 def needs_full_tests(paths):
     return not paths or any(not (p in ("README.md", "README.ko.md") or
         (p.startswith("docs/") and p.endswith(".md"))) for p in paths)
@@ -22,12 +31,22 @@ def main():
     parser.add_argument("--base")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--gate", action="store_true")
+    parser.add_argument("--security-gate", action="store_true")
     args = parser.parse_args()
-    if args.gate:
+    if args.gate or args.security_gate:
         needs = json.loads(os.environ["CI_NEEDS"])
+        states = {k: v.get("result") for k, v in needs.items()}
         choice = needs.get("changes", {}).get("outputs", {}).get("full")
-        return 0 if choice in ("true", "false") and gate_passes(choice == "true",
-            {k: v.get("result") for k, v in needs.items()}) else 1
+        passed = (security_gate_passes(os.environ["GITHUB_EVENT_NAME"], states)
+                  if args.security_gate else choice in ("true", "false") and gate_passes(choice == "true", states))
+        report = "| Check | Result |\n| --- | --- |\n" + "".join(f"| {k} | {v} |\n" for k, v in states.items())
+        print(report)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+                summary.write(report)
+        if not passed:
+            print("Required checks failed, were cancelled, or were unexpectedly skipped.")
+        return 0 if passed else 1
     full = True
     if args.base and set(args.base) != {"0"}:
         diff = subprocess.run(["git", "diff", "--name-only", "-z", args.base, args.head, "--"],
