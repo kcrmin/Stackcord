@@ -17,8 +17,12 @@ type connection struct{ endpoint, tokenFile string }
 
 func (c *connection) token() (string, error) {
 	token := os.Getenv("STACKCORD_TOKEN")
-	if c.tokenFile != "" {
-		f, e := os.Open(c.tokenFile)
+	file := c.tokenFile
+	if file == "" && token == "" {
+		file = defaultLocalCredential(c)
+	}
+	if file != "" {
+		f, e := os.Open(file)
 		if e != nil {
 			return "", e
 		}
@@ -59,7 +63,7 @@ func Register(root *cobra.Command) {
 	c := &connection{}
 	root.PersistentFlags().StringVar(&c.endpoint, "endpoint", "http://127.0.0.1:7331", "runtime URL (HTTPS or loopback HTTP)")
 	root.PersistentFlags().StringVar(&c.tokenFile, "token-file", "", "private bearer credential file; otherwise STACKCORD_TOKEN")
-	root.AddCommand(newServe(c))
+	root.AddCommand(newStart(), newServe(c))
 	emit := func(cmd *cobra.Command, v any, e error) error {
 		if e != nil {
 			return e

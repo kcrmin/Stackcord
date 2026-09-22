@@ -76,6 +76,17 @@ and renders untrusted content with textContent. Bundled console access is loopba
 are for API clients, not an implicitly supported browser deployment. CLI credentials come from a file
 or environment, never persistent browser storage or command-line token flags.
 
+`stackcord start` adds a local onboarding adapter: private per-user credential/DB
+defaults, optional browser launch, a five-minute one-use fragment code exchanged
+for a 12-hour HttpOnly SameSite=Strict cookie. Exact Host and Origin checks stay in
+front of cookie authentication; only the console adapter translates a valid cookie
+to the existing bearer API. The core API is unchanged. The fragment is removed
+before exchange; the durable key is not exposed to JavaScript. Logout and process
+restart invalidate sessions. `serve --ui` retains manual memory-only key entry.
+The basic UI is task-first: generated task IDs, a default project, optional details,
+active/all task filters, and on-demand activity/settings/AI instructions. There is
+no new provider runner, permission authority or persisted task format.
+
 ## Acceptance
 
 - A pauses for quota; B claims and completes; A's stale update is rejected.
@@ -128,3 +139,21 @@ Independent review findings about payload headroom and project-switch races were
 fixed with regression coverage. The reverse-proxy browser deployment limitation
 is explicit. No provider/model benchmark, new module tag, release or merge is part
 of this change.
+
+## Local onboarding and task-first console — 2026-09-22
+
+The default human flow is `start` → write a goal → copy AI instructions → inspect
+reported progress. Creating a task never implies that a model was started.
+Existing harness administration stays outside that flow. Task creation generates
+IDs and retains the same mutation across an unchanged failed submission; completed
+tasks remain available in the All view. Optional project/constraint fields,
+activity, technical details and settings use progressive disclosure.
+
+Verification for this follow-up: full CLI tests and vet; runtime/console race
+checks; 11 console state-machine tests; 17 EN/KO documentation pairs; secret scan;
+macOS build and Windows/Linux amd64 cross builds. Native browser checks on macOS
+covered one-use connection, first task creation with only a goal, instruction
+copy, refresh/reconnection and responsive layout. Independent review findings
+about launcher blocking, late bootstrap, project draft mutation and late create
+responses were fixed and rechecked. No installer release or live model execution
+was performed.

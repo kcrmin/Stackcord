@@ -6,6 +6,39 @@ The runtime in current source is independent of Git and the optional project
 harness. Build the checkout as shown in the root README; it is not in the older
 `v1.0.0` release. Use a private directory outside your source repository.
 
+
+For everyday local use, run `stackcord start`. It creates a credential once and
+reuses the database, opens the browser, and supplies a one-use connection link.
+The default folder is `os.UserConfigDir()/Stackcord`: `~/Library/Application Support/Stackcord`
+on macOS, `$XDG_CONFIG_HOME/Stackcord` (or `~/.config/Stackcord`) on Linux, and
+`%AppData%/Stackcord` on Windows. The files are `state.db` and `token`.
+Use a directory private to your OS account; Windows inherits the directory ACL.
+`--data-dir` overrides the folder; `--port` overrides the port; `--no-open` prints
+the link without opening a browser. A port-in-use error does not erase saved work.
+
+The launch link contains a one-use code, valid for five minutes, in its fragment.
+The page immediately removes it and exchanges it for an HttpOnly, SameSite=Strict
+browser cookie valid for up to 12 hours or until server restart/logout. The durable
+API key is never sent to JavaScript in this flow. Treat the launch link as private
+until consumed; do not paste it into issues or shared logs. With `serve --ui`,
+manual key entry stays in page memory only. Neither flow stores the API key in
+localStorage; only the language preference is saved there.
+
+Create a task by entering a goal. The default project is `my-project`; task IDs
+are automatic. Optional details let you choose another project and constraints.
+Select a task and **Use with your AI**, then paste the instructions into your
+coding tool on the same computer. Its owner/session/epoch and checkpoint reports
+feed this view; the console does not launch models or detect provider quota.
+Activity and technical details are available on demand. Completed tasks remain
+under **All tasks**. To use another computer, follow the remote setup below.
+
+With the default endpoint and no explicit credential, CLI clients automatically
+read the default local `token` file. Explicit `--token-file` takes precedence over
+`STACKCORD_TOKEN`. A custom endpoint never implicitly sends the default credential;
+pass the credential explicitly. Custom data directories also need `--token-file`.
+
+For explicit server configuration, the existing `serve` path is unchanged:
+
 On macOS/Linux, for example:
 
 ```sh

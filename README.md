@@ -42,19 +42,31 @@ cd cli
 go build -o ../dist/stackcord ./cmd/stackcord
 ```
 
-Create a private credential file containing at least 32 random characters, then:
+Start with one command:
 
 ```sh
-stackcord serve --db /absolute/private/path/state.db --token-file /absolute/private/path/token --ui
+../dist/stackcord start
 ```
 
-Use the built binary's path if it is not on PATH. The command binds
-`127.0.0.1:7331` and runs in the foreground. `--ui` enables the optional console;
-enter the credential in the page. It is kept in page memory only. No hosted account,
-Node runtime, model API key or Git repository is required for coordination.
+The browser opens your local workspace. Click **Create your first task**, write
+what needs doing, then choose **Use with your AI** to copy instructions into
+Codex, Claude Code or another tool with terminal access. Progress appears as the
+AI reports it. Creating a task alone does not launch a model.
 
-See the [runtime guide](docs/guides/runtime-en.md) for credential creation, the
-A-to-B handoff example, remote connections and backup/restore.
+`start` creates and reuses a private credential and database in your user
+configuration directory under `Stackcord`. It runs in the foreground on
+`127.0.0.1:7331`; stop with Ctrl+C and run it again to resume. No hosted account,
+Node runtime, model API key or Git repository is needed. Use `--no-open` to open
+the printed one-use link yourself, or `--data-dir` for a different private directory.
+This remains a source build, not a newly published installer.
+
+The main view shows unfinished tasks and their progress. Completed work is under
+**All tasks**; activity, connection instructions and advanced settings open only
+when needed. IDs are generated automatically. Existing `serve --db ... --token-file ... --ui`
+remains available for explicit server configuration.
+
+See the [runtime guide](docs/guides/runtime-en.md) for local sessions, worker
+handoffs, remote connections and backup/restore.
 
 ## Small messages, durable work
 
