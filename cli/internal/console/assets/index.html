@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stackcord · Coordination</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">◈ Stackcord</a
+      ><span data-i18n="tagline">Work continues. Sessions change.</span
+      ><button id="language" type="button">한국어</button>
+    </header>
+    <main>
+      <section id="login" class="panel">
+        <h1 data-i18n="connect">Connect to your runtime</h1>
+        <p data-i18n="credentialHelp">
+          Use the credential configured when starting the runtime. It stays in
+          this page's memory.
+        </p>
+        <form id="login-form">
+          <label
+            ><span data-i18n="credential">Runtime credential</span
+            ><input
+              id="token"
+              type="password"
+              autocomplete="off"
+              required /></label
+          ><button data-i18n="connectButton">Connect</button>
+        </form>
+      </section>
+      <div id="workspace" hidden>
+        <div class="toolbar">
+          <div>
+            <p class="eyebrow" data-i18n="overview">COORDINATION</p>
+            <h1 data-i18n="title">A shared place for ongoing work.</h1>
+          </div>
+          <button id="disconnect" type="button" data-i18n="disconnect">
+            Disconnect
+          </button>
+        </div>
+        <section class="panel controls">
+          <label
+            ><span data-i18n="project">Project</span
+            ><select id="project"></select></label
+          ><label
+            ><span data-i18n="budget">Context byte budget</span
+            ><input
+              id="budget"
+              type="number"
+              min="1"
+              max="1048576"
+              value="16384" /></label
+          ><label class="check"
+            ><input id="auto" type="checkbox" checked /><span data-i18n="auto"
+              >Refresh every 5 seconds</span
+            ></label
+          ><button id="refresh" type="button" data-i18n="refresh">
+            Refresh
+          </button>
+        </section>
+        <div class="columns">
+          <section class="panel">
+            <h2 data-i18n="tasks">Tasks</h2>
+            <p class="muted" data-i18n="taskHelp">
+              Ownership is per session. Expired leases may be reclaimed; they do
+              not prove a process stopped.
+            </p>
+            <div id="tasks"></div>
+          </section>
+          <section class="panel">
+            <h2 data-i18n="handoff">Current handoff</h2>
+            <p class="muted" data-i18n="handoffHelp">
+              Select a task to see its checkpoint, constraints and referenced
+              results.
+            </p>
+            <div id="context"></div>
+          </section>
+        </div>
+        <div class="columns">
+          <section class="panel">
+            <h2 data-i18n="activity">Coordination activity</h2>
+            <p class="muted" data-i18n="activityHelp">
+              Recorded requests and state changes. No private model reasoning or
+              generated chat.
+            </p>
+            <div id="events" role="log"></div>
+            <button id="more" type="button" hidden data-i18n="more">
+              Load more changes
+            </button>
+          </section>
+          <section class="panel">
+            <h2 data-i18n="create">Create a task</h2>
+            <form id="create-form">
+              <label
+                ><span data-i18n="projectId">Project ID</span
+                ><input
+                  name="project"
+                  required
+                  pattern="[A-Za-z0-9][A-Za-z0-9_.-]{0,127}" /></label
+              ><label
+                ><span data-i18n="taskId">Task ID</span
+                ><input
+                  name="task"
+                  required
+                  pattern="[A-Za-z0-9][A-Za-z0-9_.-]{0,127}" /></label
+              ><label
+                ><span data-i18n="goal">Goal</span
+                ><textarea
+                  name="goal"
+                  required
+                  rows="3"
+                  maxlength="8192"
+                ></textarea></label
+              ><label
+                ><span data-i18n="constraints">Constraints (one per line)</span
+                ><textarea
+                  name="constraints"
+                  rows="2"
+                  maxlength="8192"
+                ></textarea></label
+              ><button data-i18n="create">Create a task</button>
+            </form>
+          </section>
+        </div>
+        <p class="muted" data-i18n="boundary">
+          Reported token counts can be incomplete. The runtime does not execute
+          models, reset quotas or verify Git changes. Back up its database
+          separately from Git.
+        </p>
+      </div>
+      <p id="notice" role="status" aria-live="polite"></p>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

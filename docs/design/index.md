@@ -1,8 +1,15 @@
 # Focused product design
 
+The current product boundary is [Coordination core](coordination-core.md). It
+supersedes full-stack-first positioning: core/ is independently importable; the
+CLI composes it with the optional cli/internal/harness/ extension. Historical
+records below govern that extension only, not the coordination library.
+
+## Optional harness history
+
 The product has one governing boundary: **flexible AI Skills own conversation and product judgment; the deterministic CLI owns actual-state, safety, conflict, and identity checks.**
 
-## Kept in the core
+## Kept in the harness
 
 - Continuous normalized discovery checkpoints and framework-neutral init/adopt.
 - Repo-local Skill and Markdown fallback for clone and context recovery.

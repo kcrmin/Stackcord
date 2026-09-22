@@ -1,7 +1,7 @@
 {
   "name": "stackcord",
   "version": "1.0.0",
-  "description": "AI-guided service discovery and durable context for multi-repository full-stack collaboration with deterministic local verification.",
+  "description": "Optional Stackcord project harness: durable Git context, service discovery, contracts, multi-repository coordination and release verification.",
   "author": {
     "name": "kcrmin",
     "url": "https://github.com/kcrmin"

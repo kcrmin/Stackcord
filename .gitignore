@@ -4,6 +4,7 @@
 .harness/local/
 dist/
 coverage/
+__pycache__/
 *.test
 *.out
 *.prof

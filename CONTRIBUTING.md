@@ -7,7 +7,7 @@
 - Use test-first development for behavior, bug, contract, migration, security, UI interaction, Git mutation, and lifecycle changes.
 - Keep generated JSON derived from canonical source; do not edit checkpoints directly.
 - Preserve framework, language, database, cloud, and Git-host neutrality.
-- Do not add telemetry, a daemon, a required account, hidden Git mutation, or a mandatory external adapter.
+- Do not add telemetry, an automatically installed service, a required hosted account, hidden Git mutation, or a mandatory external adapter. The opt-in foreground runtime is supported.
 
 ## Local verification
 
@@ -15,13 +15,16 @@ During development, run the changed package or validator first:
 
 ```sh
 cd cli
-go test ./internal/<package> -run <test> -v
+go test ./internal/harness/<package> -run <test> -v
 ```
 
 Before a pull request, run the deterministic repository checks:
 
 ```sh
-cd cli
+cd core
+go test -race ./...
+go vet ./...
+cd ../cli
 go test ./...
 go vet ./...
 cd ..
@@ -57,3 +60,10 @@ explicitly approved maintenance plan.
 ## Review
 
 Review product semantics before code style. Verify actual Git/submodule state, scope ownership, compatibility, failure behavior, tests, security, portability, documentation parity, and rollback. Do not accept completion claims without fresh command output.
+
+## Module boundary
+
+`core/` must never import the CLI, console or harness. Its public API is the
+coordination contract. `cli/internal/harness/` contains existing optional project
+workflows. Runtime mutations do not confer Git or product approval. Run both Go
+modules when changing shared behavior; use the root README for the new entrypoint.

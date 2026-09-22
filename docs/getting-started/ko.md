@@ -1,5 +1,7 @@
 # 시작 가이드
 
+이 안내는 선택형 프로젝트 하네스 설치를 다룹니다. 새 독립 협업 실행 서비스는 [실행 서비스 안내](../guides/runtime-ko.md)를 참고하세요.
+
 ## 준비 사항
 
 협업에는 Git을 사용하며 추적 가능한 release candidate에는 Git이 필수입니다. Plugin을 지원하는 AI client가 서비스 발견에 편리하지만 생성된 저장소에는 독립적인 Skill과 Markdown fallback도 들어갑니다. Go 1.26 이상은 source에서 직접 build할 때만 필요합니다.

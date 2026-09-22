@@ -1,7 +1,7 @@
 {
   "name": "stackcord",
   "version": "1.0.0",
-  "description": "AI-guided service discovery and durable context for multi-repository full-stack collaboration with deterministic local verification.",
+  "description": "Optional Stackcord project harness: durable Git context, service discovery, contracts, multi-repository coordination and release verification.",
   "author": {
     "name": "kcrmin",
     "url": "https://github.com/kcrmin"
@@ -22,7 +22,7 @@
   "hooks": "./hooks/codex.json",
   "interface": {
     "displayName": "Stackcord",
-    "shortDescription": "Keep service meaning coherent across people, agents, and repositories.",
+    "shortDescription": "Optional project harness for Git-backed project continuity.",
     "longDescription": "Use natural language to discover a service, create or adopt a framework-neutral harness, keep people and AI aligned on product meaning, require assigned Git accounts for protected policy approval, reconcile one external task source with semantic work reservation, recover multi-repository context after cloning or compaction, and verify one exact release candidate.",
     "developerName": "kcrmin",
     "category": "Productivity",

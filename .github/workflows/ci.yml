@@ -53,6 +53,9 @@ jobs:
         with:
           go-version: 1.26.6
           cache-dependency-path: cli/go.sum
+      - name: Core library tests and static analysis
+        working-directory: core
+        run: go test ./... && go vet ./...
       - name: Unit and integration tests
         working-directory: cli
         run: go test ./...
@@ -106,12 +109,18 @@ jobs:
           python3 scripts/validate_release_config.py .
           python3 -m unittest discover -s evals/baseline -p '*_test.py' -v
           python3 -m unittest discover -s profiles/strict-release/scripts -p '*_test.py' -v
+      - name: Coordination race checks
+        if: needs.changes.outputs.full == 'true'
+        working-directory: core
+        run: go test -race ./coordination ./httpapi
+      - name: Console behavior
+        run: node --test cli/internal/console/console.test.cjs
       - name: Workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/*.yml
       - name: Shared channel, control center and HTTP server race checks
         if: needs.changes.outputs.full == 'true'
         working-directory: cli
-        run: go test -race ./internal/channel ./internal/dashboard ./internal/controlcenter
+        run: go test -race ./internal/harness/channel ./internal/harness/dashboard ./internal/harness/controlcenter ./internal/runtimecmd ./internal/console
       - name: GoReleaser configuration
         run: go run github.com/goreleaser/goreleaser/v2@v2.17.0 check
 
