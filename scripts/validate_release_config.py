@@ -36,7 +36,7 @@ def validate(root: pathlib.Path) -> list[str]:
             if not re.search(r"@[0-9a-f]{40}$", use):
                 errors.append(f"GitHub Action is not commit-pinned: {path.name}: {use}")
     ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8") if (root / ".github" / "workflows" / "ci.yml").exists() else ""
-    for label in ("macos-14", "windows-2025"):
+    for label in ("macos-15", "windows-2025"):
         if label not in ci:
             errors.append(f"representative native CI target missing: {label}")
     for label in ("macos-15-intel", "windows-11-arm"):

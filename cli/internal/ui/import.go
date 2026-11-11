@@ -24,7 +24,9 @@ const maxImportEntries = 4096
 
 var secretPattern = regexp.MustCompile(`(?i)(api[_-]?token|password|secret|private[_-]?key)\s*[:=]\s*[A-Za-z0-9_\-]{16,}`)
 var sourceIDPattern = regexp.MustCompile(`^ui\.[a-z0-9]+(?:[.-][a-z0-9]+)*$`)
-var windowsAbsolutePath = regexp.MustCompile(`^[A-Za-z]:/`)
+
+// windowsVolumePath matches drive-absolute (C:/x) and drive-relative (C:x) names.
+var windowsVolumePath = regexp.MustCompile(`^[A-Za-z]:`)
 
 // Source describes an external UI artifact and its authority.
 type Source struct {
@@ -93,7 +95,7 @@ func registerPlan(source Source) (operation.Plan, error) {
 	for _, entry := range reader.File {
 		rawName := strings.ReplaceAll(entry.Name, "\\", "/")
 		name := path.Clean(rawName)
-		if name == "." || name == ".." || strings.HasPrefix(name, "../") || strings.HasPrefix(rawName, "/") || windowsAbsolutePath.MatchString(rawName) {
+		if !filepath.IsLocal(name) || name == "." || name == ".." || strings.HasPrefix(name, "../") || strings.HasPrefix(rawName, "/") || windowsVolumePath.MatchString(rawName) {
 			return operation.Plan{}, fmt.Errorf("archive path escapes quarantine: %s", entry.Name)
 		}
 		pathKey := strings.ToLower(name)

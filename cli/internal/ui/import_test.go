@@ -31,6 +31,28 @@ func TestImportRejectsMaliciousArchives(t *testing.T) {
 	}
 }
 
+func TestImportRejectsArchivePathsOutsideQuarantine(t *testing.T) {
+	names := map[string]string{
+		"parent":                   "../escape.txt",
+		"nested parent":            "screens/../../escape.txt",
+		"posix absolute":           "/etc/escape.txt",
+		"unc share":                `\\server\share\escape.txt`,
+		"drive absolute slash":     "C:/escape.txt",
+		"drive absolute":           `C:\escape.txt`,
+		"drive relative":           "C:escape.txt",
+		"lower drive relative":     "c:screens/escape.txt",
+		"drive relative backslash": `D:screens\escape.txt`,
+	}
+	for label, name := range names {
+		t.Run(label, func(t *testing.T) {
+			archive := zipFixtureEntries(t, [][2]string{{"LICENSE", "MIT"}, {name, "x"}})
+			plan, err := uiimport.ImportPlan(uiimport.Source{Root: t.TempDir(), Archive: archive, ID: "ui.external.escape", Kind: "mockup", Authority: "reference"})
+			require.ErrorContains(t, err, "escapes quarantine")
+			require.Empty(t, plan.Files)
+		})
+	}
+}
+
 func TestImportRejectsDuplicateNormalizedPaths(t *testing.T) {
 	archive := zipFixtureEntries(t, [][2]string{{"LICENSE", "MIT"}, {"screens/Recovery.html", "one"}, {"screens/recovery.html", "two"}})
 	plan, err := uiimport.ImportPlan(uiimport.Source{Root: t.TempDir(), Archive: archive, ID: "ui.external.duplicate", Kind: "mockup", Authority: "reference"})
