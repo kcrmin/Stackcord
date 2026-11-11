@@ -29,7 +29,7 @@ class CIContractTest(unittest.TestCase):
 
     def test_pull_request_uses_two_representative_native_full_test_jobs(self):
         ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        for token in ("macos-14", "windows-2025"):
+        for token in ("macos-15", "windows-2025"):
             self.assertIn(token, ci)
         for token in ("macos-15-intel", "windows-11-arm"):
             self.assertNotIn(token, ci)
